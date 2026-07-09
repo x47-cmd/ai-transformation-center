@@ -2533,3 +2533,142 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   Governance Center V2 Add-ons
+========================================================= */
+
+.governance-executive-card {
+  padding: 18px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.10), rgba(124, 58, 237, 0.08));
+  border: 1px solid rgba(37, 99, 235, 0.14);
+}
+
+.governance-executive-card strong {
+  display: block;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.governance-executive-card p {
+  margin-bottom: 14px;
+}
+
+.governance-principle-card small,
+.governance-list-item small,
+.risk-card small {
+  display: block;
+  margin-top: 8px;
+  color: var(--aiw-muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.governance-policy-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 11px;
+}
+
+.governance-policy-card {
+  padding: 16px;
+  border-radius: 22px;
+  background: rgba(16, 24, 40, 0.035);
+  border: 1px solid rgba(16, 24, 40, 0.08);
+}
+
+.governance-policy-card strong {
+  display: block;
+  margin: 12px 0 6px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.governance-policy-card p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.controls-row-4,
+.controls-table .controls-row {
+  grid-template-columns: 0.8fr 0.7fr 1.3fr 0.5fr;
+}
+
+.governance-lifecycle {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+}
+
+.governance-lifecycle div,
+.governance-roadmap div {
+  padding: 15px;
+  border-radius: 20px;
+  background: rgba(16, 24, 40, 0.04);
+  border: 1px solid rgba(16, 24, 40, 0.07);
+}
+
+.governance-lifecycle b,
+.governance-roadmap b {
+  display: inline-flex;
+  margin-bottom: 8px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #101828;
+  color: #fff;
+  font-size: 12px;
+}
+
+.governance-lifecycle strong,
+.governance-roadmap strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.governance-lifecycle span,
+.governance-roadmap span {
+  display: block;
+  margin-top: 6px;
+  color: var(--aiw-muted);
+  font-size: 12px;
+  line-height: 1.7;
+  font-weight: 800;
+}
+
+.governance-roadmap {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 980px) {
+  .governance-lifecycle {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .governance-roadmap {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .governance-policy-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .controls-row-4,
+  .controls-table .controls-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .governance-policy-grid,
+  .governance-lifecycle,
+  .governance-roadmap {
+    grid-template-columns: 1fr;
+  }
+}
