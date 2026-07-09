@@ -23,15 +23,12 @@
       return;
     }
 
-    app.innerHTML = `
-      <main class="atc-shell">
-        <section class="atc-hero">
-          <div class="atc-badge">V1.0 Foundation</div>
-          <h1>مركز التحول المؤسسي بالذكاء الاصطناعي</h1>
-          <p>AI Transformation Center</p>
-        </section>
-      </main>
-    `;
+    if (!window.ATCShell) {
+      console.error("ATC Error: ATCShell not loaded.");
+      return;
+    }
+
+    app.innerHTML = ATCShell.render();
 
     console.log("AI Transformation Center started successfully.");
   }
