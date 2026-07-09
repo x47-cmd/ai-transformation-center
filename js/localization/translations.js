@@ -1,67 +1,214 @@
 /* =========================================================
-   AI Transformation Center
-   Translation Dictionary
-   Version 1.0
+   AI Work
+   Translation Engine V2.0
 ========================================================= */
 
-const ATC_TRANSLATIONS = {
-  ar: {
-    appName: "مركز التحول المؤسسي بالذكاء الاصطناعي",
-    appSubtitle: "منصة تنفيذية لإدارة استراتيجية ومشاريع ومؤشرات الذكاء الاصطناعي",
+window.AIW = window.AIW || {};
 
-    navDashboard: "الرئيسية",
-    navStrategy: "الاستراتيجية",
-    navProjects: "المشاريع",
-    navIdeas: "الأفكار",
-    navRoadmap: "خارطة الطريق",
-    navGovernance: "الحوكمة",
-    navReports: "التقارير",
-    navMaturity: "النضج",
-    navBusiness: "دراسات الجدوى",
-    navInnovation: "الابتكار",
-    navSettings: "الإعدادات",
+AIW.I18N = {
 
-    kpiProjects: "المشاريع الاستراتيجية",
-    kpiIdeas: "أفكار الذكاء الاصطناعي",
-    kpiDepartments: "الإدارات",
-    kpiMaturity: "نضج الذكاء الاصطناعي",
+    current:
+        localStorage.getItem("aiwLanguage") || "ar",
 
-    btnLanguage: "English",
-    btnTheme: "الوضع",
-    btnExplore: "استعراض المنصة",
+    dictionary: {
 
-    dashboardTitle: "لوحة القيادة التنفيذية",
-    dashboardDesc: "رؤية موحدة للتحول المؤسسي بالذكاء الاصطناعي حتى عام 2030"
-  },
+        ar: {
 
-  en: {
-    appName: "AI Transformation Center",
-    appSubtitle: "Executive platform for managing AI strategy, projects, KPIs, and transformation",
+            appName: "مركز التحول المؤسسي بالذكاء الاصطناعي",
+            appSubtitle:
+                "منصة تنفيذية لإدارة استراتيجية ومشاريع ومؤشرات الذكاء الاصطناعي",
 
-    navDashboard: "Dashboard",
-    navStrategy: "Strategy",
-    navProjects: "Projects",
-    navIdeas: "AI Ideas",
-    navRoadmap: "Roadmap",
-    navGovernance: "Governance",
-    navReports: "Reports",
-    navMaturity: "AI Maturity",
-    navBusiness: "Business Cases",
-    navInnovation: "Innovation",
-    navSettings: "Settings",
+            dashboard: "الرئيسية",
+            strategy: "الاستراتيجية",
+            projects: "المشاريع",
+            ideas: "الأفكار",
+            roadmap: "خارطة الطريق",
+            governance: "الحوكمة",
+            reports: "التقارير",
+            maturity: "النضج",
+            innovation: "الابتكار",
+            settings: "الإعدادات",
 
-    kpiProjects: "Strategic Projects",
-    kpiIdeas: "AI Ideas",
-    kpiDepartments: "Departments",
-    kpiMaturity: "AI Maturity",
+            ideasCount: "الأفكار",
+            projectsCount: "المشاريع",
+            departments: "الإدارات",
+            maturityScore: "النضج",
 
-    btnLanguage: "العربية",
-    btnTheme: "Theme",
-    btnExplore: "Explore Platform",
+            executiveDashboard:
+                "لوحة القيادة التنفيذية",
 
-    dashboardTitle: "Executive Dashboard",
-    dashboardDesc: "Unified view of enterprise AI transformation through 2030"
-  }
+            executiveStrategy:
+                "مركز الاستراتيجية",
+
+            projectsPortfolio:
+                "محفظة المشاريع",
+
+            useCaseCatalog:
+                "دليل الأفكار",
+
+            search:
+                "بحث",
+
+            filter:
+                "تصفية",
+
+            quickWins:
+                "Quick Wins",
+
+            highPriority:
+                "أولوية عالية",
+
+            mediumPriority:
+                "أولوية متوسطة",
+
+            lowPriority:
+                "أولوية منخفضة"
+
+        },
+
+        en: {
+
+            appName:
+                "AI Transformation Center",
+
+            appSubtitle:
+                "Executive platform for AI Strategy, Projects and Enterprise Transformation",
+
+            dashboard:
+                "Dashboard",
+
+            strategy:
+                "Strategy",
+
+            projects:
+                "Projects",
+
+            ideas:
+                "AI Ideas",
+
+            roadmap:
+                "Roadmap",
+
+            governance:
+                "Governance",
+
+            reports:
+                "Reports",
+
+            maturity:
+                "AI Maturity",
+
+            innovation:
+                "Innovation",
+
+            settings:
+                "Settings",
+
+            ideasCount:
+                "Ideas",
+
+            projectsCount:
+                "Projects",
+
+            departments:
+                "Departments",
+
+            maturityScore:
+                "AI Maturity",
+
+            executiveDashboard:
+                "Executive Dashboard",
+
+            executiveStrategy:
+                "Strategy Center",
+
+            projectsPortfolio:
+                "Projects Portfolio",
+
+            useCaseCatalog:
+                "AI Use Case Catalog",
+
+            search:
+                "Search",
+
+            filter:
+                "Filter",
+
+            quickWins:
+                "Quick Wins",
+
+            highPriority:
+                "High Priority",
+
+            mediumPriority:
+                "Medium Priority",
+
+            lowPriority:
+                "Low Priority"
+
+        }
+
+    },
+
+    t(key) {
+
+        const lang = this.current;
+
+        return (
+            this.dictionary?.[lang]?.[key] ??
+            this.dictionary.ar[key] ??
+            key
+        );
+
+    },
+
+    set(lang){
+
+        if(!this.dictionary[lang]) return;
+
+        this.current=lang;
+
+        localStorage.setItem(
+            "aiwLanguage",
+            lang
+        );
+
+        document.documentElement.lang=lang;
+
+        document.documentElement.dir=
+            lang==="ar" ? "rtl":"ltr";
+
+        window.dispatchEvent(
+            new CustomEvent(
+                "aiw:languageChanged",
+                {
+                    detail:{
+                        language:lang
+                    }
+                }
+            )
+        );
+
+    },
+
+    toggle(){
+
+        this.set(
+            this.current==="ar"
+            ? "en"
+            : "ar"
+        );
+
+        if(window.AIW?.App){
+
+            AIW.App.go(
+                AIW.App.currentModule
+            );
+
+        }
+
+    }
+
 };
 
-Object.freeze(ATC_TRANSLATIONS);
+Object.freeze(AIW.I18N);
