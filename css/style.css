@@ -918,3 +918,144 @@ button:disabled {
     font-size: 10px;
   }
 }
+
+/* =========================================================
+   Projects Portfolio V2 Add-ons
+========================================================= */
+
+.portfolio-summary-box {
+  padding: 16px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.10), rgba(124, 58, 237, 0.08));
+  border: 1px solid rgba(37, 99, 235, 0.14);
+}
+
+.portfolio-summary-box strong {
+  display: block;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.portfolio-summary-box p {
+  margin-bottom: 0;
+}
+
+.execution-order {
+  display: grid;
+  gap: 10px;
+}
+
+.execution-order div {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 13px;
+  border-radius: 18px;
+  background: rgba(16, 24, 40, 0.04);
+}
+
+.execution-order b {
+  min-width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: #101828;
+  color: #fff;
+}
+
+.execution-order span {
+  color: var(--aiw-text);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 11px;
+}
+
+.project-card {
+  padding: 16px;
+  border-radius: 24px;
+  background: rgba(16, 24, 40, 0.035);
+  border: 1px solid rgba(16, 24, 40, 0.08);
+}
+
+.project-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.project-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: #101828;
+  color: #fff;
+  font-size: 20px;
+}
+
+.project-card h3 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.project-card > strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--aiw-primary-dark);
+  font-size: 12px;
+}
+
+.project-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 12px 0;
+}
+
+.project-meta span {
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--aiw-border);
+  color: var(--aiw-muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.project-progress > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.project-progress small {
+  color: var(--aiw-muted);
+  font-weight: 900;
+}
+
+.project-progress b {
+  font-size: 13px;
+}
+
+@media (max-width: 820px) {
+  .projects-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .projects-grid {
+    grid-template-columns: 1fr;
+  }
+}
