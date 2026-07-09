@@ -11,9 +11,7 @@ const ATCShell = (function () {
     return `
       <main class="atc-shell">
         <header class="atc-topbar">
-          <div>
-            <div class="atc-logo">AI</div>
-          </div>
+          <div class="atc-logo">AI</div>
 
           <div class="atc-top-actions">
             <button class="atc-icon-btn" id="atcLangBtn" type="button">عربي / EN</button>
@@ -23,7 +21,9 @@ const ATCShell = (function () {
 
         <section class="atc-hero">
           <div class="atc-badge">V1.0 Foundation</div>
+
           <h1>مركز التحول المؤسسي بالذكاء الاصطناعي</h1>
+
           <p>AI Transformation Center</p>
 
           <div class="atc-hero-actions">
