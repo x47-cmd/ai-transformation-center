@@ -3120,3 +3120,125 @@ button:disabled {
     text-align: right;
   }
 }
+
+/* =========================================================
+   Executive Reports Center V2 Ultimate Add-ons
+========================================================= */
+
+.report-ultimate-summary,
+.report-ai-card {
+  padding: 18px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.10), rgba(124, 58, 237, 0.08));
+  border: 1px solid rgba(37, 99, 235, 0.14);
+}
+
+.report-ultimate-summary strong,
+.report-ai-card strong {
+  display: block;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.report-ultimate-summary p,
+.report-ai-card p {
+  margin: 8px 0 14px;
+}
+
+.report-score-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.report-score-strip div {
+  padding: 11px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid var(--aiw-border);
+}
+
+.report-score-strip span {
+  display: block;
+  color: var(--aiw-muted);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.report-score-strip b {
+  display: block;
+  margin-top: 4px;
+  font-size: 15px;
+}
+
+.report-chart-card {
+  height: 300px;
+  padding: 12px;
+  border-radius: 22px;
+  background: rgba(16, 24, 40, 0.035);
+  border: 1px solid rgba(16, 24, 40, 0.08);
+}
+
+.report-decision-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 11px;
+}
+
+.report-decision-card {
+  padding: 16px;
+  border-radius: 22px;
+  background: rgba(16, 24, 40, 0.04);
+  border: 1px solid rgba(16, 24, 40, 0.07);
+}
+
+.report-decision-card b {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #101828;
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+.report-decision-card strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.report-decision-card span {
+  display: block;
+  margin: 5px 0 10px;
+  color: var(--aiw-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.report-decision-card small {
+  display: block;
+  margin-top: 7px;
+  color: var(--aiw-primary-dark);
+  font-size: 11px;
+  font-weight: 950;
+}
+
+@media (max-width: 980px) {
+  .report-decision-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .report-score-strip {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .report-decision-grid,
+  .report-score-strip {
+    grid-template-columns: 1fr;
+  }
+}
