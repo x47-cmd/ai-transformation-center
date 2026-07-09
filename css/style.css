@@ -21,6 +21,10 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -29,6 +33,10 @@ body {
     radial-gradient(circle at top left, rgba(124, 58, 237, 0.13), transparent 30%),
     var(--atc-bg);
   color: var(--atc-text);
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
 }
 
 #app {
@@ -74,6 +82,13 @@ body {
   cursor: pointer;
   font-family: inherit;
   font-weight: 800;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.atc-icon-btn:active,
+.atc-primary-btn:active,
+.atc-secondary-btn:active {
+  transform: scale(0.97);
 }
 
 .atc-icon-btn {
@@ -142,12 +157,64 @@ body {
 .atc-primary-btn {
   color: #fff;
   background: linear-gradient(135deg, var(--atc-primary), var(--atc-purple));
+  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.24);
 }
 
 .atc-secondary-btn {
   background: #fff;
   color: var(--atc-text);
   border: 1px solid var(--atc-border);
+}
+
+/* Executive KPI Grid */
+
+.atc-kpi-grid {
+  width: 100%;
+  max-width: 1180px;
+  margin: 22px auto 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.atc-kpi-card {
+  background: var(--atc-card);
+  border: 1px solid var(--atc-border);
+  box-shadow: 0 12px 30px rgba(16, 24, 40, 0.06);
+  border-radius: 22px;
+  padding: 20px;
+  backdrop-filter: blur(16px);
+}
+
+.atc-kpi-card span {
+  display: block;
+  color: var(--atc-muted);
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.atc-kpi-card strong {
+  display: block;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.atc-kpi-card small {
+  display: block;
+  margin-top: 8px;
+  color: var(--atc-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Responsive */
+
+@media (max-width: 900px) {
+  .atc-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 640px) {
@@ -157,5 +224,11 @@ body {
 
   .atc-hero {
     padding: 28px 20px;
+  }
+}
+
+@media (max-width: 520px) {
+  .atc-kpi-grid {
+    grid-template-columns: 1fr;
   }
 }
