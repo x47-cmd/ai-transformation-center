@@ -1,7 +1,7 @@
 /* =========================================================
-   AI Work - Executive Reports Center V2.1
-   Enterprise Biometric Intelligence Reports
-   No UI Design Changes
+   AI Work - Executive Reports Center V2.2
+   Biometric Executive Analytics
+   Content Refinement - No UI Design Changes
 ========================================================= */
 
 window.AIW = window.AIW || {};
@@ -17,46 +17,45 @@ AIW.Modules.reports = {
 
     const W = window.AIW?.Widgets;
     const A = window.AIW?.Analytics;
-    const AI = window.AIW?.AI;
     const D = window.AIW?.Decision;
     const R = window.AIW?.Recommendation;
 
     const data = window.AIW?.Data || {};
-    const summary = data.summary || {};
     const departments = data.departments || [];
-    const ideas = data.ideas || [];
+    const ideas = window.AIW?.BiometricAnalytics?.enrichIdeas
+      ? AIW.BiometricAnalytics.enrichIdeas()
+      : (data.ideas || []);
     const roadmap = data.roadmap || [];
     const risks = data.risks || [];
 
     const scores = A?.score ? A.score() : {};
-    const executiveSummary = A?.executiveSummary ? A.executiveSummary() : {};
-    const aiReport = AI?.generateExecutiveReport ? AI.generateExecutiveReport() : {
-      status: "مرحلة بناء التقرير التنفيذي",
-      message: "المرحلة التالية يجب أن تركز على لوحات جودة التسجيلات، استخدام الصلاحيات، أداء البوابات، والتنبيهات الذكية."
-    };
-    const decision = D?.executiveDecision ? D.executiveDecision() : {};
-    const fullRecommendation = R?.fullReport ? R.fullReport() : {
-      ceo: [
-        "اعتماد Enterprise Biometric Intelligence Platform كمحفظة متخصصة ضمن مبادرة أفكار الذكاء الاصطناعي.",
-        "البدء بمشاريع Quick Wins مثل لوحة أخطاء التسجيل، مراقبة الجلسات الطويلة، وتحليل استخدام الصلاحيات.",
-        "تطبيق Human-in-the-Loop على جميع التنبيهات المتعلقة بالتسجيلات والصلاحيات.",
-        "بناء Power BI Dashboard موحد للتسجيلات، البوابات، المستخدمين، والتنبيهات."
-      ],
-      nextActions: [
-        "حصر مصادر البيانات المطلوبة للتسجيلات، سجلات الدخول، الصلاحيات، والأجهزة.",
-        "تحديد مؤشرات القياس الأساسية قبل تنفيذ أي نموذج ذكاء اصطناعي.",
-        "إطلاق لوحة قراءة وتحليل أولية قبل أي تكامل تشغيلي مباشر.",
-        "اختيار 3 مشاريع سريعة كبداية تنفيذية خلال المرحلة الأولى."
-      ]
-    };
+    const executiveScore = scores.executiveScore || 0;
 
     const highIdeas = ideas.filter(i => i.priority === "عالية").length;
     const mediumIdeas = ideas.filter(i => i.priority === "متوسطة").length;
     const lowIdeas = ideas.filter(i => i.priority === "منخفضة").length;
     const quickWins = D?.quickWins ? D.quickWins() : ideas.filter(i => i.ease === "سهلة" && i.cost === "منخفضة");
     const avgMaturity = this.average(departments.map(d => d.maturity || 0));
-    const expectedROI = summary.expectedROI || 42000000;
-    const executiveScore = scores.executiveScore || 0;
+
+    const decisionTop = ideas
+      .slice()
+      .sort((a, b) => Number(b.decisionScore || 0) - Number(a.decisionScore || 0))
+      .slice(0, 5);
+
+    const recommendations = R?.fullReport ? R.fullReport() : {
+      ceo: [
+        "البدء بلوحات قياس جودة التسجيلات وأخطاء البيانات كمرحلة أولى.",
+        "تفعيل مراجعة بشرية موثقة للتنبيهات المرتبطة بالصلاحيات والحسابات.",
+        "إطلاق تحليل الجلسات الطويلة واستخدام الصلاحيات كـ Quick Win.",
+        "بناء لوحة تنفيذية موحدة للبوابات الذكية والتسجيلات والتنبيهات."
+      ],
+      nextActions: [
+        "حصر مصادر بيانات التسجيلات وسجلات الدخول والصلاحيات.",
+        "تحديد خط أساس لجودة التسجيلات وزمن العبور وجاهزية البوابات.",
+        "اختيار 3 مشاريع سريعة للبدء خلال المرحلة الأولى.",
+        "ربط كل تنبيه بمؤشر ومالك وإجراء مراجعة واضح."
+      ]
+    };
 
     container.innerHTML = `
       <section class="module-page">
@@ -64,35 +63,39 @@ AIW.Modules.reports = {
         ${W ? W.hero({
           kicker: "Executive Reports · Biometric Analytics",
           title: "مركز التقارير والتحليلات التنفيذية",
-          description: "لوحة تحليلية تربط جودة التسجيلات البيومترية، استخدام الصلاحيات، أداء البوابات الذكية، الأمن الرقمي، المخاطر، الحوكمة، والتوصيات الذكية في تقرير تنفيذي واحد.",
+          description: "تقرير تنفيذي يوضح حالة جودة التسجيلات، استخدام الصلاحيات، أداء البوابات الذكية، المخاطر التشغيلية، وأولويات التنفيذ القادمة.",
           chips: [
             "👁️ Biometric Analytics",
             `🧠 Executive Score ${executiveScore}%`,
-            `💰 ${this.formatAED(expectedROI)} ROI`,
-            `🚀 ${quickWins.length} Quick Wins`
+            `🚀 ${quickWins.length} Quick Wins`,
+            `🛡️ ${risks.length} مخاطر متابعة`
           ]
         }) : this.fallbackHero()}
 
         <div class="module-grid">
-          ${this.kpi("Executive Score", `${executiveScore}%`, executiveSummary.status || "Executive Health")}
-          ${this.kpi("الأفكار", ideas.length, "Use Cases")}
+          ${this.kpi("Executive Score", `${executiveScore}%`, "Executive Health")}
+          ${this.kpi("الفرص", ideas.length, "AI Opportunities")}
           ${this.kpi("Quick Wins", quickWins.length, "Ready to Start")}
-          ${this.kpi("متوسط النضج", `${avgMaturity}%`, "Portfolio Maturity")}
+          ${this.kpi("متوسط الجاهزية", `${avgMaturity}%`, "Portfolio Readiness")}
           ${this.kpi("المخاطر", risks.length, "Risk Register")}
-          ${this.kpi("العائد المتوقع", this.formatAED(expectedROI), "Expected ROI")}
+          ${this.kpi("أولوية عالية", highIdeas, "High Priority")}
         </div>
 
         <div class="module-wide-grid">
           <div class="module-panel">
-            ${this.sectionTitle("الخلاصة التنفيذية", "قراءة موحدة لحالة محفظة الأنظمة البيومترية والبوابات الذكية.")}
+            ${this.sectionTitle("الخلاصة التنفيذية", "قراءة مختصرة لحالة المبادرة المتخصصة.")}
             <div class="report-ultimate-summary">
-              <strong>${executiveSummary.title || "الخلاصة التنفيذية للمحفظة المتخصصة"}</strong>
-              <p>${executiveSummary.message || "المحفظة تركز على تحديات تشغيلية وأمنية حقيقية: جودة التسجيلات، السجلات المتعارضة، استخدام الصلاحيات، الجلسات الطويلة، وأداء البوابات الذكية."}</p>
+              <strong>المبادرة تمتلك أساساً جيداً للانتقال إلى القياس والتشغيل الذكي</strong>
+              <p>
+                تركيز المرحلة القادمة سيكون على بناء خط أساس واضح لجودة التسجيلات،
+                مراقبة استخدام الصلاحيات، متابعة أداء البوابات الذكية، ثم تفعيل التنبيهات
+                والتحليلات المتقدمة بشكل تدريجي وتحت إشراف بشري.
+              </p>
 
               <div class="report-score-strip">
                 <div><span>Executive</span><b>${scores.executiveScore || 0}%</b></div>
                 <div><span>Ideas</span><b>${scores.ideaScore || 0}%</b></div>
-                <div><span>Maturity</span><b>${scores.maturityScore || 0}%</b></div>
+                <div><span>Readiness</span><b>${scores.maturityScore || 0}%</b></div>
                 <div><span>Risk</span><b>${scores.riskScore || 0}%</b></div>
                 <div><span>Governance</span><b>${scores.governanceScore || 0}%</b></div>
               </div>
@@ -100,25 +103,28 @@ AIW.Modules.reports = {
           </div>
 
           <div class="module-panel">
-            ${this.sectionTitle("AI Executive Insight", "تقرير ذكي مولد من AI Engine.")}
+            ${this.sectionTitle("Executive Highlights", "أهم الرسائل التنفيذية من البيانات الحالية.")}
             <div class="report-ai-card">
-              <strong>${aiReport.status || "مرحلة البناء"}</strong>
-              <p>${aiReport.message || "المرحلة التالية يجب أن تركز على KPIs، جودة البيانات، وحوكمة التنبيهات."}</p>
-              <button class="module-btn secondary" data-module="maturity">فتح النضج</button>
+              <strong>الأولوية الحالية: قياس قبل التوسع</strong>
+              <p>
+                أفضل مسار الآن هو تشغيل لوحات Power BI أولاً لقياس أخطاء التسجيل،
+                الجلسات الطويلة، استخدام الصلاحيات، وجاهزية البوابات قبل تشغيل نماذج AI متقدمة.
+              </p>
+              <button class="module-btn secondary" onclick="AIW.App.go('kpis')">فتح مركز المؤشرات</button>
             </div>
           </div>
         </div>
 
         <div class="module-wide-grid">
           <div class="module-panel">
-            ${this.sectionTitle("توزيع الأولويات", "تصنيف الأفكار حسب درجة الأولوية.")}
+            ${this.sectionTitle("توزيع الأولويات", "تصنيف الفرص حسب درجة الأولوية.")}
             <div class="report-chart-card">
               <canvas id="reportsPriorityChart"></canvas>
             </div>
           </div>
 
           <div class="module-panel">
-            ${this.sectionTitle("صحة المحفظة", "مؤشرات المحفظة الرئيسية في رسم واحد.")}
+            ${this.sectionTitle("صحة التشغيل", "مؤشرات الجاهزية والمخاطر والحوكمة في رسم واحد.")}
             <div class="report-chart-card">
               <canvas id="reportsHealthChart"></canvas>
             </div>
@@ -127,13 +133,13 @@ AIW.Modules.reports = {
 
         <div class="module-wide-grid">
           <div class="module-panel">
-            ${this.sectionTitle("توزيع الأفكار حسب المحافظ", "يوضح تركيز المبادرة على اختصاص الأنظمة البيومترية والبوابات الذكية.")}
+            ${this.sectionTitle("توزيع الفرص حسب المحافظ", "توزيع الحلول على نطاقات العمل الرئيسية.")}
             <div class="report-bars">
               ${departments.map(d => `
                 <div class="report-bar-item">
                   <div>
                     <strong>${d.name}</strong>
-                    <span>${d.count} أفكار</span>
+                    <span>${d.count} فرص</span>
                   </div>
                   <div class="report-bar">
                     <i style="width:${Math.min((d.count / 7) * 100, 100)}%"></i>
@@ -144,7 +150,7 @@ AIW.Modules.reports = {
           </div>
 
           <div class="module-panel">
-            ${this.sectionTitle("نضج المحافظ", "مقارنة تقديرية لجاهزية المحافظ المتخصصة.")}
+            ${this.sectionTitle("جاهزية المحافظ", "مقارنة تقديرية لجاهزية كل نطاق تشغيلي.")}
             <div class="report-bars">
               ${departments.map(d => `
                 <div class="report-bar-item">
@@ -162,57 +168,51 @@ AIW.Modules.reports = {
         </div>
 
         <div class="module-panel">
-          ${this.sectionTitle("Decision Intelligence", "أفضل المشاريع المقترحة للتنفيذ حسب Decision Engine.")}
+          ${this.sectionTitle("Decision Intelligence", "أفضل الفرص المقترحة للبدء بناءً على Decision Score.")}
           <div class="report-decision-grid">
-            ${(decision.topProjects || [
-              { title: "Registration Error Intelligence Dashboard", department: "التحليلات والتقارير التنفيذية", score: 92 },
-              { title: "Biometric Registration Quality Monitor", department: "الأنظمة البيومترية", score: 89 },
-              { title: "Privilege Usage Analytics", department: "المستخدمون والصلاحيات", score: 86 },
-              { title: "Long Session Anomaly Detection", department: "المستخدمون والصلاحيات", score: 84 },
-              { title: "Airport Biometric Operations Dashboard", department: "التحليلات والتقارير التنفيذية", score: 82 }
-            ]).slice(0, 5).map((p, i) => `
+            ${decisionTop.map((p, i) => `
               <article class="report-decision-card">
                 <b>${String(i + 1).padStart(2, "0")}</b>
                 <strong>${p.title}</strong>
                 <span>${p.department}</span>
-                <div class="aiw-progress"><div style="width:${p.score}%"></div></div>
-                <small>Decision Score: ${p.score}%</small>
+                <div class="aiw-progress"><div style="width:${p.decisionScore || 0}%"></div></div>
+                <small>Decision Score: ${p.decisionScore || 0}%</small>
               </article>
             `).join("")}
           </div>
         </div>
 
         <div class="module-panel">
-          ${this.sectionTitle("تحليل الأولويات", "تصنيف الأفكار حسب الأولوية وسهولة البدء.")}
+          ${this.sectionTitle("تحليل الأولويات", "قراءة تنفيذية لسهولة البدء ومستوى الأثر.")}
           <div class="report-insight-grid">
             <div class="report-insight-card">
               <span>عالية الأولوية</span>
               <strong>${highIdeas}</strong>
-              <p>تحتاج تقييم تنفيذي سريع لأنها مرتبطة بجودة البيانات أو الصلاحيات أو الأمن.</p>
+              <p>مرتبطة بجودة البيانات أو الصلاحيات أو الأمن وتحتاج متابعة مبكرة.</p>
             </div>
 
             <div class="report-insight-card">
               <span>متوسطة الأولوية</span>
               <strong>${mediumIdeas}</strong>
-              <p>مناسبة للموجة الثانية بعد تجهيز البيانات والحوكمة.</p>
+              <p>مناسبة للموجة الثانية بعد تجهيز مصادر البيانات والحوكمة.</p>
             </div>
 
             <div class="report-insight-card">
               <span>منخفضة الأولوية</span>
               <strong>${lowIdeas}</strong>
-              <p>يمكن استخدامها كتحسينات لاحقة بعد تشغيل المشاريع الأساسية.</p>
+              <p>يمكن وضعها ضمن تحسينات لاحقة بعد تشغيل الحلول الأساسية.</p>
             </div>
 
             <div class="report-insight-card">
               <span>Quick Wins</span>
               <strong>${quickWins.length}</strong>
-              <p>أفضل نقطة بداية لإثبات القيمة من خلال لوحات تحليل وقياس.</p>
+              <p>أنسب نقطة بداية لأنها تعتمد على القياس والتحليل قبل التكامل العميق.</p>
             </div>
           </div>
         </div>
 
         <div class="module-panel">
-          ${this.sectionTitle("تقدم خارطة الطريق", "مراحل التحول من 2026 إلى 2030.")}
+          ${this.sectionTitle("خارطة الطريق", "مراحل الانتقال من القياس إلى التنبيهات الذكية.")}
           <div class="report-roadmap-grid">
             ${roadmap.map(r => `
               <div class="report-roadmap-card">
@@ -228,9 +228,9 @@ AIW.Modules.reports = {
 
         <div class="module-wide-grid">
           <div class="module-panel">
-            ${this.sectionTitle("Executive Recommendations", "توصيات الإدارة العليا.")}
+            ${this.sectionTitle("Top Executive Priorities", "أولويات مقترحة للمرحلة القادمة.")}
             <div class="executive-list">
-              ${(fullRecommendation.ceo || []).map((item, i) => `
+              ${(recommendations.ceo || []).map((item, i) => `
                 <div class="executive-item">
                   <strong>${String(i + 1).padStart(2, "0")}</strong>
                   <span>${item}</span>
@@ -240,9 +240,9 @@ AIW.Modules.reports = {
           </div>
 
           <div class="module-panel">
-            ${this.sectionTitle("Next Best Actions", "الخطوات العملية التالية.")}
+            ${this.sectionTitle("Next Best Actions", "خطوات عملية للبدء.")}
             <div class="executive-list">
-              ${(fullRecommendation.nextActions || []).map((item, i) => `
+              ${(recommendations.nextActions || []).map((item, i) => `
                 <div class="executive-item">
                   <strong>${String(i + 1).padStart(2, "0")}</strong>
                   <span>${item}</span>
@@ -253,27 +253,22 @@ AIW.Modules.reports = {
         </div>
 
         <div class="module-panel">
-          ${this.sectionTitle("توصية التقرير", "الخطوة التي يجب رفعها للإدارة العليا.")}
+          ${this.sectionTitle("توصية التقرير", "الخطوة العملية المقترحة.")}
           <div class="report-recommendation">
-            <strong>اعتماد Enterprise Biometric Intelligence Platform كمحفظة تنفيذية متخصصة</strong>
+            <strong>البدء بثلاث لوحات قياس تشغيلية قبل أي تكامل متقدم</strong>
             <p>
-              التوصية الأساسية هي البدء بلوحات Power BI وQuick Wins لقياس جودة التسجيلات،
-              استخدام الصلاحيات، الجلسات الطويلة، وأداء البوابات، ثم تطوير نماذج كشف الشذوذ
-              بعد اكتمال حوكمة البيانات والإشراف البشري.
+              التوصية هي البدء بلوحة جودة التسجيلات، لوحة استخدام الصلاحيات والجلسات،
+              ولوحة أداء البوابات الذكية. هذه الخطوة تعطي الإدارة رؤية واضحة وتوفر
+              أساساً آمناً لبناء التنبيهات ونماذج كشف الشذوذ لاحقاً.
             </p>
-            <button class="module-btn secondary" data-module="kpis">فتح مركز المؤشرات</button>
+            <button class="module-btn secondary" onclick="AIW.App.go('kpis')">فتح مركز المؤشرات</button>
           </div>
         </div>
 
       </section>
     `;
 
-    this.renderCharts({
-      highIdeas,
-      mediumIdeas,
-      lowIdeas,
-      scores
-    });
+    this.renderCharts({ highIdeas, mediumIdeas, lowIdeas, scores });
   },
 
   renderCharts({ highIdeas, mediumIdeas, lowIdeas, scores }) {
@@ -281,18 +276,13 @@ AIW.Modules.reports = {
 
     setTimeout(() => {
       if (AIW.Charts.doughnut) {
-        AIW.Charts.doughnut(
-          "reportsPriorityChart",
-          ["عالية", "متوسطة", "منخفضة"],
-          [highIdeas, mediumIdeas, lowIdeas],
-          "Priority Distribution"
-        );
+        AIW.Charts.doughnut("reportsPriorityChart", ["عالية", "متوسطة", "منخفضة"], [highIdeas, mediumIdeas, lowIdeas], "Priority Distribution");
       }
 
       if (AIW.Charts.bar) {
         AIW.Charts.bar(
           "reportsHealthChart",
-          ["Executive", "Ideas", "Maturity", "Risk", "Governance"],
+          ["Executive", "Ideas", "Readiness", "Risk", "Governance"],
           [
             scores.executiveScore || 0,
             scores.ideaScore || 0,
@@ -300,16 +290,14 @@ AIW.Modules.reports = {
             scores.riskScore || 0,
             scores.governanceScore || 0
           ],
-          "Portfolio Health"
+          "Operational Health"
         );
       }
     }, 50);
   },
 
   kpi(label, value, note) {
-    if (window.AIW?.Widgets?.kpi) {
-      return AIW.Widgets.kpi({ label, value, note });
-    }
+    if (window.AIW?.Widgets?.kpi) return AIW.Widgets.kpi({ label, value, note });
 
     return `
       <div class="module-card">
@@ -321,9 +309,7 @@ AIW.Modules.reports = {
   },
 
   sectionTitle(title, desc) {
-    if (window.AIW?.Widgets?.sectionTitle) {
-      return AIW.Widgets.sectionTitle(title, desc);
-    }
+    if (window.AIW?.Widgets?.sectionTitle) return AIW.Widgets.sectionTitle(title, desc);
 
     return `
       <div class="module-section-title compact">
@@ -338,18 +324,12 @@ AIW.Modules.reports = {
     return Math.round(values.reduce((a, b) => a + Number(b || 0), 0) / values.length);
   },
 
-  formatAED(value) {
-    const n = Number(value || 0);
-    if (n >= 1000000) return `${Math.round(n / 1000000)}M AED`;
-    return `${n.toLocaleString("ar-AE")} AED`;
-  },
-
   fallbackHero() {
     return `
       <div class="module-hero">
         <span class="module-kicker">Executive Reports · Biometric Analytics</span>
         <h1>مركز التقارير والتحليلات التنفيذية</h1>
-        <p>لوحة تحليلية تنفيذية تعرض جودة التسجيلات، الصلاحيات، البوابات، المخاطر، والعائد المتوقع.</p>
+        <p>تقرير تنفيذي يعرض جودة التسجيلات، الصلاحيات، البوابات، المخاطر، وأولويات التنفيذ.</p>
       </div>
     `;
   }
