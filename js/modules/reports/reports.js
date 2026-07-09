@@ -72,10 +72,6 @@ AIW.Modules.reports = {
           ]
         }) : this.fallbackHero()}
 
-<div class="page-credit">
-  <span>Designed &amp; Developed by:</span>
-  <strong>يوسف الحوسني</strong>
-</div>
 
         <div class="module-grid">
           ${this.kpi("Executive Score", `${executiveScore}%`, "Executive Health")}
