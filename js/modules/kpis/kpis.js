@@ -1,6 +1,7 @@
 /* =========================================================
-   AI Work - KPI Center V2.0 Ultimate
-   Enterprise Performance Measurement Engine
+   AI Work - KPI Center V2.1
+   Enterprise Biometric Intelligence KPI Engine
+   No UI Design Changes
 ========================================================= */
 
 window.AIW = window.AIW || {};
@@ -13,83 +14,83 @@ AIW.Modules.kpis = {
 
   kpis: [
     {
-      icon: "📁",
-      title: "المشاريع المنفذة",
-      desc: "عدد المشاريع المنفذة سنوياً مقابل المخطط لها.",
-      target: 15,
-      current: 4,
-      unit: "مشروع",
-      owner: "مكتب البرنامج",
-      frequency: "ربع سنوي"
-    },
-    {
-      icon: "⏱️",
-      title: "توفير الوقت",
-      desc: "نسبة توفير الوقت الناتجة عن الأتمتة والذكاء الاصطناعي.",
-      target: 30,
-      current: 8,
+      icon: "👁️",
+      title: "جودة التسجيلات البيومترية",
+      desc: "نسبة التسجيلات المكتملة والسليمة مقابل التسجيلات التي تحتاج مراجعة.",
+      target: 98,
+      current: 84,
       unit: "%",
-      owner: "الإدارات المالكة",
-      frequency: "ربع سنوي"
-    },
-    {
-      icon: "💰",
-      title: "العائد المتوقع",
-      desc: "العائد المالي أو التشغيلي المتوقع من المبادرات.",
-      target: 42000000,
-      current: 9000000,
-      unit: "AED",
-      owner: "المالية",
-      frequency: "ربع سنوي"
-    },
-    {
-      icon: "😊",
-      title: "رضا المستخدمين",
-      desc: "رضا الموظفين والمتعاملين عن الخدمات المطورة بالذكاء الاصطناعي.",
-      target: 90,
-      current: 62,
-      unit: "%",
-      owner: "خدمة المتعاملين / الموارد البشرية",
-      frequency: "نصف سنوي"
-    },
-    {
-      icon: "🏢",
-      title: "مشاركة الإدارات",
-      desc: "عدد الإدارات المشاركة فعلياً في تبني حلول الذكاء الاصطناعي.",
-      target: 10,
-      current: 6,
-      unit: "إدارات",
-      owner: "فريق المبادرة",
+      owner: "فريق الأنظمة البيومترية",
       frequency: "شهري"
     },
     {
-      icon: "🧠",
-      title: "نضج الذكاء الاصطناعي",
-      desc: "مستوى النضج المؤسسي في تبني الذكاء الاصطناعي.",
-      target: 100,
-      current: 34,
+      icon: "⚠️",
+      title: "التسجيلات التي تحتاج مراجعة",
+      desc: "عدد الحالات التي اكتشفها النظام كمحتملة الخطأ أو التعارض.",
+      target: 20,
+      current: 65,
+      unit: "حالة",
+      owner: "فريق المراجعة",
+      frequency: "أسبوعي"
+    },
+    {
+      icon: "🧬",
+      title: "السجلات المتعارضة أو المتكررة",
+      desc: "عدد السجلات التي تحتوي على تشابه أو تعارض يستدعي المراجعة.",
+      target: 10,
+      current: 38,
+      unit: "سجل",
+      owner: "فريق جودة البيانات",
+      frequency: "شهري"
+    },
+    {
+      icon: "🔐",
+      title: "تنبيهات استخدام الصلاحيات",
+      desc: "عدد التنبيهات الناتجة عن استخدام غير اعتيادي للحسابات أو الصلاحيات.",
+      target: 15,
+      current: 42,
+      unit: "تنبيه",
+      owner: "الأمن الرقمي",
+      frequency: "أسبوعي"
+    },
+    {
+      icon: "⏱️",
+      title: "الجلسات الطويلة غير الطبيعية",
+      desc: "عدد جلسات الاستخدام التي تجاوزت النمط المعتاد للمستخدم أو الموقع.",
+      target: 10,
+      current: 31,
+      unit: "جلسة",
+      owner: "فريق الصلاحيات",
+      frequency: "أسبوعي"
+    },
+    {
+      icon: "🛂",
+      title: "جاهزية البوابات الذكية",
+      desc: "نسبة توفر البوابات الذكية وجاهزيتها التشغيلية.",
+      target: 99,
+      current: 91,
       unit: "%",
-      owner: "اللجنة التوجيهية",
-      frequency: "ربع سنوي"
+      owner: "فريق البوابات الذكية",
+      frequency: "يومي"
+    },
+    {
+      icon: "📊",
+      title: "زمن عبور المسافر",
+      desc: "متوسط زمن إكمال العملية عبر البوابة الذكية.",
+      target: 15,
+      current: 24,
+      unit: "ثانية",
+      owner: "فريق العمليات",
+      frequency: "يومي"
     },
     {
       icon: "🛡️",
       title: "الامتثال للحوكمة",
-      desc: "نسبة المشاريع التي مرت بتقييم الحوكمة والمخاطر قبل الإطلاق.",
+      desc: "نسبة التنبيهات والمشاريع الحساسة التي مرت بمراجعة بشرية موثقة.",
       target: 100,
-      current: 55,
+      current: 72,
       unit: "%",
-      owner: "حوكمة الذكاء الاصطناعي",
-      frequency: "ربع سنوي"
-    },
-    {
-      icon: "🚀",
-      title: "Quick Wins المنفذة",
-      desc: "عدد المشاريع السريعة التي تم تنفيذها لإثبات القيمة.",
-      target: 6,
-      current: 2,
-      unit: "مشروع",
-      owner: "مكتب البرنامج",
+      owner: "فريق الحوكمة",
       frequency: "شهري"
     }
   ],
@@ -103,21 +104,32 @@ AIW.Modules.kpis = {
     const R = window.AIW?.Recommendation;
 
     const scores = A?.score ? A.score() : {};
-    const recommendations = R?.nextActions ? R.nextActions() : [];
+    const recommendations = R?.nextActions ? R.nextActions() : [
+      "البدء بقياس جودة التسجيلات البيومترية كخط أساس قبل تشغيل نماذج الكشف المتقدمة.",
+      "إطلاق لوحة Power BI للتسجيلات التي تحتاج مراجعة والسجلات المتعارضة.",
+      "تحديد عتبة واضحة للجلسات الطويلة غير الطبيعية حسب طبيعة كل موقع ومستخدم.",
+      "ربط تنبيهات استخدام الصلاحيات بإجراء مراجعة بشرية موثق.",
+      "مراجعة مؤشرات جاهزية البوابات وزمن العبور بشكل يومي لتحسين التشغيل."
+    ];
+
     const avgProgress = this.average(this.kpis.map(k => this.progress(k.current, k.target)));
     const onTrack = this.kpis.filter(k => this.progress(k.current, k.target) >= 60).length;
     const behind = this.kpis.filter(k => this.progress(k.current, k.target) < 40).length;
-    const aiReport = AI?.generateExecutiveReport ? AI.generateExecutiveReport() : {};
+
+    const aiReport = AI?.generateExecutiveReport ? AI.generateExecutiveReport() : {
+      status: "مرحلة بناء المؤشرات",
+      message: "المرحلة التالية يجب أن تركز على ربط جودة التسجيلات، استخدام الصلاحيات، وأداء البوابات بلوحات قياس تنفيذية."
+    };
 
     container.innerHTML = `
       <section class="module-page">
 
         ${W ? W.hero({
-          kicker: "KPI Engine · Performance",
+          kicker: "Biometric KPI Engine · Performance",
           title: "مركز مؤشرات الأداء",
-          description: "محرك قياس تنفيذي يربط استراتيجية الذكاء الاصطناعي بالمخرجات الفعلية: المشاريع، التوفير، العائد، رضا المستخدمين، مشاركة الإدارات، الحوكمة، والنضج المؤسسي.",
+          description: "محرك قياس تنفيذي يربط مشاريع الأنظمة البيومترية والبوابات الذكية بالمخرجات الفعلية: جودة التسجيلات، أخطاء البيانات، استخدام الصلاحيات، جاهزية البوابات، زمن العبور، والحوكمة.",
           chips: [
-            "📈 KPI Engine",
+            "👁️ Biometric KPIs",
             `🎯 ${this.kpis.length} مؤشرات رئيسية`,
             `📊 ${avgProgress}% متوسط التقدم`,
             `🧠 Executive Score ${scores.executiveScore || 0}%`
@@ -130,17 +142,17 @@ AIW.Modules.kpis = {
           ${this.kpi("متأخرة", behind, "Needs Attention")}
           ${this.kpi("متوسط التقدم", `${avgProgress}%`, "Average Progress")}
           ${this.kpi("Executive Score", `${scores.executiveScore || 0}%`, "Overall")}
-          ${this.kpi("دورة القياس", "ربع سنوي", "Review Cycle")}
+          ${this.kpi("دورة القياس", "شهري", "Review Cycle")}
         </div>
 
         <div class="module-wide-grid">
           <div class="module-panel">
-            ${this.sectionTitle("الخلاصة التنفيذية للمؤشرات", "قراءة سريعة لأداء برنامج الذكاء الاصطناعي.")}
+            ${this.sectionTitle("الخلاصة التنفيذية للمؤشرات", "قراءة سريعة لأداء محفظة الأنظمة البيومترية والبوابات الذكية.")}
             <div class="kpi-ultimate-summary">
-              <strong>القياس هو الفرق بين مبادرة أفكار وبرنامج تحول حقيقي</strong>
+              <strong>القياس هو الأساس لتحويل التحديات التشغيلية إلى قرارات ذكية</strong>
               <p>
-                كل مشروع ذكاء اصطناعي يجب أن يرتبط بمؤشر واضح قبل الاعتماد:
-                أثر تشغيلي، توفير وقت، رفع جودة، تحسين رضا، امتثال، أو عائد مالي.
+                كل فكرة ذكاء اصطناعي في نطاق الأنظمة البيومترية يجب أن ترتبط بمؤشر واضح:
+                جودة تسجيل، انخفاض أخطاء، تنبيهات صلاحيات، جاهزية بوابات، زمن عبور، أو امتثال حوكمي.
               </p>
               <div class="kpi-summary-strip">
                 <div><span>Progress</span><b>${avgProgress}%</b></div>
@@ -190,22 +202,22 @@ AIW.Modules.kpis = {
             <div>
               <b>1</b>
               <strong>Baseline</strong>
-              <span>تحديد خط الأساس قبل تنفيذ المشروع.</span>
+              <span>تحديد خط الأساس الحالي للتسجيلات، الصلاحيات، والبوابات.</span>
             </div>
             <div>
               <b>2</b>
               <strong>Target</strong>
-              <span>تحديد المستهدف والمالك ودورة القياس.</span>
+              <span>تحديد المستهدف والمالك ودورة القياس لكل مؤشر.</span>
             </div>
             <div>
               <b>3</b>
               <strong>Measure</strong>
-              <span>قياس الأثر بعد PoC أو الإطلاق المرحلي.</span>
+              <span>قياس الأثر بعد لوحة التحليل أو PoC أو الإطلاق المرحلي.</span>
             </div>
             <div>
               <b>4</b>
               <strong>Review</strong>
-              <span>مراجعة ربع سنوية للإدارة العليا.</span>
+              <span>مراجعة شهرية أو ربع سنوية للنتائج والتنبيهات.</span>
             </div>
           </div>
         </div>
@@ -215,15 +227,15 @@ AIW.Modules.kpis = {
           <div class="kpi-impact-grid">
             <div>
               <strong>متى نعتبر المشروع ناجح؟</strong>
-              <p>عندما يحقق وفراً أو تحسناً واضحاً مقابل خط الأساس، وليس فقط عند اكتمال التنفيذ التقني.</p>
+              <p>عندما يثبت انخفاضاً واضحاً في الأخطاء أو تحسناً في الجودة أو الجاهزية مقارنة بخط الأساس.</p>
             </div>
             <div>
               <strong>متى نوقف المشروع؟</strong>
-              <p>إذا لم يثبت قيمة في PoC، أو ظهرت مخاطر خصوصية أو أمنية غير قابلة للسيطرة.</p>
+              <p>إذا زادت الإنذارات الخاطئة، أو ظهرت مخاطر خصوصية، أو لم تثبت البيانات قيمة تشغيلية واضحة.</p>
             </div>
             <div>
               <strong>متى نتوسع؟</strong>
-              <p>بعد تحقق KPI، قبول المستخدمين، سلامة البيانات، واعتماد لجنة الحوكمة.</p>
+              <p>بعد تحقق المؤشرات، توثيق المراجعة البشرية، واعتماد الحوكمة والأمن الرقمي.</p>
             </div>
           </div>
         </div>
@@ -327,6 +339,19 @@ AIW.Modules.kpis = {
   progress(current, target) {
     const c = Number(current || 0);
     const t = Number(target || 1);
+
+    if (
+      [
+        "التسجيلات التي تحتاج مراجعة",
+        "السجلات المتعارضة أو المتكررة",
+        "تنبيهات استخدام الصلاحيات",
+        "الجلسات الطويلة غير الطبيعية",
+        "زمن عبور المسافر"
+      ].includes(this.currentKpiTitle)
+    ) {
+      return Math.max(0, Math.min(Math.round((1 - c / t) * 100), 100));
+    }
+
     return Math.min(Math.round((c / t) * 100), 100);
   },
 
@@ -344,12 +369,6 @@ AIW.Modules.kpis = {
   },
 
   formatValue(value, unit) {
-    if (unit === "AED") {
-      const n = Number(value || 0);
-      if (n >= 1000000) return `${Math.round(n / 1000000)}M AED`;
-      return `${n.toLocaleString("ar-AE")} AED`;
-    }
-
     return `${value} ${unit}`;
   },
 
@@ -388,9 +407,9 @@ AIW.Modules.kpis = {
   fallbackHero() {
     return `
       <div class="module-hero">
-        <span class="module-kicker">KPI Engine · Performance</span>
+        <span class="module-kicker">Biometric KPI Engine · Performance</span>
         <h1>مركز مؤشرات الأداء</h1>
-        <p>محرك قياس تنفيذي يربط الاستراتيجية بالأثر القابل للقياس.</p>
+        <p>محرك قياس تنفيذي يربط الأنظمة البيومترية والبوابات الذكية بالأثر القابل للقياس.</p>
       </div>
     `;
   }
