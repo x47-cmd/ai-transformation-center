@@ -88,3 +88,31 @@
     ATCApp.init();
   });
 })();
+
+/* ==========================================
+   Enterprise Bottom Navigation
+========================================== */
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  const navItems = document.querySelectorAll(".enterprise-bottom-nav .nav-item");
+
+  navItems.forEach(btn => {
+
+    btn.addEventListener("click", () => {
+
+      const route = btn.dataset.route;
+
+      navItems.forEach(item => item.classList.remove("active"));
+
+      btn.classList.add("active");
+
+      if (window.ATCApp) {
+        window.ATCApp.go(route);
+      }
+
+    });
+
+  });
+
+});
