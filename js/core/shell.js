@@ -37,6 +37,46 @@ const ATCShell = (function () {
     `;
   }
 
+  function renderPrograms() {
+    return `
+      <section class="atc-section">
+        <div class="atc-section-head">
+          <div>
+            <span class="atc-section-eyebrow">Strategic Programs</span>
+            <h2>البرامج الاستراتيجية للتحول بالذكاء الاصطناعي</h2>
+          </div>
+          <p>محفظة أولية لأهم البرامج التي تشكل العمود الفقري للمنصة.</p>
+        </div>
+
+        <div class="atc-program-grid">
+          <article class="atc-program-card">
+            <div class="atc-program-icon">🤖</div>
+            <h3>المساعد المؤسسي الذكي</h3>
+            <p>مساعد موحد للموظفين والقيادات للوصول للمعرفة والخدمات بسرعة.</p>
+          </article>
+
+          <article class="atc-program-card">
+            <div class="atc-program-icon">🛡️</div>
+            <h3>مركز الأمن السيبراني الذكي</h3>
+            <p>تحليل تنبؤي للتهديدات واكتشاف الشذوذ والاستجابة الاستباقية.</p>
+          </article>
+
+          <article class="atc-program-card">
+            <div class="atc-program-icon">📊</div>
+            <h3>مركز اتخاذ القرار</h3>
+            <p>لوحة تنفيذية تجمع المؤشرات والتقارير والتحليلات لدعم القرار.</p>
+          </article>
+
+          <article class="atc-program-card">
+            <div class="atc-program-icon">🧠</div>
+            <h3>التوأم الرقمي للإدارة</h3>
+            <p>محاكاة ذكية للعمليات والموارد لاختبار القرارات قبل تطبيقها.</p>
+          </article>
+        </div>
+      </section>
+    `;
+  }
+
   function render() {
     return `
       <main class="atc-shell">
@@ -63,6 +103,7 @@ const ATCShell = (function () {
         </section>
 
         ${renderKpis()}
+        ${renderPrograms()}
       </main>
     `;
   }
