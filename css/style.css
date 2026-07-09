@@ -601,3 +601,90 @@ body {
   font-size: 10px;
   white-space: nowrap;
 }
+
+.module-page {
+  padding: 18px 14px 110px;
+}
+
+.module-hero {
+  background: linear-gradient(135deg, #111827, #1f2937);
+  color: white;
+  border-radius: 28px;
+  padding: 24px;
+  margin-bottom: 16px;
+}
+
+.module-kicker {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.module-hero h1 {
+  margin: 8px 0;
+  font-size: 26px;
+}
+
+.module-hero p {
+  margin: 0;
+  color: #d1d5db;
+  line-height: 1.7;
+}
+
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.module-card,
+.module-panel {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 22px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.module-card span {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.module-card strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 24px;
+}
+
+.module-panel h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.module-input,
+.module-textarea {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 13px;
+  margin-bottom: 10px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.module-textarea {
+  min-height: 90px;
+  resize: none;
+}
+
+.module-btn {
+  width: 100%;
+  border: 0;
+  border-radius: 16px;
+  background: #111827;
+  color: white;
+  padding: 14px;
+  font-weight: 700;
+}
