@@ -114,3 +114,55 @@ const ATCIdeas = (function () {
     render
   };
 })();
+
+
+/* =========================================================
+   AI Work - Ideas Module V1
+========================================================= */
+
+window.AIW = window.AIW || {};
+AIW.Modules = AIW.Modules || {};
+
+AIW.Modules.ideas = {
+  id: "ideas",
+  title: "الأفكار",
+  icon: "💡",
+
+  render(container) {
+    if (!container) return;
+
+    container.innerHTML = `
+      <section class="module-page">
+        <div class="module-hero">
+          <span class="module-kicker">Innovation Pipeline</span>
+          <h1>مركز الأفكار</h1>
+          <p>اجمع، صنّف، وقيّم أفكار التحول بالذكاء الاصطناعي قبل تحويلها إلى مشاريع.</p>
+        </div>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <span>الأفكار النشطة</span>
+            <strong>0</strong>
+          </div>
+
+          <div class="module-card">
+            <span>قيد الدراسة</span>
+            <strong>0</strong>
+          </div>
+
+          <div class="module-card">
+            <span>جاهزة كمشروع</span>
+            <strong>0</strong>
+          </div>
+        </div>
+
+        <div class="module-panel">
+          <h2>إضافة فكرة جديدة</h2>
+          <input class="module-input" placeholder="اسم الفكرة">
+          <textarea class="module-textarea" placeholder="وصف مختصر للفكرة"></textarea>
+          <button class="module-btn">حفظ الفكرة</button>
+        </div>
+      </section>
+    `;
+  }
+};
