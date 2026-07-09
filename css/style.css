@@ -6,7 +6,7 @@
 
 :root {
   --atc-bg: #f6f8fb;
-  --atc-card: #ffffff;
+  --atc-card: rgba(255, 255, 255, 0.86);
   --atc-text: #101828;
   --atc-muted: #667085;
   --atc-primary: #2563eb;
@@ -19,10 +19,6 @@
 
 * {
   box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
 }
 
 body {
@@ -41,16 +37,60 @@ body {
 
 .atc-shell {
   min-height: 100vh;
-  padding: 24px;
+  padding: 22px;
+}
+
+.atc-topbar {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto 24px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+}
+
+.atc-logo {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--atc-primary), var(--atc-purple));
+  box-shadow: var(--atc-shadow);
+}
+
+.atc-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.atc-icon-btn,
+.atc-primary-btn,
+.atc-secondary-btn {
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 800;
+}
+
+.atc-icon-btn {
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--atc-card);
+  color: var(--atc-text);
+  border: 1px solid var(--atc-border);
+  box-shadow: 0 8px 22px rgba(16, 24, 40, 0.06);
 }
 
 .atc-hero {
   width: 100%;
-  max-width: 720px;
-  background: rgba(255, 255, 255, 0.82);
+  max-width: 850px;
+  margin: 0 auto;
+  background: var(--atc-card);
   border: 1px solid var(--atc-border);
   box-shadow: var(--atc-shadow);
   border-radius: var(--atc-radius);
@@ -61,20 +101,18 @@ body {
 
 .atc-badge {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
   margin-bottom: 18px;
   padding: 8px 14px;
   border-radius: 999px;
   background: rgba(37, 99, 235, 0.10);
   color: var(--atc-primary-dark);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 900;
 }
 
 .atc-hero h1 {
   margin: 0 0 12px;
-  font-size: clamp(30px, 7vw, 56px);
+  font-size: clamp(30px, 7vw, 58px);
   line-height: 1.12;
   letter-spacing: -0.04em;
 }
@@ -83,5 +121,41 @@ body {
   margin: 0;
   color: var(--atc-muted);
   font-size: clamp(17px, 3vw, 24px);
-  font-weight: 600;
+  font-weight: 700;
+}
+
+.atc-hero-actions {
+  margin-top: 26px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.atc-primary-btn,
+.atc-secondary-btn {
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 999px;
+}
+
+.atc-primary-btn {
+  color: #fff;
+  background: linear-gradient(135deg, var(--atc-primary), var(--atc-purple));
+}
+
+.atc-secondary-btn {
+  background: #fff;
+  color: var(--atc-text);
+  border: 1px solid var(--atc-border);
+}
+
+@media (max-width: 640px) {
+  .atc-shell {
+    padding: 18px;
+  }
+
+  .atc-hero {
+    padding: 28px 20px;
+  }
 }
