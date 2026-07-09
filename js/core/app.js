@@ -1,15 +1,22 @@
 /* =========================================================
-   AI Work - App Core V1.2
-   Stable Module Loader + Executive Header + Safe Navigation
+   AI Work - App Core V1.3
+   Executive Experience + Dashboard Route
 ========================================================= */
 
 window.AIW = window.AIW || {};
 AIW.Modules = AIW.Modules || {};
 
 AIW.App = {
-  currentModule: "strategy",
+  currentModule: "dashboard",
 
   routes: {
+    dashboard: {
+      id: "dashboard",
+      title: "الرئيسية",
+      subtitle: "Executive Dashboard",
+      container: "page-dashboard",
+      icon: "🏠"
+    },
     strategy: {
       id: "strategy",
       title: "الاستراتيجية",
@@ -38,7 +45,7 @@ AIW.App = {
     this.bindNavigation();
 
     const saved = localStorage.getItem("aiwCurrentModule");
-    const startModule = this.routes[saved] ? saved : "strategy";
+    const startModule = this.routes[saved] ? saved : "dashboard";
 
     this.go(startModule);
   },
@@ -60,7 +67,7 @@ AIW.App = {
   },
 
   go(moduleId) {
-    if (!this.routes[moduleId]) moduleId = "strategy";
+    if (!this.routes[moduleId]) moduleId = "dashboard";
 
     const route = this.routes[moduleId];
 
@@ -101,7 +108,7 @@ AIW.App = {
 
         <div class="aiw-header-badge">
           <strong>AI Work</strong>
-          <small>V1.2</small>
+          <small>V1.3</small>
         </div>
       </div>
     `;
@@ -124,11 +131,13 @@ AIW.App = {
 
   renderMissingModule(container, route) {
     container.innerHTML = `
-      <div class="aiw-card aiw-empty">
-        <div class="aiw-empty-icon">${route.icon}</div>
-        <h2>${route.title}</h2>
-        <p>هذا القسم موجود في التنقل، لكن ملف الموديول غير جاهز أو غير محمل.</p>
-      </div>
+      <section class="module-page">
+        <div class="aiw-card aiw-empty">
+          <div class="aiw-empty-icon">${route.icon}</div>
+          <h2>${route.title}</h2>
+          <p>هذا القسم موجود في التنقل، لكن ملف الموديول غير جاهز أو غير محمل.</p>
+        </div>
+      </section>
     `;
   }
 };
