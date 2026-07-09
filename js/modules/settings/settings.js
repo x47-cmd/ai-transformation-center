@@ -81,10 +81,6 @@ AIW.Modules.settings = {
           ]
         }) : this.fallbackHero()}
         
-        <div class="page-credit">
-  <span>Designed &amp; Developed by:</span>
-  <strong>يوسف الحوسني</strong>
-</div>
 
         <div class="module-grid">
           ${this.kpi("إصدار النظام", config.app?.version || "3.0.9", "Version")}
