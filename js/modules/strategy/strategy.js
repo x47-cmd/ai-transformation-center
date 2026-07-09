@@ -1,149 +1,6 @@
 /* =========================================================
-   AI Transformation Center
-   Strategy Center Module
-   Version 1.0 Foundation
-========================================================= */
-
-const ATCStrategy = (function () {
-  "use strict";
-
-  const pillars = [
-    ["⚙️", "أتمتة العمليات", "Operational Automation", "تقليل الجهد اليدوي وتسريع إنجاز المعاملات والإجراءات."],
-    ["📊", "القرار المدعوم بالبيانات", "Data Driven Decisions", "تمكين القيادات من اتخاذ قرارات أسرع وأكثر دقة."],
-    ["🛡️", "الأمن الرقمي الذكي", "AI Cyber Resilience", "اكتشاف التهديدات والاستجابة لها بشكل استباقي."],
-    ["💡", "ثقافة الابتكار", "Innovation Culture", "تحويل خبرات الموظفين إلى أفكار ومشاريع تنفيذية."],
-    ["🤖", "الموظف الرقمي", "Digital Workforce", "توفير مساعدات ذكية تنفذ المهام الروتينية وتدعم الموظفين."],
-    ["🏛️", "الحوكمة المسؤولة", "Responsible AI", "ضمان الخصوصية، الشفافية، والإشراف البشري على القرارات الحرجة."]
-  ];
-
-  const principles = [
-    "الإنسان أولاً",
-    "الخصوصية والأمن أولاً",
-    "البيانات مصدر القرار",
-    "الشفافية وقابلية التفسير",
-    "قابلية التوسع والاستدامة",
-    "الابتكار المسؤول"
-  ];
-
-  function renderPillars() {
-    return `
-      <section class="atc-section">
-        <div class="atc-section-head">
-          <div>
-            <span class="atc-section-eyebrow">Strategic Pillars</span>
-            <h2>الركائز الاستراتيجية</h2>
-          </div>
-          <p>الركائز التي توجه جميع مشاريع ومبادرات الذكاء الاصطناعي داخل المنصة.</p>
-        </div>
-
-        <div class="atc-program-grid">
-          ${pillars.map(pillar => `
-            <article class="atc-program-card">
-              <div class="atc-program-icon">${pillar[0]}</div>
-              <h3>${pillar[1]}</h3>
-              <strong>${pillar[2]}</strong>
-              <p>${pillar[3]}</p>
-            </article>
-          `).join("")}
-        </div>
-      </section>
-    `;
-  }
-
-  function renderPrinciples() {
-    return `
-      <section class="atc-section">
-        <div class="atc-section-head">
-          <div>
-            <span class="atc-section-eyebrow">Guiding Principles</span>
-            <h2>مبادئ التحول</h2>
-          </div>
-          <p>قواعد ثابتة تضمن أن يكون الذكاء الاصطناعي آمنًا، مسؤولًا، وموجّهًا للأثر.</p>
-        </div>
-
-        <div class="atc-dept-grid">
-          ${principles.map((item, index) => `
-            <article class="atc-dept-card">
-              <h3>${String(index + 1).padStart(2, "0")}</h3>
-              <p>${item}</p>
-              <div class="atc-mini-line"><span style="width:${55 + index * 7}%"></span></div>
-            </article>
-          `).join("")}
-        </div>
-      </section>
-    `;
-  }
-
-  function render() {
-    return `
-      <main class="atc-shell">
-        <header class="atc-topbar">
-          <div class="atc-brand">
-            <div class="atc-logo">AI</div>
-            <div>
-              <strong>Strategy Center</strong>
-              <span>AI Transformation Strategy</span>
-            </div>
-          </div>
-
-          <div class="atc-top-actions">
-            <button class="atc-icon-btn" type="button">عربي / EN</button>
-            <button class="atc-icon-btn" type="button">☀︎</button>
-          </div>
-        </header>
-
-        <section class="atc-hero">
-          <div class="atc-badge">AI Strategy · 2026–2030</div>
-          <h1>استراتيجية التحول المؤسسي بالذكاء الاصطناعي</h1>
-          <p>
-            رؤية تنفيذية لتحويل الذكاء الاصطناعي من أفكار ومبادرات منفصلة
-            إلى برنامج مؤسسي متكامل يقود الأداء والابتكار واتخاذ القرار.
-          </p>
-
-          <div class="atc-hero-actions">
-            <button class="atc-primary-btn" type="button" onclick="ATCRouter.navigate('dashboard')">
-  العودة للرئيسية
-</button>
-
-<button class="atc-secondary-btn" type="button">
-  الرؤية 2030
-</button>
-          </div>
-        </section>
-
-        <section class="atc-two-col">
-          <article class="atc-panel">
-            <span class="atc-section-eyebrow">Vision</span>
-            <h2>الرؤية</h2>
-            <p>
-              بناء مؤسسة حكومية مدعومة بالذكاء الاصطناعي، قادرة على التنبؤ،
-              الأتمتة، إدارة المعرفة، وتحسين الخدمات بصورة مستمرة.
-            </p>
-          </article>
-
-          <article class="atc-panel">
-            <span class="atc-section-eyebrow">Mission</span>
-            <h2>الرسالة</h2>
-            <p>
-              تمكين الإدارات من تحويل تحدياتها التشغيلية إلى مشاريع ذكاء اصطناعي
-              قابلة للتنفيذ والقياس والحوكمة.
-            </p>
-          </article>
-        </section>
-
-        ${renderPillars()}
-        ${renderPrinciples()}
-      </main>
-    `;
-  }
-
-  return {
-    render
-  };
-})();
-
-/* =========================================================
-   AI Work - Strategy Module V1
+   AI Work - Strategy Module V2.0
+   Executive Strategy Center + Local Storage
 ========================================================= */
 
 window.AIW = window.AIW || {};
@@ -153,40 +10,188 @@ AIW.Modules.strategy = {
   id: "strategy",
   title: "الاستراتيجية",
   icon: "🎯",
+  storageKey: "aiwStrategyV2",
+
+  defaultData() {
+    return {
+      goals: [
+        {
+          title: "رفع نضج الذكاء الاصطناعي المؤسسي",
+          desc: "الانتقال من مرحلة التجارب الفردية إلى نموذج مؤسسي موحد لإدارة الذكاء الاصطناعي.",
+          priority: "High"
+        },
+        {
+          title: "تحويل 100 فكرة إلى محفظة مبادرات",
+          desc: "تقييم الأفكار وترتيبها حسب الأثر، الجاهزية، التكلفة، والمخاطر.",
+          priority: "Medium"
+        },
+        {
+          title: "بناء حوكمة مسؤولة للذكاء الاصطناعي",
+          desc: "اعتماد مبادئ الخصوصية، الشفافية، الإشراف البشري، وإدارة المخاطر.",
+          priority: "High"
+        }
+      ],
+      pillars: [
+        ["⚙️", "أتمتة العمليات", "تقليل الجهد اليدوي وتسريع الإجراءات."],
+        ["📊", "القرار المدعوم بالبيانات", "تمكين القيادات من قرارات أسرع وأدق."],
+        ["🛡️", "الأمن الرقمي الذكي", "رصد التهديدات والاستجابة الاستباقية."],
+        ["💡", "ثقافة الابتكار", "تحويل خبرات الموظفين إلى مشاريع تنفيذية."],
+        ["🤖", "الموظف الرقمي", "مساعدات ذكية تدعم الموظفين والفرق."],
+        ["🏛️", "الحوكمة المسؤولة", "خصوصية وشفافية وإشراف بشري."],
+      ]
+    };
+  },
+
+  load() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(this.storageKey) || "null");
+      return saved || this.defaultData();
+    } catch (e) {
+      return this.defaultData();
+    }
+  },
+
+  save(data) {
+    localStorage.setItem(this.storageKey, JSON.stringify(data));
+  },
+
+  addGoal() {
+    const title = document.getElementById("strategyGoalTitle")?.value.trim();
+    const desc = document.getElementById("strategyGoalDesc")?.value.trim();
+    const priority = document.getElementById("strategyGoalPriority")?.value || "Medium";
+
+    if (!title) return;
+
+    const data = this.load();
+    data.goals.unshift({ title, desc, priority });
+    this.save(data);
+
+    AIW.App.go("strategy");
+  },
+
+  deleteGoal(index) {
+    const data = this.load();
+    data.goals.splice(index, 1);
+    this.save(data);
+
+    AIW.App.go("strategy");
+  },
 
   render(container) {
     if (!container) return;
 
+    const data = this.load();
+    const highGoals = data.goals.filter(g => g.priority === "High").length;
+
     container.innerHTML = `
       <section class="module-page">
         <div class="module-hero">
-          <span class="module-kicker">Executive Strategy</span>
+          <span class="module-kicker">AI Strategy · 2026–2030</span>
           <h1>مركز الاستراتيجية</h1>
-          <p>اربط مبادرات الذكاء الاصطناعي بالأهداف المؤسسية، الأولويات، المؤشرات، والمخاطر.</p>
+          <p>
+            حوّل الذكاء الاصطناعي من أفكار ومبادرات منفصلة إلى برنامج مؤسسي
+            واضح، قابل للقياس، ومربوط بالأهداف والحوكمة والأثر.
+          </p>
+
+          <div class="aiw-chip-row">
+            <span class="aiw-chip">🎯 Executive Strategy</span>
+            <span class="aiw-chip">📊 KPI Driven</span>
+            <span class="aiw-chip">🏛️ Responsible AI</span>
+          </div>
         </div>
 
         <div class="module-grid">
           <div class="module-card">
             <span>الأهداف الاستراتيجية</span>
-            <strong>0</strong>
+            <strong>${data.goals.length}</strong>
+            <small>Active goals</small>
           </div>
 
           <div class="module-card">
-            <span>المبادرات</span>
-            <strong>0</strong>
+            <span>الركائز</span>
+            <strong>${data.pillars.length}</strong>
+            <small>AI pillars</small>
           </div>
 
           <div class="module-card">
-            <span>مؤشرات الأداء</span>
-            <strong>0</strong>
+            <span>الأولوية العالية</span>
+            <strong>${highGoals}</strong>
+            <small>High priority</small>
           </div>
         </div>
 
-        <div class="module-panel">
-          <h2>هدف استراتيجي جديد</h2>
-          <input class="module-input" placeholder="اسم الهدف">
-          <textarea class="module-textarea" placeholder="وصف الهدف"></textarea>
-          <button class="module-btn">حفظ الهدف</button>
+        <div class="module-wide-grid">
+          <div>
+            <div class="module-panel">
+              <h2>الرؤية</h2>
+              <p>
+                بناء مؤسسة مدعومة بالذكاء الاصطناعي، قادرة على التنبؤ،
+                الأتمتة، إدارة المعرفة، وتحسين الخدمات بصورة مستمرة.
+              </p>
+            </div>
+
+            <div class="module-panel">
+              <h2>الرسالة</h2>
+              <p>
+                تمكين الإدارات من تحويل تحدياتها التشغيلية إلى مشاريع ذكاء اصطناعي
+                قابلة للتنفيذ والقياس والحوكمة.
+              </p>
+            </div>
+          </div>
+
+          <div class="module-panel">
+            <h2>هدف استراتيجي جديد</h2>
+
+            <input id="strategyGoalTitle" class="module-input" placeholder="اسم الهدف">
+
+            <textarea id="strategyGoalDesc" class="module-textarea" placeholder="وصف الهدف"></textarea>
+
+            <select id="strategyGoalPriority" class="module-select">
+              <option value="High">أولوية عالية</option>
+              <option value="Medium">أولوية متوسطة</option>
+              <option value="Low">أولوية منخفضة</option>
+            </select>
+
+            <button class="module-btn" onclick="AIW.Modules.strategy.addGoal()">
+              حفظ الهدف
+            </button>
+          </div>
+        </div>
+
+        <div class="module-section-title">
+          <h2>الركائز الاستراتيجية</h2>
+          <p>المحاور التي توجه جميع برامج ومشاريع الذكاء الاصطناعي.</p>
+        </div>
+
+        <div class="module-grid">
+          ${data.pillars.map(p => `
+            <div class="module-card">
+              <span>${p[0]} ${p[1]}</span>
+              <strong style="font-size:18px; line-height:1.5;">${p[2]}</strong>
+            </div>
+          `).join("")}
+        </div>
+
+        <div class="module-panel module-list-panel">
+          <h2>الأهداف الاستراتيجية</h2>
+
+          ${
+            data.goals.length
+              ? data.goals.map((g, index) => `
+                <div class="module-list-item">
+                  <div>
+                    <strong>${g.title}</strong>
+                    <span>${g.desc || "بدون وصف"}</span>
+                    <small>${g.priority}</small>
+                  </div>
+
+                  <button class="module-delete-btn" onclick="AIW.Modules.strategy.deleteGoal(${index})">
+                    حذف
+                  </button>
+                </div>
+              `).join("")
+              : `<div class="module-empty">لا توجد أهداف حالياً.</div>`
+          }
         </div>
       </section>
     `;
