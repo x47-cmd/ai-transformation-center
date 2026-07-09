@@ -113,7 +113,9 @@ const ATCShell = (function () {
           ${roadmap.map(phase => `
             <article class="atc-roadmap-card">
               <div class="atc-roadmap-year">${phase[0]}</div>
-              <div class="atc-roadmap-line"><span style="width:${phase[3]}%"></span></div>
+              <div class="atc-roadmap-line">
+                <span style="width:${phase[3]}%"></span>
+              </div>
               <h3>${phase[1]}</h3>
               <p>${phase[2]}</p>
             </article>
@@ -142,7 +144,9 @@ const ATCShell = (function () {
                 <p>${dep[1]}</p>
               </div>
               <strong>${dep[2]}%</strong>
-              <div class="atc-mini-line"><span style="width:${dep[2]}%"></span></div>
+              <div class="atc-mini-line">
+                <span style="width:${dep[2]}%"></span>
+              </div>
             </article>
           `).join("")}
         </div>
@@ -171,6 +175,7 @@ const ATCShell = (function () {
         <article class="atc-panel">
           <span class="atc-section-eyebrow">Risk Matrix</span>
           <h2>ملخص المخاطر</h2>
+
           <div class="atc-risk-list">
             ${risks.map(risk => `
               <div class="atc-risk-item">
@@ -200,6 +205,7 @@ const ATCShell = (function () {
         <article class="atc-panel">
           <span class="atc-section-eyebrow">Recent Activities</span>
           <h2>آخر التحديثات</h2>
+
           <div class="atc-activity-list">
             ${activities.map(activity => `<div>${activity}</div>`).join("")}
           </div>
@@ -221,8 +227,10 @@ const ATCShell = (function () {
           </div>
 
           <div class="atc-top-actions">
+            <button class="atc-icon-btn" type="button" onclick="ATCRouter.navigate('dashboard')">الرئيسية</button>
+            <button class="atc-icon-btn" type="button" onclick="ATCRouter.navigate('strategy')">الاستراتيجية</button>
+            <button class="atc-icon-btn" type="button" onclick="ATCRouter.navigate('projects')">المشاريع</button>
             <button class="atc-icon-btn" id="atcLangBtn" type="button">عربي / EN</button>
-            <button class="atc-icon-btn" id="atcThemeBtn" type="button">☀︎</button>
           </div>
         </header>
 
@@ -233,12 +241,12 @@ const ATCShell = (function () {
 
           <div class="atc-hero-actions">
             <button class="atc-primary-btn" type="button" onclick="ATCRouter.navigate('strategy')">
-  استعراض الاستراتيجية
-</button>
+              استعراض الاستراتيجية
+            </button>
 
-<button class="atc-secondary-btn" type="button" onclick="ATCRouter.navigate('dashboard')">
-  Executive Dashboard
-</button>
+            <button class="atc-secondary-btn" type="button" onclick="ATCRouter.navigate('projects')">
+              محفظة المشاريع
+            </button>
           </div>
         </section>
 
@@ -257,5 +265,7 @@ const ATCShell = (function () {
     `;
   }
 
-  return { render };
+  return {
+    render
+  };
 })();
