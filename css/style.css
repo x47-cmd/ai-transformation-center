@@ -1631,3 +1631,180 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   AI Maturity Center V1 Add-ons
+========================================================= */
+
+.maturity-hero-score {
+  padding: 18px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.10), rgba(124, 58, 237, 0.08));
+  border: 1px solid rgba(37, 99, 235, 0.14);
+}
+
+.maturity-hero-score strong {
+  display: block;
+  font-size: 56px;
+  letter-spacing: -0.07em;
+  line-height: 1;
+}
+
+.maturity-hero-score span {
+  display: inline-flex;
+  margin: 8px 0 12px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: #101828;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.maturity-hero-score p {
+  margin-bottom: 0;
+}
+
+.maturity-insight {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 22px;
+  background: rgba(16, 24, 40, 0.04);
+}
+
+.maturity-insight strong {
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.maturity-insight p {
+  margin: 0;
+}
+
+.maturity-dimensions {
+  display: grid;
+  gap: 10px;
+}
+
+.maturity-dimension-card {
+  display: grid;
+  grid-template-columns: 1fr 150px;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(16, 24, 40, 0.04);
+}
+
+.maturity-dimension-card strong {
+  display: block;
+  font-size: 15px;
+}
+
+.maturity-dimension-card p {
+  margin: 5px 0 0;
+  font-size: 13px;
+}
+
+.maturity-dimension-score b {
+  display: block;
+  text-align: left;
+  font-size: 14px;
+}
+
+.maturity-levels {
+  display: grid;
+  gap: 10px;
+}
+
+.maturity-level-card {
+  display: flex;
+  gap: 12px;
+  padding: 13px;
+  border-radius: 18px;
+  background: rgba(16, 24, 40, 0.04);
+  border: 1px solid transparent;
+}
+
+.maturity-level-card.active {
+  background: rgba(37, 99, 235, 0.10);
+  border-color: rgba(37, 99, 235, 0.18);
+}
+
+.maturity-level-card b {
+  min-width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: #101828;
+  color: #fff;
+}
+
+.maturity-level-card strong {
+  display: block;
+  font-size: 14px;
+}
+
+.maturity-level-card span {
+  display: block;
+  margin-top: 4px;
+  color: var(--aiw-muted);
+  font-size: 12px;
+  line-height: 1.6;
+  font-weight: 800;
+}
+
+.maturity-roadmap {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.maturity-roadmap div {
+  padding: 15px;
+  border-radius: 20px;
+  background: rgba(16, 24, 40, 0.04);
+  border: 1px solid rgba(16, 24, 40, 0.07);
+}
+
+.maturity-roadmap b {
+  display: inline-flex;
+  margin-bottom: 8px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #101828;
+  color: #fff;
+  font-size: 12px;
+}
+
+.maturity-roadmap strong {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.maturity-roadmap span {
+  display: block;
+  color: var(--aiw-muted);
+  font-size: 12px;
+  line-height: 1.7;
+  font-weight: 800;
+}
+
+@media (max-width: 900px) {
+  .maturity-roadmap {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 620px) {
+  .maturity-dimension-card {
+    grid-template-columns: 1fr;
+  }
+
+  .maturity-roadmap {
+    grid-template-columns: 1fr;
+  }
+}
