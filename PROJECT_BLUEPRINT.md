@@ -168,3 +168,65 @@ Version 1.0 Foundation
 Project Started
 
 July 2026
+
+---
+
+# Core Architecture Rules
+
+The platform must be built on a centralized architecture from day one.
+
+## Central Data Layer
+
+All pages must read and write data through a single store:
+
+`ATCStore`
+
+No page is allowed to directly manage localStorage independently.
+
+## Storage Keys
+
+- `atcDataV1`
+- `atcBackupV1`
+- `atcSettingsV1`
+
+## Unified Event System
+
+All updates must trigger:
+
+`atc:dataChanged`
+
+All pages must listen to this event and refresh their content automatically.
+
+## Modular JavaScript Architecture
+
+The project will use the following core files:
+
+- `config.js`
+- `data.js`
+- `store.js`
+- `events.js`
+- `reports.js`
+- `ui.js`
+- `app.js`
+
+## Reporting Rules
+
+Reports and KPIs must be calculated from source data, not stored as static numbers.
+
+Examples:
+
+- Total Projects = `projects.length`
+- Total Ideas = `ideas.length`
+- Total Departments = `departments.length`
+- Average AI Maturity = average of maturity scores
+- Total ROI = sum of business cases ROI
+
+## Golden Rule
+
+No page should directly write to localStorage.
+
+All updates must go through:
+
+`ATCStore.update()`
+
+This ensures synchronization, clean reporting, and future scalability.
