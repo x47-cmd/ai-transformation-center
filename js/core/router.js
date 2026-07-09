@@ -14,6 +14,10 @@ const ATCRouter = (function () {
 
     strategy: function () {
       return ATCStrategy.render();
+    },
+
+    projects: function () {
+      return ATCProjects.render();
     }
   };
 
