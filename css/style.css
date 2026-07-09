@@ -920,6 +920,329 @@ button:disabled {
 }
 
 /* =========================================================
+   Executive Dashboard V2 Add-ons
+========================================================= */
+
+.executive-hero {
+  position: relative;
+  overflow: hidden;
+}
+
+.executive-hero::after {
+  content: "";
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  left: -80px;
+  top: -80px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.28);
+  filter: blur(4px);
+}
+
+.executive-kpi-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.executive-kpi-card {
+  min-height: 126px;
+}
+
+.module-section-title.compact {
+  margin-top: 0;
+}
+
+.executive-vision-box {
+  display: grid;
+  gap: 12px;
+}
+
+.executive-vision-box h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.executive-vision-box p {
+  margin: 0;
+}
+
+.decision-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.10), rgba(124, 58, 237, 0.08));
+  border: 1px solid rgba(37, 99, 235, 0.14);
+}
+
+.decision-card strong {
+  font-size: 18px;
+}
+
+.decision-card span {
+  color: var(--aiw-muted);
+  line-height: 1.8;
+  font-weight: 750;
+  font-size: 13px;
+}
+
+.quickwin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.quickwin-card {
+  padding: 15px;
+  border-radius: 20px;
+  background: rgba(22, 163, 74, 0.08);
+  border: 1px solid rgba(22, 163, 74, 0.12);
+}
+
+.quickwin-card span {
+  display: block;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 6px;
+}
+
+.quickwin-card strong {
+  display: block;
+  line-height: 1.6;
+  font-size: 15px;
+}
+
+.quickwin-card small {
+  display: block;
+  margin-top: 8px;
+  color: var(--aiw-muted);
+  font-weight: 900;
+}
+
+.maturity-list {
+  display: grid;
+  gap: 10px;
+}
+
+.maturity-item {
+  display: grid;
+  grid-template-columns: 1fr 110px;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(16, 24, 40, 0.04);
+}
+
+.maturity-item strong {
+  display: block;
+  font-size: 14px;
+}
+
+.maturity-item span {
+  display: block;
+  margin-top: 4px;
+  color: var(--aiw-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.maturity-score b {
+  display: block;
+  text-align: left;
+  font-size: 13px;
+}
+
+.risk-list {
+  display: grid;
+  gap: 10px;
+}
+
+.risk-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(16, 24, 40, 0.04);
+}
+
+.risk-card strong {
+  display: block;
+  font-size: 14px;
+}
+
+.risk-card p {
+  margin: 5px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+  .executive-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .quickwin-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .maturity-item {
+    grid-template-columns: 1fr;
+  }
+
+  .risk-card {
+    flex-direction: column;
+  }
+}
+
+/* =========================================================
+   Strategy Center V3 Add-ons
+========================================================= */
+
+.strategy-statement {
+  padding: 16px;
+  border-radius: 22px;
+  background: rgba(16, 24, 40, 0.04);
+  margin-bottom: 12px;
+}
+
+.strategy-statement span {
+  display: block;
+  color: var(--aiw-primary-dark);
+  font-size: 12px;
+  font-weight: 950;
+  margin-bottom: 8px;
+}
+
+.strategy-statement strong {
+  display: block;
+  line-height: 1.8;
+  font-size: 15px;
+}
+
+.strategy-decision {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.10), rgba(124, 58, 237, 0.08));
+  border: 1px solid rgba(37, 99, 235, 0.14);
+}
+
+.strategy-decision strong {
+  font-size: 18px;
+}
+
+.strategy-decision p {
+  margin: 0;
+}
+
+.strategy-goals-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.strategy-goal-card {
+  position: relative;
+  padding: 16px;
+  border-radius: 24px;
+  background: var(--aiw-card);
+  border: 1px solid var(--aiw-border);
+  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.06);
+}
+
+.strategy-goal-card b {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: #101828;
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.strategy-goal-card span {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.10);
+  color: var(--aiw-primary-dark);
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.strategy-goal-card strong {
+  display: block;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.strategy-goal-card p {
+  margin: 8px 0 0;
+  color: var(--aiw-muted);
+  line-height: 1.8;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.strategy-pillar-card strong {
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.horizon-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 11px;
+}
+
+.horizon-card {
+  padding: 16px;
+  border-radius: 22px;
+  background: rgba(16, 24, 40, 0.04);
+  border: 1px solid rgba(16, 24, 40, 0.07);
+}
+
+.horizon-card span {
+  display: inline-flex;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.10);
+  color: var(--aiw-primary-dark);
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.horizon-card strong {
+  display: block;
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.horizon-card p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+@media (max-width: 640px) {
+  .strategy-goals-grid,
+  .horizon-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
    Projects Portfolio V2 Add-ons
 ========================================================= */
 
@@ -1059,3 +1382,72 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   Ideas Catalog V3 Add-ons
+========================================================= */
+
+.department-button {
+  width: 100%;
+  text-align: right;
+  cursor: pointer;
+}
+
+.department-button.active {
+  background: #101828;
+  color: #fff;
+}
+
+.department-button.active span {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.ideas-filter-row {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.ideas-filter-row .module-btn {
+  padding: 11px 10px;
+  font-size: 12px;
+  box-shadow: none;
+}
+
+.active-filter {
+  outline: 3px solid rgba(37, 99, 235, 0.18);
+}
+
+.idea-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.idea-quickwin {
+  white-space: nowrap;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  background: rgba(22, 163, 74, 0.12);
+  color: #15803d;
+}
+
+@media (max-width: 820px) {
+  .ideas-filter-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .ideas-filter-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .idea-badges {
+    justify-content: flex-start;
+  }
+}
+
