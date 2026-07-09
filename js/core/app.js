@@ -1,13 +1,13 @@
 /* =========================================================
-   AI Work - App Core V1.4
-   Stable Router + Enterprise Header + Toast System
+   AI Work - App Core V1.5
+   Enterprise Router + 7 Modules
 ========================================================= */
 
 window.AIW = window.AIW || {};
 AIW.Modules = AIW.Modules || {};
 
 AIW.App = {
-  version: "1.4",
+  version: "1.5",
   currentModule: "dashboard",
 
   routes: {
@@ -38,6 +38,27 @@ AIW.App = {
       subtitle: "AI Use Case Catalog",
       container: "page-ideas",
       icon: "💡"
+    },
+    governance: {
+      id: "governance",
+      title: "الحوكمة",
+      subtitle: "Responsible AI Governance",
+      container: "page-governance",
+      icon: "🏛️"
+    },
+    maturity: {
+      id: "maturity",
+      title: "النضج",
+      subtitle: "AI Maturity Center",
+      container: "page-maturity",
+      icon: "🧠"
+    },
+    reports: {
+      id: "reports",
+      title: "التقارير",
+      subtitle: "Executive Reports & Analytics",
+      container: "page-reports",
+      icon: "📊"
     }
   },
 
@@ -67,6 +88,7 @@ AIW.App = {
         section.className = "aiw-page";
         section.setAttribute("role", "region");
         section.setAttribute("aria-label", route.title);
+        section.setAttribute("aria-hidden", "true");
         main.appendChild(section);
       }
     });
@@ -119,6 +141,12 @@ AIW.App = {
         detail: { moduleId, route }
       })
     );
+
+    window.dispatchEvent(
+      new CustomEvent("atc:routeChanged", {
+        detail: { moduleId, route }
+      })
+    );
   },
 
   updateHeader(route) {
@@ -162,6 +190,7 @@ AIW.App = {
   bindHashRouting() {
     window.addEventListener("hashchange", () => {
       const route = this.getRouteFromHash();
+
       if (route && route !== this.currentModule) {
         this.go(route, { skipHash: true });
       }
