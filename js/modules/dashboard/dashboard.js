@@ -1,7 +1,7 @@
 /* =========================================================
-   AI Work - Executive Dashboard V3.1
+   AI Work - Executive Dashboard V3.2
    Scope: Enterprise Biometric Intelligence Platform
-   No UI Design Changes
+   Content Refinement - No UI Design Changes
 ========================================================= */
 
 window.AIW = window.AIW || {};
@@ -22,10 +22,11 @@ AIW.Modules.dashboard = {
     const ideasCount = summary.ideasCount || (data.ideas || []).length || 30;
     const targetIdeas = summary.targetIdeas || 100;
     const ideaProgress = Math.round((ideasCount / targetIdeas) * 100);
-    const maturity = summary.maturityScore || 34;
-    const health = summary.portfolioHealth || 68;
-    const roi = summary.expectedROI || 42000000;
-    const highPriorityIdeas = (data.ideas || []).filter(x => x.priority === "عالية").length || 16;
+    const readiness = summary.maturityScore || 34;
+    const systemHealth = summary.portfolioHealth || 68;
+    const highPriorityIdeas = (data.ideas || []).filter(x => x.priority === "عالية").length || 21;
+
+    const operationsHealth = 92;
 
     container.innerHTML = `
       <section class="v3-dashboard-page">
@@ -62,7 +63,7 @@ AIW.Modules.dashboard = {
 
             <div>
               <strong>${summary.departmentsCount || 5} 🛂</strong>
-              <span>محافظ تخصصية</span>
+              <span>محافظ تشغيلية</span>
             </div>
 
             <div>
@@ -75,26 +76,26 @@ AIW.Modules.dashboard = {
         <section class="v3-kpi-grid">
           ${this.kpiCard("👁️", "الأفكار الحالية", ideasCount, `${ideaProgress}% من هدف 100 فكرة`, "blue")}
           ${this.kpiCard("🚀", "أولوية عالية", highPriorityIdeas, "جاهزة للتقييم التنفيذي", "green")}
-          ${this.kpiCard("🛂", "نضج المنظومة", `${maturity}%`, "Biometric AI Maturity", "purple")}
-          ${this.kpiCard("📊", "صحة المحفظة", `${health}%`, "Portfolio Health", "green")}
+          ${this.kpiCard("🛂", "جاهزية الذكاء الاصطناعي", `${readiness}%`, "AI Readiness", "purple")}
+          ${this.kpiCard("📊", "صحة الأنظمة", `${systemHealth}%`, "System Health", "green")}
         </section>
 
         <section class="v3-roi-card">
           <div>
-            <h3>💰 العائد المتوقع على الاستثمار</h3>
-            <strong>${this.formatAED(roi)}</strong>
-            <p>Expected ROI</p>
+            <h3>🟢 حالة العمليات البيومترية</h3>
+            <strong>${operationsHealth}%</strong>
+            <p>Operational Health</p>
           </div>
 
           <div class="v3-mini-chart">
-            <span style="height:22%"></span>
-            <span style="height:30%"></span>
-            <span style="height:48%"></span>
-            <span style="height:38%"></span>
-            <span style="height:60%"></span>
-            <span style="height:52%"></span>
-            <span style="height:78%"></span>
-            <span style="height:72%"></span>
+            <span style="height:82%"></span>
+            <span style="height:76%"></span>
+            <span style="height:88%"></span>
+            <span style="height:70%"></span>
+            <span style="height:92%"></span>
+            <span style="height:84%"></span>
+            <span style="height:96%"></span>
+            <span style="height:90%"></span>
             <span style="height:94%"></span>
           </div>
         </section>
@@ -107,9 +108,9 @@ AIW.Modules.dashboard = {
           </article>
 
           <article class="v3-small-panel">
-            <h3>⚙️ القرار القادم</h3>
-            <strong>اعتماد المحفظة</strong>
-            <p>تحويل الأفكار المتخصصة إلى مشاريع تنفيذية</p>
+            <h3>⚙️ المرحلة القادمة</h3>
+            <strong>بدء المرحلة الأولى</strong>
+            <p>تشغيل لوحات القياس والتنبيهات الأولية</p>
           </article>
         </section>
 
@@ -128,11 +129,5 @@ AIW.Modules.dashboard = {
         </div>
       </article>
     `;
-  },
-
-  formatAED(value) {
-    const n = Number(value || 0);
-    if (n >= 1000000) return `${Math.round(n / 1000000)}M AED`;
-    return `${n.toLocaleString("ar-AE")} AED`;
   }
 };
