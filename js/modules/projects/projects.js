@@ -113,3 +113,54 @@ const ATCProjects = (function () {
     render
   };
 })();
+
+/* =========================================================
+   AI Work - Projects Module V1
+========================================================= */
+
+window.AIW = window.AIW || {};
+AIW.Modules = AIW.Modules || {};
+
+AIW.Modules.projects = {
+  id: "projects",
+  title: "المشاريع",
+  icon: "📁",
+
+  render(container) {
+    if (!container) return;
+
+    container.innerHTML = `
+      <section class="module-page">
+        <div class="module-hero">
+          <span class="module-kicker">Execution Center</span>
+          <h1>مركز المشاريع</h1>
+          <p>حوّل الأفكار المعتمدة إلى مشاريع، وتابع الحالة، الأولوية، التقدم، والمخرجات.</p>
+        </div>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <span>مشاريع نشطة</span>
+            <strong>0</strong>
+          </div>
+
+          <div class="module-card">
+            <span>قيد التنفيذ</span>
+            <strong>0</strong>
+          </div>
+
+          <div class="module-card">
+            <span>مكتملة</span>
+            <strong>0</strong>
+          </div>
+        </div>
+
+        <div class="module-panel">
+          <h2>مشروع جديد</h2>
+          <input class="module-input" placeholder="اسم المشروع">
+          <textarea class="module-textarea" placeholder="وصف المشروع"></textarea>
+          <button class="module-btn">إنشاء مشروع</button>
+        </div>
+      </section>
+    `;
+  }
+};
