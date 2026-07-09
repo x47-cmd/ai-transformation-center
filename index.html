@@ -15,7 +15,7 @@
 </head>
 
 <body>
-  <div id="app" class="aiw-app" data-version="1.5.0">
+  <div id="app" class="aiw-app" data-version="1.6.0">
 
     <header id="appHeader" class="aiw-header" role="banner"></header>
 
@@ -72,12 +72,18 @@
     </nav>
   </div>
 
+  <!-- Core Config -->
   <script src="js/config/config.js"></script>
 
+  <!-- Core Data / Store -->
   <script src="js/store.js"></script>
   <script src="js/data/aiw-data.js"></script>
   <script src="js/localization/translations.js"></script>
 
+  <!-- Core Engines -->
+  <script src="js/core/widgets.js"></script>
+
+  <!-- Current Modules -->
   <script src="js/modules/dashboard/dashboard.js"></script>
   <script src="js/modules/strategy/strategy.js"></script>
   <script src="js/modules/projects/projects.js"></script>
@@ -86,6 +92,11 @@
   <script src="js/modules/maturity/maturity.js"></script>
   <script src="js/modules/reports/reports.js"></script>
 
+  <!-- Future Modules - نفعلها بعد إضافة الروتات -->
+  <!-- <script src="js/modules/kpis/kpis.js"></script> -->
+  <!-- <script src="js/modules/business/business.js"></script> -->
+
+  <!-- App Core -->
   <script src="js/core/app.js"></script>
 </body>
 </html>
