@@ -1,6 +1,6 @@
 /* =========================================================
-   AI Work - Settings Center V1.0 Ultimate
-   Enterprise Configuration + Admin Foundation
+   AI Work - More Center V1.1
+   Practical Tools + Platform Status
 ========================================================= */
 
 window.AIW = window.AIW || {};
@@ -8,74 +8,52 @@ AIW.Modules = AIW.Modules || {};
 
 AIW.Modules.settings = {
   id: "settings",
-  title: "الإعدادات",
-  icon: "⚙️",
+  title: "المزيد",
+  icon: "⋮",
 
   sections: [
     {
-      icon: "🏢",
-      title: "Organization Profile",
-      desc: "بيانات الجهة، الرؤية، الفترة الاستراتيجية، والمالك التنفيذي.",
+      icon: "📤",
+      title: "Export Center",
+      desc: "تصدير بيانات المنصة والتقارير للاستخدام التنفيذي.",
       items: [
-        ["اسم المنصة", "AI Transformation Center"],
-        ["الاسم العربي", "مركز التحول المؤسسي بالذكاء الاصطناعي"],
-        ["الفترة", "2026–2030"],
-        ["المالك التنفيذي", "AI Work"]
-      ]
-    },
-    {
-      icon: "🤖",
-      title: "AI Configuration",
-      desc: "إعدادات طبقة الذكاء والتحليلات والتوصيات.",
-      items: [
-        ["AI Engine", "Enabled"],
-        ["Recommendation Engine", "Enabled"],
-        ["Decision Engine", "Enabled"],
-        ["Human-in-the-Loop", "Required"]
-      ]
-    },
-    {
-      icon: "📊",
-      title: "Analytics & KPI",
-      desc: "إعدادات المؤشرات والتحليلات وقياس الأداء.",
-      items: [
-        ["Executive Score", "Enabled"],
-        ["Maturity Score", "Enabled"],
-        ["ROI Tracking", "Enabled"],
-        ["Review Cycle", "Quarterly"]
-      ]
-    },
-    {
-      icon: "🔐",
-      title: "Security & Governance",
-      desc: "إعدادات الحوكمة، الخصوصية، التحكم، وسجل المخاطر.",
-      items: [
-        ["Responsible AI", "Enabled"],
-        ["Privacy Review", "Required"],
-        ["Risk Review", "Required"],
-        ["Audit Logs", "Planned"]
+        ["JSON Backup", "Ready"],
+        ["Executive Report", "Planned"],
+        ["Power BI Data", "Planned"],
+        ["PDF Summary", "Planned"]
       ]
     },
     {
       icon: "🔔",
-      title: "Notifications",
-      desc: "تنبيهات المخاطر، المؤشرات، الاعتمادات، والتقارير.",
+      title: "Alert Center",
+      desc: "تنبيهات التسجيلات، الصلاحيات، البوابات، والمخاطر.",
       items: [
-        ["Risk Alerts", "Planned"],
-        ["KPI Alerts", "Planned"],
-        ["Approval Alerts", "Planned"],
-        ["Quarterly Reports", "Planned"]
+        ["Registration Alerts", "Ready"],
+        ["Privilege Alerts", "Ready"],
+        ["Gate Alerts", "Planned"],
+        ["Risk Escalation", "Planned"]
       ]
     },
     {
-      icon: "🔌",
-      title: "Integrations",
-      desc: "تكاملات مستقبلية مع Microsoft 365 وPower BI وSharePoint.",
+      icon: "📊",
+      title: "Analytics Layer",
+      desc: "محركات التحليل والقرار وDecision Score.",
       items: [
-        ["Power BI", "Future"],
-        ["Microsoft Graph", "Future"],
-        ["SharePoint", "Future"],
-        ["Azure OpenAI", "Future"]
+        ["Biometric Analytics", "Enabled"],
+        ["Decision Score", "Enabled"],
+        ["KPI Engine", "Enabled"],
+        ["Charts", "Enabled"]
+      ]
+    },
+    {
+      icon: "🛡️",
+      title: "Governance",
+      desc: "ضوابط الإشراف البشري والخصوصية والمراجعة.",
+      items: [
+        ["Human-in-the-Loop", "Required"],
+        ["Privacy Review", "Required"],
+        ["Audit Evidence", "Planned"],
+        ["Risk Review", "Required"]
       ]
     }
   ],
@@ -85,7 +63,6 @@ AIW.Modules.settings = {
 
     const W = window.AIW?.Widgets;
     const A = window.AIW?.Analytics;
-    const data = window.AIW?.Data || {};
     const config = window.AIW?.Config || window.ATC_CONFIG || {};
     const scores = A?.score ? A.score() : {};
 
@@ -93,60 +70,62 @@ AIW.Modules.settings = {
       <section class="module-page">
 
         ${W ? W.hero({
-          kicker: "Enterprise Settings · Administration",
-          title: "مركز الإعدادات والإدارة",
-          description: "لوحة إعدادات مؤسسية لإدارة المنصة، المحركات، الحوكمة، التحليلات، التكاملات، الأمان، النسخ الاحتياطي، والصلاحيات المستقبلية.",
+          kicker: "More · Platform Tools",
+          title: "المزيد",
+          description: "مركز مختصر لأدوات المنصة: التصدير، التنبيهات، حالة المحركات، التحليلات، والحوكمة.",
           chips: [
-            "⚙️ System Config",
-            "🔐 Security Ready",
-            "🤖 AI Engines",
-            "🔌 Integration Ready"
+            "📤 Export",
+            "🔔 Alerts",
+            "📊 Analytics",
+            "🛡️ Governance"
           ]
         }) : this.fallbackHero()}
 
         <div class="module-grid">
-          ${this.kpi("إصدار النظام", config.app?.version || "2.0.0", "Version")}
-          ${this.kpi("المحركات", "8", "Core Engines")}
-          ${this.kpi("الوحدات", "12", "Modules")}
+          ${this.kpi("إصدار النظام", config.app?.version || "3.0.9", "Version")}
+          ${this.kpi("Biometric Analytics", window.AIW?.BiometricAnalytics ? "Ready" : "Check", "Engine")}
           ${this.kpi("Executive Score", `${scores.executiveScore || 0}%`, "Analytics")}
+          ${this.kpi("الوحدات", Object.keys(window.AIW?.Modules || {}).length, "Modules")}
           ${this.kpi("اللغة", "AR", "Default")}
           ${this.kpi("الوضع", "Light", "Theme")}
         </div>
 
         <div class="module-wide-grid">
           <div class="module-panel">
-            ${this.sectionTitle("System Overview", "ملخص حالة النظام والبنية الحالية.")}
+            ${this.sectionTitle("Platform Status", "حالة المنصة بعد تحويلها إلى نطاق الأنظمة البيومترية والبوابات الذكية.")}
             <div class="settings-summary-card">
-              <strong>AI Work أصبح جاهزاً كبنية Enterprise Operating System</strong>
+              <strong>المنصة جاهزة لمرحلة التحليلات التشغيلية</strong>
               <p>
-                تم تجهيز المنصة بمحركات مركزية للتحليلات، القرارات، التوصيات، الرسوم،
-                الأتمتة، والواجهات، مع وحدات تنفيذية للاستراتيجية والمشاريع والحوكمة والنضج.
+                تم تجهيز الأساس لربط الأفكار والمشاريع بمؤشرات فعلية،
+                Decision Score، تنبيهات، ولوحات Power BI Style خاصة بجودة التسجيلات،
+                الصلاحيات، البوابات الذكية، والأمن الرقمي.
               </p>
 
               <div class="settings-summary-strip">
-                <div><span>App</span><b>${config.app?.shortName || "AI Work"}</b></div>
-                <div><span>Env</span><b>${config.app?.environment || "production"}</b></div>
-                <div><span>Locale</span><b>${config.app?.locale || "ar-AE"}</b></div>
+                <div><span>Scope</span><b>Biometric</b></div>
+                <div><span>AI</span><b>Enabled</b></div>
+                <div><span>Alerts</span><b>Ready</b></div>
                 <div><span>Dir</span><b>${config.app?.direction || "rtl"}</b></div>
               </div>
             </div>
           </div>
 
           <div class="module-panel">
-            ${this.sectionTitle("Admin Decision", "قرار إداري مهم للمرحلة القادمة.")}
+            ${this.sectionTitle("Next Step", "الخطوة العملية التالية.")}
             <div class="settings-admin-card">
-              <strong>الخطوة التالية هي الربط بين الوحدات والمحركات</strong>
+              <strong>اختبار الصفحات ثم بناء Operations Dashboard</strong>
               <p>
-                بعد اكتمال الإعدادات، نبدأ مرحلة الربط النهائي: كل صفحة تقرأ من Analytics,
-                Decision, Recommendation, Automation, Store بدل الحساب اليدوي داخل كل موديول.
+                بعد تنظيف النصوص، الخطوة التالية هي تجربة الموقع كاملاً،
+                ثم إضافة لوحة تشغيلية تعرض التسجيلات، التنبيهات، الصلاحيات،
+                وحالة البوابات بشكل تنفيذي.
               </p>
-              <button class="module-btn secondary" data-module="dashboard">العودة للرئيسية</button>
+              <button class="module-btn secondary" onclick="AIW.App.go('dashboard')">العودة للرئيسية</button>
             </div>
           </div>
         </div>
 
         <div class="module-panel">
-          ${this.sectionTitle("Configuration Sections", "أقسام الإعدادات الرئيسية للمنصة.")}
+          ${this.sectionTitle("Platform Tools", "الأدوات العملية الموجودة أو المخطط لها.")}
           <div class="settings-section-grid">
             ${this.sections.map(section => `
               <article class="settings-section-card">
@@ -178,41 +157,9 @@ AIW.Modules.settings = {
                     <strong>${e.name}</strong>
                     <span>${e.desc}</span>
                   </div>
-                  <em class="${e.ready ? "green" : "orange"}">${e.ready ? "Ready" : "Planned"}</em>
+                  <em class="${e.ready ? "green" : "orange"}">${e.ready ? "Ready" : "Check"}</em>
                 </div>
               `).join("")}
-            </div>
-          </div>
-
-          <div class="module-panel">
-            ${this.sectionTitle("Data & Storage", "مفاتيح التخزين المحلية الحالية.")}
-            <div class="settings-storage-list">
-              <div><strong>Data Key</strong><span>${config.storage?.data || "atcDataV1"}</span></div>
-              <div><strong>Settings Key</strong><span>${config.storage?.settings || "atcSettingsV1"}</span></div>
-              <div><strong>Backup Key</strong><span>${config.storage?.backup || "atcBackupV1"}</span></div>
-              <div><strong>Current Module</strong><span>${config.storage?.currentModule || "aiwCurrentModule"}</span></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="module-panel">
-          ${this.sectionTitle("Platform Roadmap", "الإعدادات والتكاملات المستقبلية المخطط لها.")}
-          <div class="settings-roadmap">
-            <div><b>1</b><strong>Permissions</strong><span>Roles, access, admin mode.</span></div>
-            <div><b>2</b><strong>Notifications</strong><span>Alerts, reminders, risk escalation.</span></div>
-            <div><b>3</b><strong>Integrations</strong><span>Power BI, M365, SharePoint.</span></div>
-            <div><b>4</b><strong>AI Assistant</strong><span>Executive Copilot and chat layer.</span></div>
-            <div><b>5</b><strong>Cloud Backend</strong><span>Database, API, authentication.</span></div>
-          </div>
-        </div>
-
-        <div class="module-wide-grid">
-          <div class="module-panel">
-            ${this.sectionTitle("Backup & Restore", "إدارة النسخ الاحتياطي للبيانات.")}
-            <div class="settings-action-card">
-              <strong>Local Backup Ready</strong>
-              <p>حالياً البيانات محفوظة محلياً، والمرحلة القادمة يمكن ربطها بسحابة أو قاعدة بيانات.</p>
-              <button class="module-btn" onclick="AIW.Modules.settings.exportData()">تصدير البيانات</button>
             </div>
           </div>
 
@@ -229,6 +176,28 @@ AIW.Modules.settings = {
           </div>
         </div>
 
+        <div class="module-wide-grid">
+          <div class="module-panel">
+            ${this.sectionTitle("Backup & Export", "تصدير نسخة من بيانات المنصة.")}
+            <div class="settings-action-card">
+              <strong>تصدير بيانات AI Work</strong>
+              <p>ينشئ ملف JSON يحتوي على بيانات المنصة الحالية للاحتفاظ أو المراجعة.</p>
+              <button class="module-btn" onclick="AIW.Modules.settings.exportData()">تصدير البيانات</button>
+            </div>
+          </div>
+
+          <div class="module-panel">
+            ${this.sectionTitle("About Platform", "تعريف مختصر بالمنصة.")}
+            <div class="settings-action-card">
+              <strong>Enterprise Biometric Intelligence Platform</strong>
+              <p>
+                منصة تنفيذية لإدارة أفكار ومشاريع الذكاء الاصطناعي الخاصة
+                بالأنظمة البيومترية، البوابات الذكية، الصلاحيات، والأمن الرقمي.
+              </p>
+            </div>
+          </div>
+        </div>
+
       </section>
     `;
   },
@@ -238,8 +207,8 @@ AIW.Modules.settings = {
       { icon: "🧩", name: "Widgets Engine", desc: "Reusable UI components.", ready: !!window.AIW?.Widgets },
       { icon: "📊", name: "Charts Engine", desc: "Chart.js wrapper.", ready: !!window.AIW?.Charts },
       { icon: "📈", name: "Analytics Engine", desc: "Scores and executive analytics.", ready: !!window.AIW?.Analytics },
-      { icon: "⚙️", name: "Automation Engine", desc: "Workflow and event engine.", ready: !!window.AIW?.Automation },
-      { icon: "🤖", name: "AI Engine", desc: "Enterprise intelligence layer.", ready: !!window.AIW?.AI },
+      { icon: "👁️", name: "Biometric Analytics", desc: "Decision Score, alerts, and AI opportunity scoring.", ready: !!window.AIW?.BiometricAnalytics },
+      { icon: "🤖", name: "AI Engine", desc: "Executive intelligence layer.", ready: !!window.AIW?.AI },
       { icon: "🧭", name: "Decision Engine", desc: "Decision support system.", ready: !!window.AIW?.Decision },
       { icon: "💡", name: "Recommendation Engine", desc: "Executive recommendations.", ready: !!window.AIW?.Recommendation },
       { icon: "🔐", name: "Permissions Engine", desc: "Roles and access control.", ready: !!window.AIW?.Permissions }
@@ -250,7 +219,7 @@ AIW.Modules.settings = {
     return [
       { name: "Config Loaded", ok: !!(window.AIW?.Config || window.ATC_CONFIG) },
       { name: "Data Layer Loaded", ok: !!window.AIW?.Data },
-      { name: "Store Loaded", ok: !!window.AIW?.Store },
+      { name: "Biometric Analytics Loaded", ok: !!window.AIW?.BiometricAnalytics },
       { name: "Modules Loaded", ok: !!window.AIW?.Modules },
       { name: "Charts Library", ok: typeof Chart !== "undefined" },
       { name: "App Core", ok: !!window.AIW?.App }
@@ -313,9 +282,9 @@ AIW.Modules.settings = {
   fallbackHero() {
     return `
       <div class="module-hero">
-        <span class="module-kicker">Enterprise Settings</span>
-        <h1>مركز الإعدادات والإدارة</h1>
-        <p>لوحة إعدادات مؤسسية لإدارة المنصة والمحركات والتكاملات.</p>
+        <span class="module-kicker">More · Platform Tools</span>
+        <h1>المزيد</h1>
+        <p>أدوات التصدير والتنبيهات والتحليلات وحالة المنصة.</p>
       </div>
     `;
   }
