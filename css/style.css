@@ -1,6 +1,6 @@
 /* =========================================================
    AI Work / AI Transformation Center
-   Architecture V2.3 - Executive Experience
+   Architecture V2.4 - Enterprise Foundation UI
 ========================================================= */
 
 :root {
@@ -14,6 +14,7 @@
   --aiw-purple: #7c3aed;
   --aiw-green: #16a34a;
   --aiw-red: #dc2626;
+  --aiw-orange: #f59e0b;
   --aiw-border: rgba(16, 24, 40, 0.10);
   --aiw-shadow: 0 18px 45px rgba(16, 24, 40, 0.08);
   --aiw-radius: 28px;
@@ -25,10 +26,12 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
+  min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background:
     radial-gradient(circle at top right, rgba(37, 99, 235, 0.16), transparent 34%),
@@ -49,6 +52,11 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .aiw-app {
   min-height: 100vh;
   padding-bottom: 110px;
@@ -61,8 +69,10 @@ button {
   top: 0;
   z-index: 20;
   padding: 16px 16px 10px;
+  padding-top: max(16px, env(safe-area-inset-top));
   background: rgba(246, 248, 251, 0.86);
   backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .aiw-header-inner {
@@ -140,10 +150,102 @@ button {
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* System Layers */
+
+.aiw-toast-container {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 104px;
+  z-index: 80;
+  display: grid;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.aiw-toast {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 13px 15px;
+  border-radius: 18px;
+  background: rgba(16, 24, 40, 0.92);
+  color: #fff;
+  box-shadow: 0 18px 45px rgba(16, 24, 40, 0.22);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
+.aiw-modal-root,
+.aiw-drawer-root,
+.aiw-overlay-root {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+}
+
+.aiw-loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: none;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.20), transparent 36%),
+    rgba(246, 248, 251, 0.86);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.aiw-loading-screen.active {
+  display: grid;
+}
+
+.aiw-loading-card {
+  width: min(320px, 100%);
+  padding: 24px;
+  border-radius: 28px;
+  background: var(--aiw-card);
+  border: 1px solid var(--aiw-border);
+  box-shadow: var(--aiw-shadow);
+  text-align: center;
+}
+
+.aiw-loading-logo {
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 14px;
+  display: grid;
+  place-items: center;
+  border-radius: 20px;
+  background: linear-gradient(135deg, var(--aiw-primary), var(--aiw-purple));
+  color: #fff;
+  font-size: 20px;
+  font-weight: 950;
+}
+
+.aiw-loading-card strong {
+  display: block;
+  font-size: 17px;
+  letter-spacing: -0.03em;
+}
+
+.aiw-loading-card small {
+  display: block;
+  margin-top: 6px;
+  color: var(--aiw-muted);
+  font-weight: 800;
 }
 
 /* Modules */
@@ -208,6 +310,7 @@ button {
   padding: 16px;
   box-shadow: 0 10px 30px rgba(16, 24, 40, 0.06);
   backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .module-card span {
@@ -430,6 +533,21 @@ button {
   color: var(--aiw-primary-dark);
 }
 
+.aiw-status.green {
+  background: rgba(22, 163, 74, 0.12);
+  color: #15803d;
+}
+
+.aiw-status.orange {
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+}
+
+.aiw-status.red {
+  background: rgba(220, 38, 38, 0.10);
+  color: var(--aiw-red);
+}
+
 /* Bottom Navigation */
 
 .aiw-bottom-nav {
@@ -447,6 +565,7 @@ button {
   border: 1px solid var(--aiw-border);
   border-radius: 28px;
   backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
   box-shadow: 0 18px 45px rgba(16, 24, 40, 0.16);
 }
 
@@ -721,6 +840,14 @@ button {
     grid-template-columns: 1.2fr 0.8fr;
     gap: 14px;
   }
+
+  .aiw-bottom-nav {
+    max-width: 680px;
+    left: 50%;
+    right: auto;
+    width: calc(100% - 28px);
+    transform: translateX(-50%);
+  }
 }
 
 @media (max-width: 640px) {
@@ -758,6 +885,7 @@ button {
 @media (max-width: 420px) {
   .aiw-header {
     padding: 14px 14px 8px;
+    padding-top: max(14px, env(safe-area-inset-top));
   }
 
   .aiw-header-inner h1 {
