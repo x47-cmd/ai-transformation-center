@@ -2672,3 +2672,451 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   AI Maturity Center V2 Ultimate Add-ons
+========================================================= */
+
+.maturity-ultimate-score {
+  padding: 18px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.10), rgba(124, 58, 237, 0.08));
+  border: 1px solid rgba(37, 99, 235, 0.14);
+}
+
+.maturity-ultimate-score strong {
+  display: block;
+  font-size: 58px;
+  letter-spacing: -0.07em;
+  line-height: 1;
+}
+
+.maturity-ultimate-score span {
+  display: inline-flex;
+  margin: 8px 0 12px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: #101828;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.maturity-ultimate-score p {
+  margin-bottom: 0;
+}
+
+.maturity-ai-insight {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid var(--aiw-border);
+}
+
+.maturity-ai-insight.green {
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.maturity-ai-insight.orange {
+  background: rgba(245, 158, 11, 0.10);
+}
+
+.maturity-ai-insight.red {
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.maturity-ai-insight strong {
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.maturity-ai-insight p {
+  margin: 0;
+}
+
+.maturity-chart-card {
+  height: 330px;
+  padding: 12px;
+  border-radius: 22px;
+  background: rgba(16, 24, 40, 0.035);
+  border: 1px solid rgba(16, 24, 40, 0.08);
+}
+
+.maturity-readiness-list {
+  display: grid;
+  gap: 10px;
+}
+
+.maturity-readiness-item {
+  display: grid;
+  grid-template-columns: 1fr 48px;
+  gap: 8px 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(16, 24, 40, 0.04);
+}
+
+.maturity-readiness-item strong {
+  display: block;
+  font-size: 14px;
+}
+
+.maturity-readiness-item span {
+  display: block;
+  margin-top: 4px;
+  color: var(--aiw-muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
+.maturity-readiness-item b {
+  text-align: left;
+  font-size: 13px;
+}
+
+.maturity-readiness-item .aiw-progress {
+  grid-column: 1 / -1;
+}
+
+.maturity-heat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 11px;
+}
+
+.maturity-heat-card {
+  padding: 16px;
+  border-radius: 24px;
+  border: 1px solid rgba(16, 24, 40, 0.08);
+}
+
+.maturity-heat-card.green {
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.maturity-heat-card.orange {
+  background: rgba(245, 158, 11, 0.10);
+}
+
+.maturity-heat-card.red {
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.maturity-heat-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 11px;
+}
+
+.maturity-heat-head span {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: #101828;
+  color: #fff;
+  font-size: 19px;
+}
+
+.maturity-heat-head b {
+  font-size: 14px;
+}
+
+.maturity-heat-card strong {
+  display: block;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.maturity-heat-card p {
+  margin: 7px 0;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.maturity-heat-card small {
+  color: var(--aiw-muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.maturity-department-ranking {
+  display: grid;
+  gap: 10px;
+}
+
+.maturity-rank-item {
+  display: grid;
+  grid-template-columns: 42px 1fr 52px;
+  gap: 10px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(16, 24, 40, 0.04);
+}
+
+.maturity-rank-item b {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #101828;
+  color: #fff;
+}
+
+.maturity-rank-item strong {
+  display: block;
+  font-size: 14px;
+}
+
+.maturity-rank-item span {
+  display: block;
+  margin-top: 4px;
+  color: var(--aiw-muted);
+  font-size: 12px;
+  line-height: 1.6;
+  font-weight: 800;
+}
+
+.maturity-rank-item em {
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 950;
+  text-align: left;
+}
+
+.maturity-levels-ultimate {
+  display: grid;
+  gap: 10px;
+}
+
+.maturity-level-ultimate {
+  display: flex;
+  gap: 12px;
+  padding: 13px;
+  border-radius: 18px;
+  background: rgba(16, 24, 40, 0.04);
+  border: 1px solid transparent;
+}
+
+.maturity-level-ultimate.active {
+  background: rgba(37, 99, 235, 0.10);
+  border-color: rgba(37, 99, 235, 0.18);
+}
+
+.maturity-level-ultimate b {
+  min-width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #101828;
+  color: #fff;
+}
+
+.maturity-level-ultimate strong {
+  display: block;
+  font-size: 14px;
+}
+
+.maturity-level-ultimate span {
+  display: block;
+  margin-top: 4px;
+  color: var(--aiw-primary-dark);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.maturity-level-ultimate p {
+  margin: 5px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.maturity-gap-table {
+  display: grid;
+  gap: 8px;
+}
+
+.maturity-gap-row {
+  display: grid;
+  grid-template-columns: 0.7fr 1fr 1fr 1fr 1fr;
+  gap: 10px;
+  padding: 13px;
+  border-radius: 16px;
+  background: rgba(16, 24, 40, 0.04);
+  align-items: center;
+}
+
+.maturity-gap-head {
+  background: #101828;
+  color: #fff;
+}
+
+.maturity-gap-row span {
+  color: var(--aiw-muted);
+  font-size: 12px;
+  line-height: 1.6;
+  font-weight: 800;
+}
+
+.maturity-roadmap-ultimate {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 11px;
+}
+
+.maturity-roadmap-ultimate div {
+  padding: 16px;
+  border-radius: 22px;
+  background: rgba(16, 24, 40, 0.04);
+  border: 1px solid rgba(16, 24, 40, 0.07);
+}
+
+.maturity-roadmap-ultimate b {
+  display: inline-flex;
+  margin-bottom: 8px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #101828;
+  color: #fff;
+  font-size: 12px;
+}
+
+.maturity-roadmap-ultimate strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.maturity-roadmap-ultimate span {
+  display: block;
+  margin: 6px 0 10px;
+  color: var(--aiw-muted);
+  font-size: 12px;
+  line-height: 1.7;
+  font-weight: 800;
+}
+
+.maturity-roadmap-ultimate small {
+  display: block;
+  margin-top: 7px;
+  color: var(--aiw-primary-dark);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.maturity-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.maturity-actions div {
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  gap: 4px 10px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(16, 24, 40, 0.04);
+}
+
+.maturity-actions b {
+  grid-row: span 2;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: #101828;
+  color: #fff;
+}
+
+.maturity-actions strong {
+  font-size: 14px;
+}
+
+.maturity-actions span {
+  color: var(--aiw-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.maturity-final-summary {
+  padding: 18px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.10), rgba(124, 58, 237, 0.08));
+  border: 1px solid rgba(37, 99, 235, 0.14);
+}
+
+.maturity-final-summary strong {
+  display: block;
+  font-size: 19px;
+  line-height: 1.6;
+}
+
+.maturity-final-summary p {
+  margin: 8px 0 16px;
+}
+
+.maturity-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.maturity-summary-grid div {
+  padding: 13px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid var(--aiw-border);
+}
+
+.maturity-summary-grid span {
+  display: block;
+  color: var(--aiw-muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.maturity-summary-grid b {
+  display: block;
+  margin-top: 5px;
+  font-size: 17px;
+}
+
+@media (max-width: 980px) {
+  .maturity-heat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .maturity-roadmap-ultimate {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .maturity-gap-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .maturity-heat-grid,
+  .maturity-roadmap-ultimate,
+  .maturity-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .maturity-rank-item {
+    grid-template-columns: 42px 1fr;
+  }
+
+  .maturity-rank-item em {
+    grid-column: 2;
+    text-align: right;
+  }
+}
