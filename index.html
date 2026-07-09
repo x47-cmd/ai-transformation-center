@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
   <title>AI Work | مركز التحول المؤسسي بالذكاء الاصطناعي</title>
-  <meta name="description" content="منصة تنفيذية لإدارة استراتيجية التحول المؤسسي بالذكاء الاصطناعي، المشاريع، الأفكار، مؤشرات الأداء، النضج، الحوكمة والتقارير." />
+  <meta name="description" content="منصة تنفيذية لإدارة استراتيجية التحول المؤسسي بالذكاء الاصطناعي، المشاريع، الأفكار، مؤشرات الأداء، النضج، الحوكمة، الجدوى، الأتمتة، والتحليلات." />
   <meta name="theme-color" content="#0f172a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="AI Work" />
@@ -15,7 +15,7 @@
 </head>
 
 <body>
-  <div id="app" class="aiw-app" data-version="1.6.0">
+  <div id="app" class="aiw-app" data-version="2.0.0">
 
     <header id="appHeader" class="aiw-header" role="banner"></header>
 
@@ -30,45 +30,23 @@
       <div class="aiw-loading-card">
         <div class="aiw-loading-logo">AI</div>
         <strong>AI Transformation Center</strong>
-        <small>Loading executive workspace...</small>
+        <small>Loading enterprise operating system...</small>
       </div>
     </div>
 
-    <nav id="bottomNav" class="aiw-bottom-nav aiw-bottom-nav-7" role="navigation" aria-label="التنقل الرئيسي">
-      <button type="button" data-module="dashboard" class="aiw-nav-item active" aria-label="الرئيسية">
-        <span>🏠</span>
-        <small>الرئيسية</small>
-      </button>
-
-      <button type="button" data-module="strategy" class="aiw-nav-item" aria-label="الاستراتيجية">
-        <span>🎯</span>
-        <small>الاستراتيجية</small>
-      </button>
-
-      <button type="button" data-module="projects" class="aiw-nav-item" aria-label="المشاريع">
-        <span>📁</span>
-        <small>المشاريع</small>
-      </button>
-
-      <button type="button" data-module="ideas" class="aiw-nav-item" aria-label="الأفكار">
-        <span>💡</span>
-        <small>الأفكار</small>
-      </button>
-
-      <button type="button" data-module="governance" class="aiw-nav-item" aria-label="الحوكمة">
-        <span>🏛️</span>
-        <small>الحوكمة</small>
-      </button>
-
-      <button type="button" data-module="maturity" class="aiw-nav-item" aria-label="النضج">
-        <span>🧠</span>
-        <small>النضج</small>
-      </button>
-
-      <button type="button" data-module="reports" class="aiw-nav-item" aria-label="التقارير">
-        <span>📊</span>
-        <small>التقارير</small>
-      </button>
+    <nav id="bottomNav" class="aiw-bottom-nav aiw-bottom-nav-scroll" role="navigation" aria-label="التنقل الرئيسي">
+      <button type="button" data-module="dashboard" class="aiw-nav-item active"><span>🏠</span><small>الرئيسية</small></button>
+      <button type="button" data-module="strategy" class="aiw-nav-item"><span>🎯</span><small>الاستراتيجية</small></button>
+      <button type="button" data-module="projects" class="aiw-nav-item"><span>📁</span><small>المشاريع</small></button>
+      <button type="button" data-module="ideas" class="aiw-nav-item"><span>💡</span><small>الأفكار</small></button>
+      <button type="button" data-module="governance" class="aiw-nav-item"><span>🏛️</span><small>الحوكمة</small></button>
+      <button type="button" data-module="maturity" class="aiw-nav-item"><span>🧠</span><small>النضج</small></button>
+      <button type="button" data-module="reports" class="aiw-nav-item"><span>📊</span><small>التقارير</small></button>
+      <button type="button" data-module="kpis" class="aiw-nav-item"><span>📈</span><small>المؤشرات</small></button>
+      <button type="button" data-module="business" class="aiw-nav-item"><span>💰</span><small>الجدوى</small></button>
+      <button type="button" data-module="automation" class="aiw-nav-item"><span>⚙️</span><small>الأتمتة</small></button>
+      <button type="button" data-module="decision" class="aiw-nav-item"><span>🧭</span><small>القرار</small></button>
+      <button type="button" data-module="settings" class="aiw-nav-item"><span>⚙️</span><small>الإعدادات</small></button>
     </nav>
   </div>
 
@@ -80,10 +58,20 @@
   <script src="js/data/aiw-data.js"></script>
   <script src="js/localization/translations.js"></script>
 
+  <!-- Vendor Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <!-- Core Engines -->
   <script src="js/core/widgets.js"></script>
+  <script src="js/core/charts.js"></script>
+  <script src="js/core/analytics.js"></script>
+  <script src="js/core/automation.js"></script>
+  <script src="js/core/ai-engine.js"></script>
+  <script src="js/core/export.js"></script>
+  <script src="js/core/notifications.js"></script>
+  <script src="js/core/permissions.js"></script>
 
-  <!-- Current Modules -->
+  <!-- Main Modules -->
   <script src="js/modules/dashboard/dashboard.js"></script>
   <script src="js/modules/strategy/strategy.js"></script>
   <script src="js/modules/projects/projects.js"></script>
@@ -91,12 +79,13 @@
   <script src="js/modules/governance/governance.js"></script>
   <script src="js/modules/maturity/maturity.js"></script>
   <script src="js/modules/reports/reports.js"></script>
+  <script src="js/modules/kpis/kpis.js"></script>
+  <script src="js/modules/business/business.js"></script>
+  <script src="js/modules/automation/automation.js"></script>
+  <script src="js/modules/decision/decision.js"></script>
+  <script src="js/modules/settings/settings.js"></script>
 
-  <!-- Future Modules - نفعلها بعد إضافة الروتات -->
-  <!-- <script src="js/modules/kpis/kpis.js"></script> -->
-  <!-- <script src="js/modules/business/business.js"></script> -->
-
-  <!-- App Core -->
+  <!-- App Core - لازم يكون آخر شي -->
   <script src="js/core/app.js"></script>
 </body>
 </html>
