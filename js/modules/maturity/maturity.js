@@ -1,6 +1,7 @@
 /* =========================================================
-   AI Work - AI Maturity Center V2.0 Ultimate
-   Enterprise AI Maturity Assessment + Readiness + Roadmap
+   AI Work - AI Maturity Center V2.1
+   Enterprise Biometric Intelligence Maturity Assessment
+   No UI Design Changes
 ========================================================= */
 
 window.AIW = window.AIW || {};
@@ -15,74 +16,74 @@ AIW.Modules.maturity = {
     {
       id: "strategy",
       icon: "🎯",
-      title: "الاستراتيجية",
-      score: 42,
+      title: "الاستراتيجية المتخصصة",
+      score: 46,
       target: 85,
       status: "قيد البناء",
-      desc: "وجود رؤية وخارطة طريق ومبادرات مرتبطة بالأهداف المؤسسية."
+      desc: "وجود رؤية واضحة لتحويل تحديات الأنظمة البيومترية والبوابات الذكية إلى مشاريع ذكاء اصطناعي قابلة للقياس."
     },
     {
       id: "governance",
       icon: "🏛️",
-      title: "الحوكمة",
-      score: 38,
-      target: 90,
+      title: "الحوكمة والإشراف البشري",
+      score: 42,
+      target: 92,
       status: "قيد البناء",
-      desc: "السياسات، الإشراف البشري، إدارة المخاطر، والامتثال."
+      desc: "ضوابط المراجعة البشرية، الخصوصية، السياسات، ومسؤولية التعامل مع التنبيهات الحساسة."
     },
     {
       id: "data",
       icon: "🗄️",
-      title: "البيانات",
-      score: 44,
-      target: 88,
+      title: "جودة البيانات البيومترية",
+      score: 48,
+      target: 90,
       status: "متوسط",
-      desc: "جودة البيانات، التصنيف، التوفر، الحوكمة، وقابلية الاستخدام."
+      desc: "اكتمال البيانات، سلامة التسجيلات، كشف التعارضات، التكرار، وجودة مصادر البيانات."
     },
     {
       id: "technology",
       icon: "⚙️",
-      title: "التقنية",
-      score: 56,
-      target: 86,
+      title: "جاهزية الأنظمة والتكامل",
+      score: 58,
+      target: 88,
       status: "جيد",
-      desc: "البنية التحتية، التكامل، المنصات، الأدوات، وقابلية التوسع."
+      desc: "جاهزية الأنظمة، سجلات التشغيل، الربط مع Power BI، وقابلية التكامل المرحلي."
     },
     {
-      id: "people",
-      icon: "👥",
-      title: "الأفراد والمهارات",
-      score: 46,
-      target: 82,
-      status: "متوسط",
-      desc: "التدريب، الوعي، سفراء الذكاء الاصطناعي، والكفاءات الداخلية."
-    },
-    {
-      id: "process",
-      icon: "🔁",
-      title: "العمليات",
-      score: 40,
-      target: 84,
+      id: "users",
+      icon: "👨🏻‍💻",
+      title: "المستخدمون والصلاحيات",
+      score: 44,
+      target: 86,
       status: "قيد البناء",
-      desc: "تحويل الإجراءات إلى عمليات قابلة للأتمتة والقياس والتحسين."
+      desc: "قدرة المنظومة على تحليل سلوك المستخدمين، مدة الجلسات، استخدام الصلاحيات، والأنماط غير الاعتيادية."
     },
     {
-      id: "innovation",
-      icon: "💡",
-      title: "الابتكار",
-      score: 62,
+      id: "operations",
+      icon: "🛂",
+      title: "تشغيل البوابات الذكية",
+      score: 52,
+      target: 88,
+      status: "متوسط",
+      desc: "قياس جاهزية البوابات، زمن العبور، الأخطاء التشغيلية، ونسبة التوفر."
+    },
+    {
+      id: "analytics",
+      icon: "📊",
+      title: "التحليلات والتقارير",
+      score: 56,
       target: 90,
       status: "جيد",
-      desc: "استقبال الأفكار، التجارب السريعة، Sandbox، ومنصة الابتكار."
+      desc: "لوحات Power BI، مؤشرات الأداء، التقارير التنفيذية، والتوصيات الذكية."
     },
     {
       id: "security",
       icon: "🛡️",
-      title: "الأمن والسلامة",
-      score: 58,
-      target: 92,
+      title: "الأمن الرقمي",
+      score: 62,
+      target: 94,
       status: "جيد",
-      desc: "حماية البيانات، تقييم المخاطر، أمن النماذج، والاستجابة للحوادث."
+      desc: "كشف الشذوذ، مراقبة الحسابات والصلاحيات، ترتيب التنبيهات، وسجل المخاطر."
     }
   ],
 
@@ -92,94 +93,94 @@ AIW.Modules.maturity = {
       title: "Initial",
       ar: "البداية",
       range: "0–20%",
-      desc: "تجارب فردية بدون إطار مؤسسي واضح."
+      desc: "تحليلات محدودة بدون إطار واضح أو مؤشرات نضج."
     },
     {
       level: 2,
       title: "Emerging",
       ar: "ناشئ",
       range: "21–40%",
-      desc: "مبادرات متفرقة مع بداية وعي مؤسسي."
+      desc: "بداية وعي بالمشاكل التشغيلية مع بعض الأفكار غير المترابطة."
     },
     {
       level: 3,
       title: "Developing",
       ar: "قيد التطوير",
       range: "41–60%",
-      desc: "استراتيجية أولية، أفكار واضحة، وبعض المشاريع القابلة للتنفيذ."
+      desc: "محفظة أفكار واضحة ولوحات قياس أولية ومشاريع قابلة للتنفيذ."
     },
     {
       level: 4,
       title: "Managed",
       ar: "مُدار",
       range: "61–80%",
-      desc: "حوكمة، مؤشرات أداء، ومشاريع مرتبطة بالأثر."
+      desc: "حوكمة ومؤشرات وتنبيهات وربط واضح بين البيانات والقرار."
     },
     {
       level: 5,
       title: "Optimized",
       ar: "محسّن",
       range: "81–95%",
-      desc: "تحسين مستمر، قياس ROI، وتكامل مؤسسي واسع."
+      desc: "تحسين مستمر، نماذج كشف شذوذ، وPower BI تنفيذي متكامل."
     },
     {
       level: 6,
-      title: "AI Driven Enterprise",
-      ar: "مؤسسة مدفوعة بالذكاء الاصطناعي",
+      title: "AI Driven Biometric Operations",
+      ar: "تشغيل بيومتري مدعوم بالذكاء الاصطناعي",
       range: "96–100%",
-      desc: "الذكاء الاصطناعي جزء أساسي من القرار والتشغيل والخدمات."
+      desc: "الذكاء الاصطناعي جزء أساسي من جودة التسجيلات، الصلاحيات، البوابات، والقرار التشغيلي."
     }
   ],
 
   readiness: [
-    ["البيانات", 44, "تحتاج حوكمة وتصنيف وجودة أعلى قبل المشاريع الكبرى."],
-    ["الأنظمة", 55, "جاهزية تقنية جيدة تحتاج تكامل أوسع."],
-    ["الكفاءات", 46, "تحتاج تدريب وبرنامج سفراء واضح."],
-    ["الثقافة", 50, "الوعي موجود لكن يحتاج تبني مؤسسي."],
-    ["الإدارة", 68, "الدعم التنفيذي جيد ويحتاج آلية متابعة."],
-    ["الميزانية", 52, "تحتاج تخصيص ميزانية حسب الأولويات والـ ROI."]
+    ["بيانات التسجيلات", 48, "تحتاج قواعد جودة واضحة لكشف النقص، التعارض، والتكرار."],
+    ["سجلات الدخول والصلاحيات", 46, "تحتاج توحيد وربط لتحليل سلوك المستخدمين والجلسات الطويلة."],
+    ["أنظمة البوابات الذكية", 55, "جاهزية تشغيلية جيدة تحتاج مؤشرات أداء وربط تحليلي مستمر."],
+    ["Power BI والتحليلات", 58, "مناسبة للبدء بلوحات تنفيذية قبل نماذج الذكاء الاصطناعي المتقدمة."],
+    ["الحوكمة والمراجعة", 42, "تحتاج إطار Human-in-the-Loop وسياسات واضحة للتنبيهات الحساسة."],
+    ["الأمن الرقمي", 62, "جاهزية جيدة يمكن تطويرها عبر كشف الشذوذ وترتيب التنبيهات."]
   ],
 
   roadmap: [
-    ["2026", "Foundation", "اعتماد الاستراتيجية، الحوكمة، منصة الأفكار، وتحديد الأولويات.", 35],
-    ["2027", "Quick Wins", "تنفيذ التجارب السريعة، قياس النتائج، وتفعيل سفراء الذكاء الاصطناعي.", 50],
-    ["2028", "Scale", "توسيع المشاريع المتوسطة وربطها بمركز المعرفة وKPI Engine.", 65],
-    ["2029", "Enterprise", "تشغيل المشاريع الكبرى مثل Digital Twin وDecision Center.", 82],
-    ["2030", "AI Driven", "نضج واستدامة وقياس ROI وتحسين مستمر.", 100]
+    ["2026", "Foundation", "حصر مصادر البيانات، تحديد المؤشرات، وبناء لوحات Power BI أولية.", 35],
+    ["2027", "Quick Wins", "تنفيذ لوحات أخطاء التسجيل، استخدام الصلاحيات، والجلسات الطويلة.", 50],
+    ["2028", "AI Detection", "تطبيق نماذج كشف الشذوذ للتسجيلات، الحسابات، والصلاحيات.", 65],
+    ["2029", "Executive Platform", "توحيد التقارير والتنبيهات والتوصيات داخل منصة تنفيذية.", 82],
+    ["2030", "AI Driven", "تشغيل ناضج ومستدام مع تحسين مستمر وقياس أثر شامل.", 100]
   ],
 
   gaps: [
     {
+      area: "جودة البيانات",
+      current: "بيانات تشغيلية موجودة لكنها تحتاج تصنيف وتنظيف وربط",
+      target: "بيانات جاهزة للتحليل والنماذج مع قواعد جودة واضحة",
+      gap: "نقص في إطار جودة بيانات التسجيلات والتعارضات",
+      action: "إطلاق Biometric Data Quality Framework"
+    },
+    {
+      area: "الصلاحيات",
+      current: "سجلات استخدام متاحة لكن التحليل غالباً تقليدي",
+      target: "تحليل ذكي لسلوك المستخدمين والصلاحيات والجلسات",
+      gap: "ضعف في كشف الأنماط غير الاعتيادية",
+      action: "إطلاق User Behaviour & Privilege Analytics"
+    },
+    {
+      area: "البوابات الذكية",
+      current: "متابعة تشغيلية للأداء والأعطال",
+      target: "قياس مستمر للجاهزية وزمن العبور والأنماط التشغيلية",
+      gap: "الحاجة إلى Dashboard تنفيذي موحد",
+      action: "بناء Smart Gate Performance Dashboard"
+    },
+    {
       area: "الحوكمة",
-      current: "سياسات أولية ومبادئ عامة",
-      target: "حوكمة مؤسسية كاملة مع لجان وضوابط إلزامية",
-      gap: "تحتاج اعتماد رسمي وربطها بدورة حياة المشاريع",
-      action: "اعتماد AI Governance Framework وربطه بكل مشروع"
-    },
-    {
-      area: "البيانات",
-      current: "بيانات متفرقة بين الأنظمة",
-      target: "Data Governance وبيانات مصنفة وجاهزة للنماذج",
-      gap: "جودة وتصنيف وتكامل البيانات",
-      action: "إطلاق برنامج Data Readiness قبل المشاريع الكبرى"
-    },
-    {
-      area: "المؤشرات",
-      current: "مؤشرات عامة",
-      target: "KPIs مرتبطة بكل مشروع وROI",
-      gap: "غياب Measurement Framework موحد",
-      action: "تفعيل KPI Center وربطه بمحفظة المشاريع"
-    },
-    {
-      area: "التبني",
-      current: "وعي أولي داخل بعض الإدارات",
-      target: "ثقافة تبني مؤسسية عبر سفراء الذكاء الاصطناعي",
-      gap: "تحتاج تدريب وتغيير مؤسسي",
-      action: "إطلاق AI Champions Program"
+      current: "مبادئ عامة ومراجعات يدوية",
+      target: "حوكمة واضحة للتنبيهات الحساسة مع Human-in-the-Loop",
+      gap: "الحاجة إلى آلية مراجعة وتوثيق لكل تنبيه",
+      action: "اعتماد Biometric AI Governance Model"
     }
   ],
-
-  render(container) {
+  
+    render(container) {
     if (!container) return;
 
     const W = window.AIW?.Widgets;
@@ -197,16 +198,22 @@ AIW.Modules.maturity = {
     const level = this.getLevel(overall);
     const strongest = [...this.dimensions].sort((a, b) => b.score - a.score)[0];
     const weakest = [...this.dimensions].sort((a, b) => a.score - b.score)[0];
+
     const recommendations = R?.nextActions ? R.nextActions() : this.defaultRecommendations();
-    const aiInsight = AI?.executiveInsight ? AI.executiveInsight() : null;
+
+    const aiInsight = AI?.executiveInsight ? AI.executiveInsight() : {
+      title: "مرحلة بناء النضج المتخصص",
+      message: "الأولوية الآن هي بناء خط أساس لجودة التسجيلات، الصلاحيات، البوابات الذكية، ثم تفعيل نماذج كشف الشذوذ بعد اكتمال الحوكمة.",
+      color: "orange"
+    };
 
     container.innerHTML = `
       <section class="module-page">
 
         ${W ? W.hero({
-          kicker: "AI Maturity · Enterprise Readiness",
+          kicker: "Biometric AI Maturity · Readiness",
           title: "مركز نضج الذكاء الاصطناعي",
-          description: "تقييم تنفيذي لجاهزية المؤسسة لتبني الذكاء الاصطناعي عبر الاستراتيجية، الحوكمة، البيانات، التقنية، المهارات، العمليات، الابتكار، والأمن.",
+          description: "تقييم تنفيذي لجاهزية محفظة الأنظمة البيومترية والبوابات الذكية عبر جودة البيانات، الصلاحيات، البوابات، الأمن الرقمي، الحوكمة، والتحليلات.",
           chips: [
             `🧠 النضج الحالي ${overall}%`,
             `🎯 الهدف ${target}% بحلول 2030`,
@@ -220,13 +227,13 @@ AIW.Modules.maturity = {
           ${this.kpi("المستوى الحالي", level.title, level.ar)}
           ${this.kpi("أقوى محور", strongest.title, `${strongest.score}%`)}
           ${this.kpi("أكبر فجوة", weakest.title, `${weakest.score}%`)}
-          ${this.kpi("الإدارات المقاسة", departments.length || 10, "Departments")}
+          ${this.kpi("المحافظ المقاسة", departments.length || 5, "Portfolios")}
           ${this.kpi("الفجوة للهدف", `${gap}%`, "To 2030 Target")}
         </div>
 
         <div class="module-wide-grid">
           <div class="module-panel">
-            ${this.sectionTitle("Executive AI Maturity Score", "قراءة تنفيذية لمستوى جاهزية المؤسسة.")}
+            ${this.sectionTitle("Executive Biometric AI Maturity Score", "قراءة تنفيذية لمستوى جاهزية المحفظة المتخصصة.")}
             <div class="maturity-ultimate-score">
               <div>
                 <strong>${overall}%</strong>
@@ -234,8 +241,9 @@ AIW.Modules.maturity = {
               </div>
               <div class="aiw-progress"><div style="width:${overall}%"></div></div>
               <p>
-                المؤسسة حالياً في مرحلة ${level.ar}. يوجد أساس جيد من الأفكار والمشاريع،
-                لكن رفع النضج يتطلب حوكمة أقوى، قياس KPI، إدارة بيانات، وتبني مؤسسي أوسع.
+                المحفظة حالياً في مرحلة ${level.ar}. يوجد أساس جيد في الأمن الرقمي والتحليلات،
+                لكن رفع النضج يتطلب تحسين جودة بيانات التسجيلات، حوكمة التنبيهات، وربط استخدام الصلاحيات
+                بلوحات قياس ومراجعة بشرية واضحة.
               </p>
             </div>
           </div>
@@ -243,8 +251,8 @@ AIW.Modules.maturity = {
           <div class="module-panel">
             ${this.sectionTitle("AI Executive Insight", "تحليل ذكي مرتبط بمحركات Analytics وAI Engine.")}
             <div class="maturity-ai-insight ${aiInsight?.color || "orange"}">
-              <strong>${aiInsight?.title || "مرحلة البناء المؤسسي"}</strong>
-              <p>${aiInsight?.message || "يفضل البدء بمشاريع Quick Wins وتفعيل الحوكمة قبل التوسع الكبير."}</p>
+              <strong>${aiInsight?.title || "مرحلة البناء المتخصص"}</strong>
+              <p>${aiInsight?.message || "يفضل البدء بلوحات Quick Wins وتفعيل الحوكمة قبل نماذج الكشف المتقدمة."}</p>
               <button class="module-btn secondary" data-module="governance">فتح الحوكمة</button>
             </div>
           </div>
@@ -252,14 +260,14 @@ AIW.Modules.maturity = {
 
         <div class="module-wide-grid">
           <div class="module-panel">
-            ${this.sectionTitle("Radar View", "نظرة مقارنة على أبعاد النضج الثمانية.")}
+            ${this.sectionTitle("Radar View", "نظرة مقارنة على أبعاد نضج المحفظة المتخصصة.")}
             <div class="maturity-chart-card">
               <canvas id="maturityRadarChart"></canvas>
             </div>
           </div>
 
           <div class="module-panel">
-            ${this.sectionTitle("Readiness Score", "جاهزية المؤسسة من ناحية البيانات والأنظمة والكفاءات.")}
+            ${this.sectionTitle("Readiness Score", "جاهزية البيانات والأنظمة والصلاحيات والتحليلات.")}
             <div class="maturity-readiness-list">
               ${this.readiness.map(item => `
                 <div class="maturity-readiness-item">
@@ -276,7 +284,7 @@ AIW.Modules.maturity = {
         </div>
 
         <div class="module-panel">
-          ${this.sectionTitle("AI Maturity Dimensions", "تحليل مفصل للمحاور التي تحدد جاهزية المؤسسة.")}
+          ${this.sectionTitle("Biometric AI Maturity Dimensions", "تحليل مفصل للمحاور التي تحدد جاهزية المحفظة.")}
           <div class="maturity-heat-grid">
             ${this.dimensions.map(d => `
               <article class="maturity-heat-card ${this.heatClass(d.score)}">
@@ -294,7 +302,7 @@ AIW.Modules.maturity = {
 
         <div class="module-wide-grid">
           <div class="module-panel">
-            ${this.sectionTitle("Department Ranking", "ترتيب الإدارات حسب جاهزية الذكاء الاصطناعي.")}
+            ${this.sectionTitle("Portfolio Ranking", "ترتيب المحافظ حسب الجاهزية والنضج.")}
             <div class="maturity-department-ranking">
               ${this.rankDepartments(departments).map((d, i) => `
                 <div class="maturity-rank-item">
@@ -310,7 +318,7 @@ AIW.Modules.maturity = {
           </div>
 
           <div class="module-panel">
-            ${this.sectionTitle("Maturity Levels", "النموذج المرجعي لتقييم تطور المؤسسة.")}
+            ${this.sectionTitle("Maturity Levels", "النموذج المرجعي لتقييم تطور المحفظة.")}
             <div class="maturity-levels-ultimate">
               ${this.levels.map(l => `
                 <div class="maturity-level-ultimate ${l.level === level.level ? "active" : ""}">
@@ -350,7 +358,7 @@ AIW.Modules.maturity = {
         </div>
 
         <div class="module-panel">
-          ${this.sectionTitle("Maturity Roadmap 2026–2030", "خطة رفع النضج من التأسيس إلى مؤسسة مدفوعة بالذكاء الاصطناعي.")}
+          ${this.sectionTitle("Maturity Roadmap 2026–2030", "خطة رفع النضج من لوحات القياس إلى التشغيل المدعوم بالذكاء الاصطناعي.")}
           <div class="maturity-roadmap-ultimate">
             ${this.roadmap.map(r => `
               <div>
@@ -363,8 +371,9 @@ AIW.Modules.maturity = {
             `).join("")}
           </div>
         </div>
+        
+                <div class="module-wide-grid">
 
-        <div class="module-wide-grid">
           <div class="module-panel">
             ${this.sectionTitle("Executive Recommendations", "أولويات تنفيذية لرفع مستوى النضج.")}
             <div class="executive-list">
@@ -380,47 +389,105 @@ AIW.Modules.maturity = {
           <div class="module-panel">
             ${this.sectionTitle("Next Best Actions", "الخطوات العملية التالية للإدارة.")}
             <div class="maturity-actions">
+
               <div>
                 <b>1</b>
-                <strong>اعتماد الحوكمة</strong>
-                <span>ربط كل مشروع AI بضوابط ومسؤوليات واضحة.</span>
+                <strong>رفع جودة التسجيلات</strong>
+                <span>
+                  بناء Dashboard لمراقبة التسجيلات الخاطئة،
+                  التكرار، والتعارضات بين السجلات.
+                </span>
               </div>
+
               <div>
                 <b>2</b>
-                <strong>إطلاق Quick Wins</strong>
-                <span>إثبات القيمة خلال أول 90 يوم.</span>
+                <strong>تحليل استخدام الصلاحيات</strong>
+                <span>
+                  مراقبة مدة استخدام الحسابات،
+                  المستخدمين غير الطبيعيين،
+                  والجلسات الطويلة.
+                </span>
               </div>
+
               <div>
                 <b>3</b>
-                <strong>تفعيل KPI Engine</strong>
-                <span>قياس الأثر والـ ROI لكل مشروع.</span>
+                <strong>تشغيل لوحات Power BI</strong>
+                <span>
+                  ربط جميع البيانات التشغيلية
+                  في لوحة تنفيذية واحدة.
+                </span>
               </div>
+
               <div>
                 <b>4</b>
-                <strong>رفع جاهزية البيانات</strong>
-                <span>تصنيف وتنظيف وربط البيانات بالمشاريع.</span>
+                <strong>الانتقال إلى AI Detection</strong>
+                <span>
+                  بعد اكتمال جودة البيانات
+                  يبدأ تشغيل نماذج كشف الشذوذ
+                  والتنبيهات الذكية.
+                </span>
               </div>
+
             </div>
           </div>
+
         </div>
 
         <div class="module-panel">
-          ${this.sectionTitle("Executive AI Maturity Summary", "الخلاصة النهائية التي يمكن رفعها للإدارة العليا.")}
+
+          ${this.sectionTitle(
+            "Executive Biometric Intelligence Summary",
+            "الخلاصة النهائية التي يمكن رفعها للإدارة العليا."
+          )}
+
           <div class="maturity-final-summary">
-            <strong>المؤسسة تمتلك أساساً قوياً، لكنها تحتاج تشغيل مؤسسي منظم</strong>
+
+            <strong>
+              أصبحت المحفظة جاهزة للانتقال من التحليل التقليدي
+              إلى التحليل الذكي القائم على الذكاء الاصطناعي.
+            </strong>
+
             <p>
-              توفر الاستراتيجية، دليل الأفكار، ومحفظة المشاريع يمنح البرنامج بداية قوية.
-              المرحلة التالية يجب أن تركز على الحوكمة، مؤشرات الأداء، الجاهزية البيانية،
-              وتنفيذ مشاريع Quick Wins لإثبات الأثر قبل التوسع في المشاريع الاستراتيجية الكبرى.
+
+              المرحلة الحالية تركز على:
+
+              جودة التسجيلات البيومترية،
+              تحليل استخدام الصلاحيات،
+              كشف التكرار والتعارض،
+              مراقبة أداء البوابات الذكية،
+              ثم الانتقال تدريجياً
+              إلى نماذج AI للكشف المبكر
+              عن السلوكيات غير الطبيعية
+              ودعم القرار التنفيذي.
+
             </p>
 
             <div class="maturity-summary-grid">
-              <div><span>Current</span><b>${overall}%</b></div>
-              <div><span>Target</span><b>${target}%</b></div>
-              <div><span>Gap</span><b>${gap}%</b></div>
-              <div><span>Level</span><b>${level.title}</b></div>
+
+              <div>
+                <span>Current</span>
+                <b>${overall}%</b>
+              </div>
+
+              <div>
+                <span>Target</span>
+                <b>${target}%</b>
+              </div>
+
+              <div>
+                <span>Gap</span>
+                <b>${gap}%</b>
+              </div>
+
+              <div>
+                <span>Level</span>
+                <b>${level.title}</b>
+              </div>
+
             </div>
+
           </div>
+
         </div>
 
       </section>
@@ -428,100 +495,3 @@ AIW.Modules.maturity = {
 
     this.renderCharts();
   },
-  
-    renderCharts() {
-    if (!window.AIW?.Charts?.radar) return;
-
-    setTimeout(() => {
-      AIW.Charts.radar(
-        "maturityRadarChart",
-        this.dimensions.map(d => d.title),
-        this.dimensions.map(d => d.score),
-        "AI Maturity Dimensions"
-      );
-    }, 50);
-  },
-
-  kpi(label, value, note) {
-    if (window.AIW?.Widgets?.kpi) {
-      return AIW.Widgets.kpi({ label, value, note });
-    }
-
-    return `
-      <div class="module-card">
-        <span>${label}</span>
-        <strong>${value}</strong>
-        <small>${note}</small>
-      </div>
-    `;
-  },
-
-  sectionTitle(title, desc) {
-    if (window.AIW?.Widgets?.sectionTitle) {
-      return AIW.Widgets.sectionTitle(title, desc);
-    }
-
-    return `
-      <div class="module-section-title compact">
-        <h2>${title}</h2>
-        <p>${desc}</p>
-      </div>
-    `;
-  },
-
-  average(values) {
-    if (!values.length) return 0;
-    return Math.round(values.reduce((a, b) => a + Number(b || 0), 0) / values.length);
-  },
-
-  getLevel(score) {
-    if (score >= 96) return this.levels[5];
-    if (score >= 81) return this.levels[4];
-    if (score >= 61) return this.levels[3];
-    if (score >= 41) return this.levels[2];
-    if (score >= 21) return this.levels[1];
-    return this.levels[0];
-  },
-
-  heatClass(score) {
-    if (score >= 70) return "green";
-    if (score >= 45) return "orange";
-    return "red";
-  },
-
-  rankDepartments(departments) {
-    return [...(departments || [])].sort((a, b) => Number(b.maturity || 0) - Number(a.maturity || 0));
-  },
-
-  departmentAdvice(name) {
-    if (window.AIW?.AI?.departmentAdvice) {
-      return AIW.AI.departmentAdvice(name);
-    }
-
-    return "ابدأ بالمشاريع السريعة منخفضة التكلفة.";
-  },
-
-  defaultRecommendations() {
-    return [
-      "اعتماد إطار حوكمة الذكاء الاصطناعي وربطه بكل مشروع.",
-      "إطلاق مشاريع Quick Wins لإثبات القيمة خلال أول 90 يوم.",
-      "تفعيل KPI Engine وربط كل مبادرة بمؤشرات أداء.",
-      "رفع جاهزية البيانات قبل المشاريع الاستراتيجية الكبرى.",
-      "تفعيل برنامج سفراء الذكاء الاصطناعي داخل الإدارات."
-    ];
-  },
-
-  fallbackHero(overall) {
-    return `
-      <div class="module-hero">
-        <span class="module-kicker">AI Maturity · Enterprise Readiness</span>
-        <h1>مركز نضج الذكاء الاصطناعي</h1>
-        <p>تقييم تنفيذي لجاهزية المؤسسة لتبني الذكاء الاصطناعي.</p>
-        <div class="aiw-chip-row">
-          <span class="aiw-chip">🧠 النضج الحالي ${overall}%</span>
-        </div>
-      </div>
-    `;
-  }
-};
-  
