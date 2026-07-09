@@ -1,7 +1,7 @@
 /* =========================================================
-   AI Work - Projects Module V2.1
-   Enterprise Biometric Intelligence Portfolio
-   No UI Design Changes
+   AI Work - Projects Module V2.2
+   Biometric AI Project Delivery Center
+   Content Refinement - No UI Design Changes
 ========================================================= */
 
 window.AIW = window.AIW || {};
@@ -48,42 +48,42 @@ AIW.Modules.projects = {
       <section class="module-page">
 
         <div class="module-hero">
-          <span class="module-kicker">Execution Center · Biometric Portfolio</span>
-          <h1>محفظة مشاريع الأنظمة البيومترية والبوابات الذكية</h1>
+          <span class="module-kicker">Project Delivery Center</span>
+          <h1>مركز تنفيذ مشاريع الذكاء الاصطناعي</h1>
           <p>
-            تحويل أفكار الذكاء الاصطناعي المتخصصة إلى مشاريع تنفيذية في جودة التسجيلات،
-            استخدام الصلاحيات، البوابات الذكية، الأمن الرقمي، والتحليلات التنفيذية.
+            إدارة مشاريع الأنظمة البيومترية والبوابات الذكية من الفكرة إلى التشغيل،
+            مع متابعة الجاهزية، الأولوية، التكلفة، ومراحل التنفيذ.
           </p>
 
           <div class="aiw-chip-row">
             <span class="aiw-chip">📁 ${projects.length} مشروع</span>
             <span class="aiw-chip">🚀 ${quickWins} Quick Wins</span>
-            <span class="aiw-chip">💰 ${summary.expectedROI ? this.formatAED(summary.expectedROI) : "42M AED"} عائد متوقع</span>
+            <span class="aiw-chip">📊 ${avgProgress}% جاهزية متوسطة</span>
           </div>
         </div>
 
         <div class="module-grid">
-          ${this.kpi("إجمالي المشاريع", projects.length, "Portfolio Scope")}
+          ${this.kpi("إجمالي المشاريع", projects.length, "Project Scope")}
           ${this.kpi("عالية الأولوية", highPriority, "Priority Projects")}
-          ${this.kpi("Quick Wins", quickWins, "0–6 Months")}
-          ${this.kpi("جاهزية المحفظة", `${avgProgress}%`, "Average Readiness")}
+          ${this.kpi("Quick Wins", quickWins, "Start First")}
+          ${this.kpi("جاهزية التنفيذ", `${avgProgress}%`, "Execution Readiness")}
           ${this.kpi("منخفضة التكلفة", lowCost, "Low Cost Projects")}
-          ${this.kpi("صحة المحفظة", `${summary.portfolioHealth || 68}%`, "Portfolio Health")}
+          ${this.kpi("صحة الأنظمة", `${summary.portfolioHealth || 68}%`, "System Health")}
         </div>
 
         <div class="module-wide-grid">
           <div class="module-panel">
             <div class="module-section-title compact">
               <h2>ملخص تنفيذي</h2>
-              <p>قراءة سريعة لحالة محفظة مشاريع الذكاء الاصطناعي المتخصصة.</p>
+              <p>قراءة سريعة لحالة مشاريع الأنظمة البيومترية والبوابات الذكية.</p>
             </div>
 
             <div class="portfolio-summary-box">
-              <strong>المحفظة جاهزة للبدء بمشاريع قياس وتحليل قبل التكامل العميق</strong>
+              <strong>أفضل بداية هي مشاريع القياس والتحليل قبل التكامل العميق</strong>
               <p>
-                أفضل بداية تنفيذية هي إطلاق المشاريع السريعة منخفضة التكلفة مثل لوحة أخطاء التسجيل،
-                تحليل استخدام الصلاحيات، مراقبة مدة الجلسات، ولوحة العمليات البيومترية، ثم الانتقال
-                إلى محركات الكشف المتقدمة بعد نضج البيانات والحوكمة.
+                يوصى بالبدء بلوحات أخطاء التسجيل، تحليل استخدام الصلاحيات،
+                مراقبة الجلسات الطويلة، ولوحة العمليات البيومترية. هذه المشاريع تعطي
+                رؤية تشغيلية سريعة وتبني خط أساس واضح قبل نماذج الكشف المتقدمة.
               </p>
             </div>
           </div>
@@ -95,9 +95,9 @@ AIW.Modules.projects = {
             </div>
 
             <div class="execution-order">
-              <div><b>1</b><span>لوحات تحليل وPower BI لقياس الوضع الحالي</span></div>
-              <div><b>2</b><span>نماذج كشف الشذوذ في التسجيلات والصلاحيات</span></div>
-              <div><b>3</b><span>منصة تنفيذية موحدة مع تنبيهات وتوصيات ذكية</span></div>
+              <div><b>1</b><span>لوحات Power BI لقياس الوضع الحالي</span></div>
+              <div><b>2</b><span>تنبيهات ذكية للتسجيلات والصلاحيات</span></div>
+              <div><b>3</b><span>نماذج كشف الشذوذ والتوصيات التنفيذية</span></div>
             </div>
           </div>
         </div>
@@ -105,7 +105,7 @@ AIW.Modules.projects = {
         <div class="module-panel">
           <div class="module-section-title compact">
             <h2>قائمة المشاريع</h2>
-            <p>15 مشروعاً متخصصاً قابلاً للتحويل إلى خطة تنفيذية ضمن اختصاص الأنظمة البيومترية والبوابات الذكية.</p>
+            <p>15 مشروعاً متخصصاً قابلاً للتحويل إلى خطة تنفيذية وتشغيل تدريجي.</p>
           </div>
 
           <div class="projects-grid">
@@ -161,11 +161,5 @@ AIW.Modules.projects = {
     if (status === "Quick Win") return "green";
     if (status === "استراتيجي") return "red";
     return "orange";
-  },
-
-  formatAED(value) {
-    const n = Number(value || 0);
-    if (n >= 1000000) return `${Math.round(n / 1000000)}M AED`;
-    return `${n.toLocaleString("ar-AE")} AED`;
   }
 };
