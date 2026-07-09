@@ -3,40 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>مركز إدارة الثروة الشخصية</title>
+  <title>AI Work | مركز التحول المؤسسي بالذكاء الاصطناعي</title>
 
   <link rel="stylesheet" href="css/style.css" />
 </head>
 
 <body>
-  <div id="app" class="pwc-app">
-    <header id="appHeader"></header>
+  <div id="app" class="aiw-app">
+    <header id="appHeader" class="aiw-header"></header>
 
-    <main id="appMain" class="pwc-main">
-      <section id="page-home" class="pwc-page active"></section>
-      <section id="page-portfolio" class="pwc-page"></section>
-      <section id="page-spending" class="pwc-page"></section>
-      <section id="page-assets" class="pwc-page"></section>
-      <section id="page-reports" class="pwc-page"></section>
-      <section id="page-settings" class="pwc-page"></section>
+    <main id="appMain" class="aiw-main">
+      <!-- الصفحات تنضاف تلقائياً من app.js -->
     </main>
 
-    <nav id="bottomNav" class="pwc-bottom-nav"></nav>
+    <nav id="bottomNav" class="aiw-bottom-nav">
+      <button data-module="ideas" class="aiw-nav-item">
+        <span>💡</span>
+        <small>الأفكار</small>
+      </button>
+
+      <button data-module="projects" class="aiw-nav-item">
+        <span>📁</span>
+        <small>المشاريع</small>
+      </button>
+
+      <button data-module="strategy" class="aiw-nav-item">
+        <span>🎯</span>
+        <small>الاستراتيجية</small>
+      </button>
+    </nav>
   </div>
 
-  <!-- Core -->
-  <script src="js/store.js"></script>
-  <script src="js/events.js"></script>
-  <script src="js/router.js"></script>
-  <script src="js/navigation.js"></script>
-  <script src="js/layout.js"></script>
+  <!-- Config -->
+  <script src="js/config/config.js"></script>
+
+  <!-- Localization -->
+  <script src="js/localization/translations.js"></script>
 
   <!-- Modules -->
-  <script src="js/home.js"></script>
-  <script src="js/portfolio.js"></script>
-  <script src="js/spending.js"></script>
-  <script src="js/assets.js"></script>
-  <script src="js/reports.js"></script>
-  <script src="js/settings.js"></script>
+  <script src="js/modules/ideas/ideas.js"></script>
+  <script src="js/modules/projects/projects.js"></script>
+  <script src="js/modules/strategy/strategy.js"></script>
+
+  <!-- Core -->
+  <script src="js/core/app.js"></script>
 </body>
 </html>
