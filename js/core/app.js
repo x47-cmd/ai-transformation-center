@@ -23,12 +23,12 @@
       return;
     }
 
-    if (!window.ATCShell) {
-      console.error("ATC Error: ATCShell not loaded.");
+    if (!window.ATCRouter) {
+      console.error("ATC Error: ATCRouter not loaded.");
       return;
     }
 
-    app.innerHTML = ATCShell.render();
+    ATCRouter.render("dashboard");
 
     console.log("AI Transformation Center started successfully.");
   }
