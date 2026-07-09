@@ -314,3 +314,64 @@ button {
     font-size: 28px;
   }
 }
+
+/* Module Lists */
+
+.module-list-panel {
+  margin-top: 16px;
+}
+
+.module-list-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(16, 24, 40, 0.04);
+  margin-bottom: 10px;
+}
+
+.module-list-item strong {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.module-list-item span {
+  display: block;
+  color: var(--aiw-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.module-list-item small {
+  display: inline-flex;
+  margin-top: 8px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.10);
+  color: var(--aiw-primary-dark);
+  font-weight: 900;
+  font-size: 11px;
+}
+
+.module-delete-btn {
+  border: 0;
+  border-radius: 12px;
+  background: rgba(220, 38, 38, 0.10);
+  color: #dc2626;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.module-empty {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(16, 24, 40, 0.04);
+  color: var(--aiw-muted);
+  font-weight: 800;
+  text-align: center;
+}
