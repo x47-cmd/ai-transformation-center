@@ -1,6 +1,6 @@
 /* =========================================================
-   AI Work - Ideas Module V3.0
-   Executive Use Case Catalog + Filters
+   AI Work - Ideas Module V3.1
+   Biometric AI Opportunity Center + Practical Filters
 ========================================================= */
 
 window.AIW = window.AIW || {};
@@ -19,6 +19,16 @@ AIW.Modules.ideas = {
 
   getData() {
     return window.AIW?.Data || {};
+  },
+
+  getIdeas() {
+    const ideas = this.getData().ideas || [];
+
+    if (window.AIW?.BiometricAnalytics?.enrichIdeas) {
+      return AIW.BiometricAnalytics.enrichIdeas();
+    }
+
+    return ideas;
   },
 
   groupByDepartment(ideas) {
@@ -46,12 +56,18 @@ AIW.Modules.ideas = {
       const priorityMatch =
         this.state.priority === "all" || idea.priority === this.state.priority;
 
-      const queryMatch =
-        !q ||
-        String(idea.title || "").toLowerCase().includes(q) ||
-        String(idea.department || "").toLowerCase().includes(q) ||
-        String(idea.challenge || "").toLowerCase().includes(q) ||
-        String(idea.solution || "").toLowerCase().includes(q);
+      const queryText = [
+        idea.title,
+        idea.department,
+        idea.challenge,
+        idea.solution,
+        idea.aiRole,
+        idea.benefits,
+        idea.decisionLevel,
+        idea.riskLevel
+      ].join(" ").toLowerCase();
+
+      const queryMatch = !q || queryText.includes(q);
 
       return departmentMatch && priorityMatch && queryMatch;
     });
@@ -78,7 +94,10 @@ AIW.Modules.ideas = {
   },
 
   renderIdeaCard(idea) {
-    const isQuickWin = idea.ease === "سهلة" && idea.cost === "منخفضة";
+    const isQuickWin = idea.quickWin || (idea.ease === "سهلة" && idea.cost === "منخفضة");
+    const decisionScore = idea.decisionScore || 0;
+    const decisionLevel = idea.decisionLevel || "قيد التقييم";
+    const riskLevel = idea.riskLevel || "متوسط";
 
     return `
       <article class="idea-card">
@@ -98,6 +117,8 @@ AIW.Modules.ideas = {
           <span>⏱️ ${idea.duration}</span>
           <span>💰 ${idea.cost}</span>
           <span>⚙️ ${idea.ease}</span>
+          <span>📊 ${decisionScore}%</span>
+          <span>🛡️ ${riskLevel}</span>
         </div>
 
         <div class="idea-detail">
@@ -119,6 +140,11 @@ AIW.Modules.ideas = {
           <strong>الفوائد المتوقعة</strong>
           <p>${idea.benefits}</p>
         </div>
+
+        <div class="idea-detail">
+          <strong>قرار مبدئي</strong>
+          <p>${decisionLevel} · Decision Score ${decisionScore}%</p>
+        </div>
       </article>
     `;
   },
@@ -128,10 +154,9 @@ AIW.Modules.ideas = {
       <section class="module-panel idea-department-section">
         <div class="idea-section-head">
           <div>
-            <span class="module-kicker light">Department Portfolio</span>
+            <span class="module-kicker light">Solution Portfolio</span>
             <h2>${department}</h2>
           </div>
-          <strong>${ideas.length}</strong>
         </div>
 
         <div class="idea-list">
@@ -145,7 +170,7 @@ AIW.Modules.ideas = {
     if (!container) return;
 
     const data = this.getData();
-    const ideas = data.ideas || [];
+    const ideas = this.getIdeas();
     const departments = data.departments || [];
 
     const filteredIdeas = this.filterIdeas(ideas);
@@ -154,34 +179,37 @@ AIW.Modules.ideas = {
     const highCount = ideas.filter(i => i.priority === "عالية").length;
     const mediumCount = ideas.filter(i => i.priority === "متوسطة").length;
     const lowCount = ideas.filter(i => i.priority === "منخفضة").length;
-    const quickWins = ideas.filter(i => i.ease === "سهلة" && i.cost === "منخفضة").length;
+    const quickWins = ideas.filter(i => i.quickWin || (i.ease === "سهلة" && i.cost === "منخفضة")).length;
     const targetIdeas = data.summary?.targetIdeas || 100;
     const progress = Math.round((ideas.length / targetIdeas) * 100);
+    const avgDecision = ideas.length
+      ? Math.round(ideas.reduce((sum, i) => sum + Number(i.decisionScore || 0), 0) / ideas.length)
+      : 0;
 
     container.innerHTML = `
       <section class="module-page">
 
         <div class="module-hero">
-          <span class="module-kicker">AI Use Case Catalog</span>
-          <h1>مركز الأفكار</h1>
+          <span class="module-kicker">Biometric AI Opportunity Center</span>
+          <h1>مركز فرص الذكاء الاصطناعي</h1>
           <p>
-            دليل تنفيذي لأفكار الذكاء الاصطناعي المعتمدة، مصنفة حسب الإدارات،
-            مع الأولوية، الجاهزية، التكلفة، مدة التنفيذ، والتأثير المتوقع.
+            دليل تنفيذي للحلول الذكية المرتبطة بجودة التسجيلات البيومترية،
+            استخدام الصلاحيات، البوابات الذكية، الأمن الرقمي، والتنبيهات التشغيلية.
           </p>
 
           <div class="aiw-chip-row">
-            <span class="aiw-chip">💡 ${ideas.length}/${targetIdeas} فكرة</span>
-            <span class="aiw-chip">🏢 ${departments.length} إدارات</span>
+            <span class="aiw-chip">👁️ ${ideas.length}/${targetIdeas} فرصة</span>
+            <span class="aiw-chip">🛂 ${departments.length} محافظ</span>
             <span class="aiw-chip">🚀 ${quickWins} Quick Wins</span>
-            <span class="aiw-chip">📈 ${progress}% من الهدف</span>
+            <span class="aiw-chip">📊 ${avgDecision}% Decision Score</span>
           </div>
         </div>
 
         <div class="module-grid">
           <div class="module-card">
-            <span>الأفكار المعتمدة</span>
+            <span>الفرص المسجلة</span>
             <strong>${ideas.length}</strong>
-            <small>Use Cases</small>
+            <small>AI Opportunities</small>
           </div>
 
           <div class="module-card">
@@ -217,10 +245,10 @@ AIW.Modules.ideas = {
 
         <div class="module-panel">
           <div class="module-section-title compact">
-            <h2>خريطة الإدارات</h2>
+            <h2>خريطة المحافظ التشغيلية</h2>
             <p>
-              الأفكار موزعة على الإدارات الرئيسية حتى لا تبقى المبادرة محصورة في تقنية المعلومات
-              والأمن الرقمي فقط.
+              تصنيف الفرص حسب نطاق العمل: الأنظمة البيومترية، البوابات الذكية،
+              المستخدمون والصلاحيات، الأمن الرقمي، والتحليلات التنفيذية.
             </p>
           </div>
 
@@ -229,7 +257,7 @@ AIW.Modules.ideas = {
               <button class="department-chip department-button ${this.state.department === dep.name ? "active" : ""}"
                 onclick="AIW.Modules.ideas.setFilter('department', '${dep.name}')">
                 <strong>${dep.name}</strong>
-                <span>${dep.count} أفكار · نضج ${dep.maturity || 0}%</span>
+                <span>${dep.count} فرص · جاهزية ${dep.maturity || 0}%</span>
               </button>
             `).join("")}
           </div>
@@ -238,18 +266,18 @@ AIW.Modules.ideas = {
         <div class="module-panel">
           <div class="module-section-title compact">
             <h2>البحث والتصفية</h2>
-            <p>فلترة الدليل حسب الإدارة، الأولوية، أو كلمة مفتاحية.</p>
+            <p>ابحث حسب اسم الحل، التحدي، الصلاحيات، التسجيلات، البوابات، أو مستوى الأولوية.</p>
           </div>
 
           <input
             class="module-input"
-            placeholder="ابحث عن فكرة، إدارة، تحدي، أو حل..."
+            placeholder="مثال: تسجيل خاطئ، صلاحيات، جلسة طويلة، بوابة، تنبيه..."
             value="${this.state.query}"
             oninput="AIW.Modules.ideas.setSearch(this.value)"
           />
 
           <div class="ideas-filter-row">
-            <button class="module-btn secondary ${this.state.department === "all" ? "active-filter" : ""}" onclick="AIW.Modules.ideas.setFilter('department','all')">كل الإدارات</button>
+            <button class="module-btn secondary ${this.state.department === "all" ? "active-filter" : ""}" onclick="AIW.Modules.ideas.setFilter('department','all')">كل المحافظ</button>
             <button class="module-btn secondary ${this.state.priority === "all" ? "active-filter" : ""}" onclick="AIW.Modules.ideas.setFilter('priority','all')">كل الأولويات</button>
             <button class="module-btn secondary ${this.state.priority === "عالية" ? "active-filter" : ""}" onclick="AIW.Modules.ideas.setFilter('priority','عالية')">عالية</button>
             <button class="module-btn secondary ${this.state.priority === "متوسطة" ? "active-filter" : ""}" onclick="AIW.Modules.ideas.setFilter('priority','متوسطة')">متوسطة</button>
@@ -259,8 +287,8 @@ AIW.Modules.ideas = {
         </div>
 
         <div class="module-section-title">
-          <h2>دليل الأفكار التنفيذي</h2>
-          <p>عرض جاهز للإدارة، بدون إظهار أدوات الإضافة والتعديل للمستخدم العادي.</p>
+          <h2>دليل الفرص التنفيذية</h2>
+          <p>عرض منظم للفرص القابلة للتحويل إلى مشاريع تنفيذية ولوحات قياس وتنبيهات ذكية.</p>
         </div>
 
         ${
@@ -270,14 +298,6 @@ AIW.Modules.ideas = {
               ).join("")
             : `<div class="module-empty">لا توجد نتائج مطابقة للفلاتر الحالية.</div>`
         }
-
-        <div class="module-panel admin-note">
-          <h2>⚙️ Admin Mode لاحقاً</h2>
-          <p>
-            الإضافة والتعديل والحذف ستكون لاحقاً داخل Admin Mode مخفي،
-            أما هذه الصفحة فهي واجهة عرض تنفيذية جاهزة.
-          </p>
-        </div>
 
       </section>
     `;
