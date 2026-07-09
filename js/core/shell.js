@@ -232,8 +232,13 @@ const ATCShell = (function () {
           <p>AI Transformation Center — Building the AI-Driven Government</p>
 
           <div class="atc-hero-actions">
-            <button class="atc-primary-btn" type="button">استعراض المنصة</button>
-            <button class="atc-secondary-btn" type="button">Executive Dashboard</button>
+            <button class="atc-primary-btn" type="button" onclick="ATCRouter.navigate('strategy')">
+  استعراض الاستراتيجية
+</button>
+
+<button class="atc-secondary-btn" type="button" onclick="ATCRouter.navigate('dashboard')">
+  Executive Dashboard
+</button>
           </div>
         </section>
 
