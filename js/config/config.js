@@ -1,7 +1,7 @@
 /* =========================================================
    AI Transformation Center
    Global Configuration
-   Version 1.1.0
+   Version 1.2.0
 ========================================================= */
 
 window.AIW = window.AIW || {};
@@ -12,7 +12,7 @@ const ATC_CONFIG = {
     arabicName: "مركز التحول المؤسسي بالذكاء الاصطناعي",
     shortName: "AI Work",
     codeName: "ATC",
-    version: "1.1.0",
+    version: "1.2.0",
     environment: "production",
     owner: "AI Work",
     direction: "rtl",
@@ -69,7 +69,7 @@ const ATC_CONFIG = {
       {
         id: "ideas",
         title: "الأفكار",
-        subtitle: "AI Use Case Catalog",
+        subtitle: "Enterprise Biometric AI Catalog",
         icon: "💡",
         container: "page-ideas",
         enabled: true,
@@ -83,14 +83,14 @@ const ATC_CONFIG = {
     targetYear: 2030,
     phases: 12,
     currentPhase: 2,
-    currentFocus: "Foundation UI + Executive Dashboard"
+    currentFocus: "Enterprise Biometric Intelligence Platform + Smart Gates + Digital Security"
   },
 
   strategy: {
     targetIdeas: 100,
     currentIdeas: 42,
     targetProjects: 15,
-    targetDepartments: 10,
+    targetDepartments: 5,
     maturityTarget: 100,
     maturityCurrent: 34,
     roiTargetAED: 42000000
