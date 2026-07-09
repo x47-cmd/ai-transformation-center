@@ -141,3 +141,54 @@ const ATCStrategy = (function () {
     render
   };
 })();
+
+/* =========================================================
+   AI Work - Strategy Module V1
+========================================================= */
+
+window.AIW = window.AIW || {};
+AIW.Modules = AIW.Modules || {};
+
+AIW.Modules.strategy = {
+  id: "strategy",
+  title: "الاستراتيجية",
+  icon: "🎯",
+
+  render(container) {
+    if (!container) return;
+
+    container.innerHTML = `
+      <section class="module-page">
+        <div class="module-hero">
+          <span class="module-kicker">Executive Strategy</span>
+          <h1>مركز الاستراتيجية</h1>
+          <p>اربط مبادرات الذكاء الاصطناعي بالأهداف المؤسسية، الأولويات، المؤشرات، والمخاطر.</p>
+        </div>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <span>الأهداف الاستراتيجية</span>
+            <strong>0</strong>
+          </div>
+
+          <div class="module-card">
+            <span>المبادرات</span>
+            <strong>0</strong>
+          </div>
+
+          <div class="module-card">
+            <span>مؤشرات الأداء</span>
+            <strong>0</strong>
+          </div>
+        </div>
+
+        <div class="module-panel">
+          <h2>هدف استراتيجي جديد</h2>
+          <input class="module-input" placeholder="اسم الهدف">
+          <textarea class="module-textarea" placeholder="وصف الهدف"></textarea>
+          <button class="module-btn">حفظ الهدف</button>
+        </div>
+      </section>
+    `;
+  }
+};
