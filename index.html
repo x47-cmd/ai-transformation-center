@@ -5,100 +5,229 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
   <title>AI Work | مركز التحول المؤسسي بالذكاء الاصطناعي</title>
-  <meta name="description" content="منصة تنفيذية لإدارة استراتيجية التحول المؤسسي بالذكاء الاصطناعي، المشاريع، الأفكار، مؤشرات الأداء، النضج، الحوكمة، الجدوى، الأتمتة، والقرار التنفيذي." />
+
+  <meta
+    name="description"
+    content="منصة تنفيذية لإدارة استراتيجية التحول المؤسسي بالذكاء الاصطناعي، المشاريع، الأفكار، مؤشرات الأداء، النضج، الحوكمة، الجدوى، الأتمتة، والقرار التنفيذي."
+  />
+
   <meta name="theme-color" content="#f8fafc" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="AI Work" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
-  <link rel="stylesheet" href="css/style.css?v=3.0.8" />
-  <link rel="stylesheet" href="css/enterprise.css?v=3.0.8" />
+  <link rel="stylesheet" href="css/style.css?v=3.0.9">
+  <link rel="stylesheet" href="css/enterprise.css?v=3.0.9">
 </head>
 
 <body>
-  <div id="app" class="aiw-app enterprise-app" data-version="3.0.8">
 
-    <header id="appHeader" class="aiw-header enterprise-topbar" role="banner"></header>
-    <main id="appMain" class="aiw-main enterprise-main" role="main"></main>
+<div id="app" class="aiw-app enterprise-app" data-version="3.0.9">
 
-    <div id="toastContainer" class="aiw-toast-container" aria-live="polite"></div>
-    <div id="modalRoot" class="aiw-modal-root" aria-hidden="true"></div>
-    <div id="drawerRoot" class="aiw-drawer-root" aria-hidden="true"></div>
-    <div id="overlayRoot" class="aiw-overlay-root" aria-hidden="true"></div>
+<header
+id="appHeader"
+class="aiw-header enterprise-topbar"
+role="banner">
+</header>
 
-    <nav id="bottomNav" class="aiw-bottom-nav enterprise-bottom-nav" role="navigation" aria-label="التنقل الرئيسي">
-      <button type="button" data-module="dashboard" data-route="dashboard" class="aiw-nav-item nav-item active">
-        <span class="nav-icon">🏠</span>
-        <small>الرئيسية</small>
-      </button>
+<main
+id="appMain"
+class="aiw-main enterprise-main"
+role="main">
+</main>
 
-      <button type="button" data-module="ideas" data-route="ideas" class="aiw-nav-item nav-item">
-        <span class="nav-icon">💡</span>
-        <small>الأفكار</small>
-      </button>
+<div id="toastContainer"
+class="aiw-toast-container"
+aria-live="polite"></div>
 
-      <button type="button" data-module="projects" data-route="projects" class="aiw-nav-item nav-item">
-        <span class="nav-icon">📁</span>
-        <small>المشاريع</small>
-      </button>
+<div id="modalRoot"
+class="aiw-modal-root"
+aria-hidden="true"></div>
 
-      <button type="button" data-module="strategy" data-route="strategy" class="aiw-nav-item nav-item">
-        <span class="nav-icon">🎯</span>
-        <small>الاستراتيجية</small>
-      </button>
+<div id="drawerRoot"
+class="aiw-drawer-root"
+aria-hidden="true"></div>
 
-      <button type="button" data-module="reports" data-route="reports" class="aiw-nav-item nav-item">
-        <span class="nav-icon">📄</span>
-        <small>التقارير</small>
-      </button>
+<div id="overlayRoot"
+class="aiw-overlay-root"
+aria-hidden="true"></div>
 
-      <button type="button" data-module="settings" data-route="settings" class="aiw-nav-item nav-item">
-        <span class="nav-icon">⋮</span>
-        <small>المزيد</small>
-      </button>
-    </nav>
-  </div>
+<nav
+id="bottomNav"
+class="aiw-bottom-nav enterprise-bottom-nav"
+role="navigation"
+aria-label="التنقل الرئيسي">
 
-  <script src="js/config/config.js?v=3.0.8"></script>
-  <script src="js/store.js?v=3.0.8"></script>
-  <script src="js/data/aiw-data.js?v=3.0.8"></script>
-  <script src="js/localization/translations.js?v=3.0.8"></script>
+<button
+type="button"
+data-module="dashboard"
+data-route="dashboard"
+class="aiw-nav-item nav-item active">
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<span class="nav-icon">🏠</span>
+<small>الرئيسية</small>
 
-  <script src="js/core/widgets.js?v=3.0.8"></script>
-  <script src="js/core/charts.js?v=3.0.8"></script>
-  <script src="js/core/analytics.js?v=3.0.8"></script>
-  <script src="js/core/automation.js?v=3.0.8"></script>
-  <script src="js/core/ai-engine.js?v=3.0.8"></script>
-  <script src="js/core/decision-engine.js?v=3.0.8"></script>
-  <script src="js/core/recommendation-engine.js?v=3.0.8"></script>
-  <script src="js/core/export.js?v=3.0.8"></script>
-  <script src="js/core/notifications.js?v=3.0.8"></script>
-  <script src="js/core/permissions.js?v=3.0.8"></script>
-  <script src="js/core/router.js?v=3.0.8"></script>
+</button>
 
-  <script src="js/modules/dashboard/dashboard.js?v=3.0.8"></script>
-  <script src="js/modules/strategy/strategy.js?v=3.0.8"></script>
-  <script src="js/modules/projects/projects.js?v=3.0.8"></script>
-  <script src="js/modules/ideas/ideas.js?v=3.0.8"></script>
-  <script src="js/modules/governance/governance.js?v=3.0.8"></script>
-  <script src="js/modules/maturity/maturity.js?v=3.0.8"></script>
-  <script src="js/modules/reports/reports.js?v=3.0.8"></script>
-  <script src="js/modules/kpis/kpis.js?v=3.0.8"></script>
-  <script src="js/modules/business/business.js?v=3.0.8"></script>
-  <script src="js/modules/automation/automation.js?v=3.0.8"></script>
-  <script src="js/modules/decision/decision.js?v=3.0.8"></script>
-  <script src="js/modules/settings/settings.js?v=3.0.8"></script>
+<button
+type="button"
+data-module="ideas"
+data-route="ideas"
+class="aiw-nav-item nav-item">
 
-  <script src="js/core/app.js?v=3.0.8"></script>
+<span class="nav-icon">💡</span>
+<small>الأفكار</small>
 
-  <script>
-    window.addEventListener("load", function () {
-      if (window.ATCApp && typeof window.ATCApp.go === "function") {
-        window.ATCApp.go(location.hash.replace("#", "") || "dashboard", false);
-      }
-    });
-  </script>
+</button>
+
+<button
+type="button"
+data-module="projects"
+data-route="projects"
+class="aiw-nav-item nav-item">
+
+<span class="nav-icon">📁</span>
+<small>المشاريع</small>
+
+</button>
+
+<button
+type="button"
+data-module="strategy"
+data-route="strategy"
+class="aiw-nav-item nav-item">
+
+<span class="nav-icon">🎯</span>
+<small>الاستراتيجية</small>
+
+</button>
+
+<button
+type="button"
+data-module="reports"
+data-route="reports"
+class="aiw-nav-item nav-item">
+
+<span class="nav-icon">📄</span>
+<small>التقارير</small>
+
+</button>
+
+<button
+type="button"
+data-module="settings"
+data-route="settings"
+class="aiw-nav-item nav-item">
+
+<span class="nav-icon">⋮</span>
+<small>المزيد</small>
+
+</button>
+
+</nav>
+
+</div>
+
+<!-- ===================================================== -->
+<!-- Config -->
+<!-- ===================================================== -->
+
+<script src="js/config/config.js?v=3.0.9"></script>
+
+<script src="js/store.js?v=3.0.9"></script>
+
+<script src="js/data/aiw-data.js?v=3.0.9"></script>
+
+<script src="js/localization/translations.js?v=3.0.9"></script>
+
+<!-- ===================================================== -->
+<!-- Libraries -->
+<!-- ===================================================== -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- ===================================================== -->
+<!-- Core -->
+<!-- ===================================================== -->
+
+<script src="js/core/widgets.js?v=3.0.9"></script>
+
+<script src="js/core/charts.js?v=3.0.9"></script>
+
+<script src="js/core/analytics.js?v=3.0.9"></script>
+
+<script src="js/core/automation.js?v=3.0.9"></script>
+
+<script src="js/core/ai-engine.js?v=3.0.9"></script>
+
+<script src="js/core/decision-engine.js?v=3.0.9"></script>
+
+<script src="js/core/recommendation-engine.js?v=3.0.9"></script>
+
+<!-- الجديد -->
+<script src="js/core/biometric-analytics.js?v=3.0.9"></script>
+
+<script src="js/core/export.js?v=3.0.9"></script>
+
+<script src="js/core/notifications.js?v=3.0.9"></script>
+
+<script src="js/core/permissions.js?v=3.0.9"></script>
+
+<script src="js/core/router.js?v=3.0.9"></script>
+
+<!-- ===================================================== -->
+<!-- Modules -->
+<!-- ===================================================== -->
+
+<script src="js/modules/dashboard/dashboard.js?v=3.0.9"></script>
+
+<script src="js/modules/strategy/strategy.js?v=3.0.9"></script>
+
+<script src="js/modules/projects/projects.js?v=3.0.9"></script>
+
+<script src="js/modules/ideas/ideas.js?v=3.0.9"></script>
+
+<script src="js/modules/governance/governance.js?v=3.0.9"></script>
+
+<script src="js/modules/maturity/maturity.js?v=3.0.9"></script>
+
+<script src="js/modules/reports/reports.js?v=3.0.9"></script>
+
+<script src="js/modules/kpis/kpis.js?v=3.0.9"></script>
+
+<script src="js/modules/business/business.js?v=3.0.9"></script>
+
+<script src="js/modules/automation/automation.js?v=3.0.9"></script>
+
+<script src="js/modules/decision/decision.js?v=3.0.9"></script>
+
+<script src="js/modules/settings/settings.js?v=3.0.9"></script>
+
+<!-- ===================================================== -->
+<!-- Application -->
+<!-- ===================================================== -->
+
+<script src="js/core/app.js?v=3.0.9"></script>
+
+<script>
+
+window.addEventListener("load", () => {
+
+    if (
+        window.ATCApp &&
+        typeof window.ATCApp.go === "function"
+    ) {
+
+        window.ATCApp.go(
+            location.hash.replace("#","") || "dashboard",
+            false
+        );
+
+    }
+
+});
+
+</script>
+
 </body>
 </html>
