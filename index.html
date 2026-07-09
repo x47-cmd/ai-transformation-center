@@ -6,20 +6,21 @@
 
   <title>AI Work | مركز التحول المؤسسي بالذكاء الاصطناعي</title>
   <meta name="description" content="منصة تنفيذية لإدارة استراتيجية التحول المؤسسي بالذكاء الاصطناعي، المشاريع، الأفكار، مؤشرات الأداء، النضج، الحوكمة، الجدوى، الأتمتة، والقرار التنفيذي." />
-  <meta name="theme-color" content="#0f172a" />
+  <meta name="theme-color" content="#f8fafc" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="AI Work" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/enterprise.css" />
 </head>
 
 <body>
-  <div id="app" class="aiw-app" data-version="2.0.0">
+  <div id="app" class="aiw-app enterprise-app" data-version="2.0.0">
 
-    <header id="appHeader" class="aiw-header" role="banner"></header>
-    <main id="appMain" class="aiw-main" role="main"></main>
+    <header id="appHeader" class="aiw-header enterprise-topbar" role="banner"></header>
+
+    <main id="appMain" class="aiw-main enterprise-main" role="main"></main>
 
     <div id="toastContainer" class="aiw-toast-container" aria-live="polite"></div>
     <div id="modalRoot" class="aiw-modal-root" aria-hidden="true"></div>
@@ -34,29 +35,34 @@
       </div>
     </div>
 
-    <nav id="bottomNav" class="aiw-bottom-nav" role="navigation" aria-label="التنقل الرئيسي">
-      <button type="button" data-module="dashboard" class="aiw-nav-item active">
-        <span>🏠</span>
+    <nav id="bottomNav" class="aiw-bottom-nav enterprise-bottom-nav" role="navigation" aria-label="التنقل الرئيسي">
+      <button type="button" data-module="dashboard" data-route="dashboard" class="aiw-nav-item nav-item active">
+        <span class="nav-icon">🏠</span>
         <small>الرئيسية</small>
       </button>
 
-      <button type="button" data-module="strategy" class="aiw-nav-item">
-        <span>🎯</span>
-        <small>الاستراتيجية</small>
-      </button>
-
-      <button type="button" data-module="projects" class="aiw-nav-item">
-        <span>📁</span>
-        <small>المشاريع</small>
-      </button>
-
-      <button type="button" data-module="ideas" class="aiw-nav-item">
-        <span>💡</span>
+      <button type="button" data-module="ideas" data-route="ideas" class="aiw-nav-item nav-item">
+        <span class="nav-icon">💡</span>
         <small>الأفكار</small>
       </button>
 
-      <button type="button" data-module="settings" class="aiw-nav-item">
-        <span>☰</span>
+      <button type="button" data-module="projects" data-route="projects" class="aiw-nav-item nav-item">
+        <span class="nav-icon">📁</span>
+        <small>المشاريع</small>
+      </button>
+
+      <button type="button" data-module="strategy" data-route="strategy" class="aiw-nav-item nav-item">
+        <span class="nav-icon">🎯</span>
+        <small>الاستراتيجية</small>
+      </button>
+
+      <button type="button" data-module="reports" data-route="reports" class="aiw-nav-item nav-item">
+        <span class="nav-icon">📄</span>
+        <small>التقارير</small>
+      </button>
+
+      <button type="button" data-module="settings" data-route="settings" class="aiw-nav-item nav-item">
+        <span class="nav-icon">⋮</span>
         <small>المزيد</small>
       </button>
     </nav>
