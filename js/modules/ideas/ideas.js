@@ -189,6 +189,11 @@ AIW.Modules.ideas = {
     container.innerHTML = `
       <section class="module-page">
 
+<div class="page-credit">
+  <span>Designed &amp; Developed by:</span>
+  <strong>يوسف الحوسني</strong>
+</div>
+
         <div class="module-hero">
           <span class="module-kicker">Biometric AI Opportunity Center</span>
           <h1>مركز فرص الذكاء الاصطناعي</h1>
