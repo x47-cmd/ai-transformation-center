@@ -3405,3 +3405,74 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   Business Case Center V2 Ultimate Add-ons
+========================================================= */
+
+.business-ultimate-summary,
+.business-ai-card {
+  padding: 18px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.10), rgba(124, 58, 237, 0.08));
+  border: 1px solid rgba(37, 99, 235, 0.14);
+}
+
+.business-ultimate-summary strong,
+.business-ai-card strong {
+  display: block;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.business-ultimate-summary p,
+.business-ai-card p {
+  margin: 8px 0 14px;
+}
+
+.business-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.business-summary-strip div {
+  padding: 11px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid var(--aiw-border);
+}
+
+.business-summary-strip span {
+  display: block;
+  color: var(--aiw-muted);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.business-summary-strip b {
+  display: block;
+  margin-top: 4px;
+  font-size: 15px;
+}
+
+.business-chart-card {
+  height: 300px;
+  padding: 12px;
+  border-radius: 22px;
+  background: rgba(16, 24, 40, 0.035);
+  border: 1px solid rgba(16, 24, 40, 0.08);
+}
+
+@media (max-width: 820px) {
+  .business-summary-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .business-summary-strip {
+    grid-template-columns: 1fr;
+  }
+}
