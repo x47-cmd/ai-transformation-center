@@ -1,32 +1,35 @@
 /* =========================================================
-   AI Work - App Core V1.1
-   Module Loader + Header + Navigation State
+   AI Work - App Core V1.2
+   Stable Module Loader + Executive Header + Safe Navigation
 ========================================================= */
 
 window.AIW = window.AIW || {};
 AIW.Modules = AIW.Modules || {};
 
 AIW.App = {
-  currentModule: "ideas",
+  currentModule: "strategy",
 
   routes: {
-    ideas: {
-      id: "ideas",
-      title: "الأفكار",
-      subtitle: "Innovation Pipeline",
-      container: "page-ideas"
+    strategy: {
+      id: "strategy",
+      title: "الاستراتيجية",
+      subtitle: "Executive Strategy Center",
+      container: "page-strategy",
+      icon: "🎯"
     },
     projects: {
       id: "projects",
       title: "المشاريع",
-      subtitle: "Execution Center",
-      container: "page-projects"
+      subtitle: "AI Projects Portfolio",
+      container: "page-projects",
+      icon: "📁"
     },
-    strategy: {
-      id: "strategy",
-      title: "الاستراتيجية",
-      subtitle: "Executive Strategy",
-      container: "page-strategy"
+    ideas: {
+      id: "ideas",
+      title: "الأفكار",
+      subtitle: "AI Innovation Pipeline",
+      container: "page-ideas",
+      icon: "💡"
     }
   },
 
@@ -34,8 +37,10 @@ AIW.App = {
     this.prepareContainers();
     this.bindNavigation();
 
-    const saved = localStorage.getItem("aiwCurrentModule") || "ideas";
-    this.go(saved);
+    const saved = localStorage.getItem("aiwCurrentModule");
+    const startModule = this.routes[saved] ? saved : "strategy";
+
+    this.go(startModule);
   },
 
   prepareContainers() {
@@ -43,8 +48,10 @@ AIW.App = {
     if (!main) return;
 
     Object.values(this.routes).forEach(route => {
-      if (!document.getElementById(route.container)) {
-        const section = document.createElement("section");
+      let section = document.getElementById(route.container);
+
+      if (!section) {
+        section = document.createElement("section");
         section.id = route.container;
         section.className = "aiw-page";
         main.appendChild(section);
@@ -53,7 +60,7 @@ AIW.App = {
   },
 
   go(moduleId) {
-    if (!this.routes[moduleId]) moduleId = "ideas";
+    if (!this.routes[moduleId]) moduleId = "strategy";
 
     const route = this.routes[moduleId];
 
@@ -65,7 +72,12 @@ AIW.App = {
 
     if (container) {
       container.classList.add("active");
-      AIW.Modules[moduleId]?.render(container);
+
+      if (AIW.Modules[moduleId] && typeof AIW.Modules[moduleId].render === "function") {
+        AIW.Modules[moduleId].render(container);
+      } else {
+        this.renderMissingModule(container, route);
+      }
     }
 
     this.currentModule = moduleId;
@@ -81,8 +93,16 @@ AIW.App = {
 
     header.innerHTML = `
       <div class="aiw-header-inner">
-        <span>${route.subtitle}</span>
-        <h1>${route.title}</h1>
+        <div>
+          <span class="aiw-eyebrow">${route.subtitle}</span>
+          <h1>${route.icon} ${route.title}</h1>
+          <p>مركز تنفيذي لإدارة التحول المؤسسي بالذكاء الاصطناعي</p>
+        </div>
+
+        <div class="aiw-header-badge">
+          <strong>AI Work</strong>
+          <small>V1.2</small>
+        </div>
       </div>
     `;
   },
@@ -100,6 +120,16 @@ AIW.App = {
 
       this.go(btn.dataset.module);
     });
+  },
+
+  renderMissingModule(container, route) {
+    container.innerHTML = `
+      <div class="aiw-card aiw-empty">
+        <div class="aiw-empty-icon">${route.icon}</div>
+        <h2>${route.title}</h2>
+        <p>هذا القسم موجود في التنقل، لكن ملف الموديول غير جاهز أو غير محمل.</p>
+      </div>
+    `;
   }
 };
 
