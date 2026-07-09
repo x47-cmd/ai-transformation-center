@@ -1,80 +1,24 @@
 /* =========================================================
-   Personal Wealth Center - Store V2
+   AI Work - Store V1
    Single Source of Truth
 ========================================================= */
 
-window.PWC = window.PWC || {};
+window.AIW = window.AIW || {};
 
-PWC.KEYS = {
-  DATA: "pwcDataV2",
-  BACKUP: "pwcBackupV2",
-  SETTINGS: "pwcSettingsV2",
-  VERSION: "pwcAppVersion"
+AIW.KEYS = {
+  DATA: "aiwDataV1",
+  SETTINGS: "aiwSettingsV1",
+  CURRENT_MODULE: "aiwCurrentModule"
 };
 
-PWC.DEFAULT_SETTINGS = {
-  currency: "AED",
-  locale: "ar-AE",
-  theme: "light",
-  compactMode: true,
-  targetNetWorth: 1000000,
-  monthlySalary: 32000,
-  salaryDay: 27,
-  monthlyInvestment: 3500,
-  emergencyTarget: 15000,
-  expectedReturn: 10
+AIW.DEFAULT_DATA = {
+  ideas: [],
+  projects: [],
+  strategy: [],
+  activity: []
 };
 
-PWC.DEFAULT_DATA = {
-  meta: {
-    version: "2.0.0",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-
-  cash: {
-    available: 0,
-    emergency: 5000
-  },
-
-  portfolio: {
-    capitalDeposited: 0,
-    currentValue: 0,
-    totalDividends: 0,
-    monthlyContribution: 3500,
-    expectedReturn: 10,
-    transactions: []
-  },
-
-  spending: {
-    monthlyBudget: 7000,
-    expenses: [],
-    categories: []
-  },
-
-  assets: {
-    investments: 0,
-    realEstate: 0,
-    nationalBonds: 0,
-    cashAssets: 0,
-    other: 0
-  },
-
-  liabilities: {
-    mainLoan: 0,
-    creditCards: 0,
-    installments: 0,
-    other: 0
-  },
-
-  goals: {
-    netWorthTarget: 1000000,
-    emergencyTarget: 15000,
-    portfolioTargets: [100000, 250000, 500000, 1000000]
-  }
-};
-
-PWC.Store = {
+AIW.Store = {
   read(key, fallback) {
     try {
       const raw = localStorage.getItem(key);
@@ -88,113 +32,100 @@ PWC.Store = {
     localStorage.setItem(key, JSON.stringify(value));
   },
 
-  getSettings() {
-    const saved = this.read(PWC.KEYS.SETTINGS, {});
-    return { ...PWC.DEFAULT_SETTINGS, ...saved };
-  },
-
-  saveSettings(settings) {
-    const merged = { ...this.getSettings(), ...settings };
-    this.write(PWC.KEYS.SETTINGS, merged);
-    PWC.Events?.emit("pwc:settingsChanged", merged);
-    PWC.Events?.emit("pwc:dataChanged", this.getData());
-    return merged;
-  },
-
   getData() {
-    const saved = this.read(PWC.KEYS.DATA, null);
+    const saved = this.read(AIW.KEYS.DATA, null);
     if (!saved) {
-      this.write(PWC.KEYS.DATA, PWC.DEFAULT_DATA);
-      return structuredClone(PWC.DEFAULT_DATA);
+      this.write(AIW.KEYS.DATA, AIW.DEFAULT_DATA);
+      return structuredClone(AIW.DEFAULT_DATA);
     }
 
-    return this.mergeDeep(structuredClone(PWC.DEFAULT_DATA), saved);
+    return {
+      ...AIW.DEFAULT_DATA,
+      ...saved
+    };
   },
 
   saveData(data) {
-    data.meta = data.meta || {};
-    data.meta.updatedAt = new Date().toISOString();
+    this.write(AIW.KEYS.DATA, data);
 
-    this.write(PWC.KEYS.DATA, data);
-    this.write(PWC.KEYS.BACKUP, data);
+    window.dispatchEvent(
+      new CustomEvent("aiw:dataChanged", {
+        detail: data
+      })
+    );
 
-    PWC.Events?.emit("pwc:dataChanged", data);
     return data;
   },
 
-  update(path, value) {
+  add(collection, item) {
     const data = this.getData();
-    const keys = path.split(".");
-    let ref = data;
 
-    keys.slice(0, -1).forEach(k => {
-      if (!ref[k]) ref[k] = {};
-      ref = ref[k];
+    if (!Array.isArray(data[collection])) {
+      data[collection] = [];
+    }
+
+    const record = {
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+      status: item.status || "new",
+      priority: item.priority || "medium",
+      ...item
+    };
+
+    data[collection].unshift(record);
+
+    data.activity = data.activity || [];
+    data.activity.unshift({
+      id: Date.now().toString() + "-activity",
+      type: collection,
+      title: item.title || item.name || "عنصر جديد",
+      createdAt: new Date().toISOString()
     });
 
-    ref[keys[keys.length - 1]] = value;
-    return this.saveData(data);
+    this.saveData(data);
+    return record;
   },
 
-  patch(section, object) {
+  update(collection, id, updates) {
     const data = this.getData();
-    data[section] = { ...(data[section] || {}), ...object };
-    return this.saveData(data);
+
+    if (!Array.isArray(data[collection])) return null;
+
+    data[collection] = data[collection].map(item => {
+      if (item.id !== id) return item;
+
+      return {
+        ...item,
+        ...updates,
+        updatedAt: new Date().toISOString()
+      };
+    });
+
+    this.saveData(data);
+    return data[collection].find(item => item.id === id);
+  },
+
+  remove(collection, id) {
+    const data = this.getData();
+
+    if (!Array.isArray(data[collection])) return;
+
+    data[collection] = data[collection].filter(item => item.id !== id);
+
+    this.saveData(data);
+  },
+
+  getCollection(collection) {
+    const data = this.getData();
+    return Array.isArray(data[collection]) ? data[collection] : [];
+  },
+
+  count(collection) {
+    return this.getCollection(collection).length;
   },
 
   reset() {
-    this.write(PWC.KEYS.DATA, PWC.DEFAULT_DATA);
-    PWC.Events?.emit("pwc:dataChanged", PWC.DEFAULT_DATA);
-  },
-
-  mergeDeep(target, source) {
-    for (const key in source) {
-      if (
-        source[key] &&
-        typeof source[key] === "object" &&
-        !Array.isArray(source[key])
-      ) {
-        target[key] = this.mergeDeep(target[key] || {}, source[key]);
-      } else {
-        target[key] = source[key];
-      }
-    }
-    return target;
-  },
-
-  calculate() {
-    const d = this.getData();
-
-    const cash =
-      Number(d.cash?.available || 0) +
-      Number(d.cash?.emergency || 0);
-
-    const portfolio =
-      Number(d.portfolio?.currentValue || 0);
-
-    const assets =
-      Number(d.assets?.investments || 0) +
-      Number(d.assets?.realEstate || 0) +
-      Number(d.assets?.nationalBonds || 0) +
-      Number(d.assets?.cashAssets || 0) +
-      Number(d.assets?.other || 0);
-
-    const liabilities =
-      Number(d.liabilities?.mainLoan || 0) +
-      Number(d.liabilities?.creditCards || 0) +
-      Number(d.liabilities?.installments || 0) +
-      Number(d.liabilities?.other || 0);
-
-    const netWorth = cash + portfolio + assets - liabilities;
-
-    return {
-      cash,
-      portfolio,
-      assets,
-      liabilities,
-      netWorth,
-      target: Number(d.goals?.netWorthTarget || 1000000),
-      progress: Math.max(0, Math.min(100, netWorth / Number(d.goals?.netWorthTarget || 1000000) * 100))
-    };
+    this.write(AIW.KEYS.DATA, AIW.DEFAULT_DATA);
+    this.saveData(structuredClone(AIW.DEFAULT_DATA));
   }
 };
