@@ -1,14 +1,13 @@
 /* =========================================================
    AI Transformation Center
-   Core App Bootstrap
-   Enterprise Foundation V2
+   Core App Bootstrap V3
 ========================================================= */
 
 (function () {
   "use strict";
 
   const ATCApp = {
-    version: "2.0.0",
+    version: "3.0.0",
 
     routes: {
       dashboard: "dashboard",
@@ -26,59 +25,61 @@
     },
 
     init() {
+      this.main = document.getElementById("appMain");
       this.bindNavigation();
       this.loadInitialRoute();
-      window.ATCNotifications?.success?.("Enterprise Foundation V2 جاهزة");
-      console.log("ATC Enterprise Foundation V2 initialized");
+      console.log("ATC Core App V3 initialized");
     },
 
     bindNavigation() {
       document.querySelectorAll("[data-route]").forEach((item) => {
         item.addEventListener("click", (e) => {
           e.preventDefault();
-          const route = item.getAttribute("data-route");
-          this.go(route);
+          this.go(item.getAttribute("data-route"));
         });
       });
     },
 
     loadInitialRoute() {
-      const hash = location.hash.replace("#", "");
-      const route = hash || "dashboard";
+      const route = location.hash.replace("#", "") || "dashboard";
       this.go(route, false);
     },
 
     go(route, updateHash = true) {
-      if (!this.routes[route]) {
-        route = "dashboard";
-      }
-
-      document.querySelectorAll("[data-page]").forEach((page) => {
-        page.classList.remove("active");
-        page.hidden = true;
-      });
-
-      const target = document.querySelector(`[data-page="${route}"]`);
-
-      if (target) {
-        target.classList.add("active");
-        target.hidden = false;
-      }
+      if (!this.routes[route]) route = "dashboard";
 
       document.querySelectorAll("[data-route]").forEach((item) => {
-        item.classList.toggle(
-          "active",
-          item.getAttribute("data-route") === route
-        );
+        item.classList.toggle("active", item.getAttribute("data-route") === route);
       });
 
-      if (updateHash) {
-        location.hash = route;
-      }
+      if (updateHash) location.hash = route;
+
+      this.renderModule(route);
 
       document.dispatchEvent(new CustomEvent("atc:routeChanged", {
         detail: { route }
       }));
+    },
+
+    renderModule(route) {
+      if (!this.main) return;
+
+      const module = window.AIW?.Modules?.[route];
+
+      if (module && typeof module.render === "function") {
+        module.render(this.main);
+        return;
+      }
+
+      this.main.innerHTML = `
+        <section class="v3-dashboard-page">
+          <article class="v3-small-panel">
+            <h3>قيد التطوير</h3>
+            <strong>${route}</strong>
+            <p>هذه الصفحة سيتم تحديثها بتصميم V3 لاحقاً.</p>
+          </article>
+        </section>
+      `;
     }
   };
 
@@ -88,31 +89,3 @@
     ATCApp.init();
   });
 })();
-
-/* ==========================================
-   Enterprise Bottom Navigation
-========================================== */
-
-document.addEventListener("DOMContentLoaded", () => {
-
-  const navItems = document.querySelectorAll(".enterprise-bottom-nav .nav-item");
-
-  navItems.forEach(btn => {
-
-    btn.addEventListener("click", () => {
-
-      const route = btn.dataset.route;
-
-      navItems.forEach(item => item.classList.remove("active"));
-
-      btn.classList.add("active");
-
-      if (window.ATCApp) {
-        window.ATCApp.go(route);
-      }
-
-    });
-
-  });
-
-});
