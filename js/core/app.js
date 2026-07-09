@@ -1,44 +1,6 @@
 /* =========================================================
-   AI Transformation Center
-   Core App Bootstrap
-   Version 1.0 Foundation
-========================================================= */
-
-(function () {
-  "use strict";
-
-  function ready(fn) {
-    if (document.readyState !== "loading") {
-      fn();
-    } else {
-      document.addEventListener("DOMContentLoaded", fn);
-    }
-  }
-
-  function initApp() {
-    const app = document.getElementById("app");
-
-    if (!app) {
-      console.error("ATC Error: #app container not found.");
-      return;
-    }
-
-    if (!window.ATCRouter) {
-      console.error("ATC Error: ATCRouter not loaded.");
-      return;
-    }
-
-    ATCRouter.render("dashboard");
-
-    console.log("AI Transformation Center started successfully.");
-  }
-
-  ready(initApp);
-})();
-
-/* =========================================================
-   AI Work - App Core V1
-   Module Loader
+   AI Work - App Core V1.1
+   Module Loader + Header + Navigation State
 ========================================================= */
 
 window.AIW = window.AIW || {};
@@ -51,16 +13,19 @@ AIW.App = {
     ideas: {
       id: "ideas",
       title: "الأفكار",
+      subtitle: "Innovation Pipeline",
       container: "page-ideas"
     },
     projects: {
       id: "projects",
       title: "المشاريع",
+      subtitle: "Execution Center",
       container: "page-projects"
     },
     strategy: {
       id: "strategy",
       title: "الاستراتيجية",
+      subtitle: "Executive Strategy",
       container: "page-strategy"
     }
   },
@@ -74,7 +39,7 @@ AIW.App = {
   },
 
   prepareContainers() {
-    const main = document.getElementById("appMain") || document.querySelector("main");
+    const main = document.getElementById("appMain");
     if (!main) return;
 
     Object.values(this.routes).forEach(route => {
@@ -90,11 +55,12 @@ AIW.App = {
   go(moduleId) {
     if (!this.routes[moduleId]) moduleId = "ideas";
 
+    const route = this.routes[moduleId];
+
     document.querySelectorAll(".aiw-page").forEach(page => {
       page.classList.remove("active");
     });
 
-    const route = this.routes[moduleId];
     const container = document.getElementById(route.container);
 
     if (container) {
@@ -105,9 +71,26 @@ AIW.App = {
     this.currentModule = moduleId;
     localStorage.setItem("aiwCurrentModule", moduleId);
 
-    window.dispatchEvent(new CustomEvent("aiw:moduleChanged", {
-      detail: { moduleId, route }
-    }));
+    this.updateHeader(route);
+    this.updateNav(moduleId);
+  },
+
+  updateHeader(route) {
+    const header = document.getElementById("appHeader");
+    if (!header) return;
+
+    header.innerHTML = `
+      <div class="aiw-header-inner">
+        <span>${route.subtitle}</span>
+        <h1>${route.title}</h1>
+      </div>
+    `;
+  },
+
+  updateNav(moduleId) {
+    document.querySelectorAll("[data-module]").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.module === moduleId);
+    });
   },
 
   bindNavigation() {
