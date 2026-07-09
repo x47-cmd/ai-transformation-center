@@ -57,6 +57,11 @@ AIW.Modules.strategy = {
     container.innerHTML = `
       <section class="module-page">
 
+<div class="page-credit">
+  <span>Designed &amp; Developed by:</span>
+  <strong>يوسف الحوسني</strong>
+</div>
+
         <div class="module-hero">
           <span class="module-kicker">Biometric AI Strategy · ${summary.period || "2026–2030"}</span>
           <h1>مركز الاستراتيجية</h1>
