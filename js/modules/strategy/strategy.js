@@ -101,8 +101,13 @@ const ATCStrategy = (function () {
           </p>
 
           <div class="atc-hero-actions">
-            <button class="atc-primary-btn" type="button">عرض الأهداف</button>
-            <button class="atc-secondary-btn" type="button">الرؤية 2030</button>
+            <button class="atc-primary-btn" type="button" onclick="ATCRouter.navigate('dashboard')">
+  العودة للرئيسية
+</button>
+
+<button class="atc-secondary-btn" type="button">
+  الرؤية 2030
+</button>
           </div>
         </section>
 
