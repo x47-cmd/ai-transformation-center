@@ -1,6 +1,6 @@
 /* =========================================================
-   AI Work - Ideas Module V2
-   Save + List + Delete
+   AI Work - Ideas Module V2.0
+   Executive Ideas Catalog + Data Driven
 ========================================================= */
 
 window.AIW = window.AIW || {};
@@ -11,114 +11,169 @@ AIW.Modules.ideas = {
   title: "الأفكار",
   icon: "💡",
 
+  getData() {
+    return window.AIW?.Data || {};
+  },
+
+  groupByDepartment(ideas) {
+    return ideas.reduce((acc, idea) => {
+      if (!acc[idea.department]) acc[idea.department] = [];
+      acc[idea.department].push(idea);
+      return acc;
+    }, {});
+  },
+
+  badgeClass(value) {
+    if (value === "عالية") return "high";
+    if (value === "متوسطة") return "medium";
+    if (value === "منخفضة") return "low";
+    return "";
+  },
+
+  renderIdeaCard(idea) {
+    return `
+      <article class="idea-card">
+        <div class="idea-card-head">
+          <div>
+            <span class="idea-dept">${idea.department}</span>
+            <h3>${idea.id}. ${idea.title}</h3>
+          </div>
+          <span class="idea-priority ${this.badgeClass(idea.priority)}">${idea.priority}</span>
+        </div>
+
+        <div class="idea-meta">
+          <span>⏱️ ${idea.duration}</span>
+          <span>💰 ${idea.cost}</span>
+          <span>⚙️ ${idea.ease}</span>
+        </div>
+
+        <div class="idea-detail">
+          <strong>التحدي</strong>
+          <p>${idea.challenge}</p>
+        </div>
+
+        <div class="idea-detail">
+          <strong>الحل المقترح</strong>
+          <p>${idea.solution}</p>
+        </div>
+
+        <div class="idea-detail">
+          <strong>دور الذكاء الاصطناعي</strong>
+          <p>${idea.aiRole}</p>
+        </div>
+
+        <div class="idea-detail">
+          <strong>الفوائد المتوقعة</strong>
+          <p>${idea.benefits}</p>
+        </div>
+      </article>
+    `;
+  },
+
+  renderDepartmentSection(department, ideas) {
+    return `
+      <section class="module-panel idea-department-section">
+        <div class="idea-section-head">
+          <div>
+            <span class="module-kicker light">Department Portfolio</span>
+            <h2>${department}</h2>
+          </div>
+          <strong>${ideas.length}</strong>
+        </div>
+
+        <div class="idea-list">
+          ${ideas.map(idea => this.renderIdeaCard(idea)).join("")}
+        </div>
+      </section>
+    `;
+  },
+
   render(container) {
     if (!container) return;
 
-    const ideas = AIW.Store.getCollection("ideas");
+    const data = this.getData();
+    const ideas = data.ideas || [];
+    const departments = data.departments || [];
+    const grouped = this.groupByDepartment(ideas);
+
+    const highCount = ideas.filter(i => i.priority === "عالية").length;
+    const quickWins = ideas.filter(i => i.ease === "سهلة" || i.cost === "منخفضة").length;
 
     container.innerHTML = `
       <section class="module-page">
         <div class="module-hero">
-          <span class="module-kicker">Innovation Pipeline</span>
+          <span class="module-kicker">AI Innovation Pipeline</span>
           <h1>مركز الأفكار</h1>
-          <p>اجمع، صنّف، وقيّم أفكار التحول بالذكاء الاصطناعي قبل تحويلها إلى مشاريع.</p>
+          <p>
+            دليل تنفيذي لأفكار الذكاء الاصطناعي المعتمدة، مصنفة حسب الإدارات،
+            مع التحدي، الحل، دور الذكاء الاصطناعي، الفوائد، الأولوية، المدة والتكلفة.
+          </p>
+
+          <div class="aiw-chip-row">
+            <span class="aiw-chip">💡 ${data.summary?.ideasCount || ideas.length}+ فكرة</span>
+            <span class="aiw-chip">🏢 ${data.summary?.departmentsCount || departments.length} إدارات</span>
+            <span class="aiw-chip">🚀 هدف ${data.summary?.targetIdeas || 100} فكرة</span>
+          </div>
         </div>
 
         <div class="module-grid">
           <div class="module-card">
-            <span>الأفكار النشطة</span>
-            <strong>${ideas.length}</strong>
+            <span>الأفكار المعتمدة</span>
+            <strong>${data.summary?.ideasCount || ideas.length}</strong>
+            <small>From strategy document</small>
           </div>
 
           <div class="module-card">
-            <span>قيد الدراسة</span>
-            <strong>${ideas.filter(i => i.status === "review").length}</strong>
+            <span>الأولوية العالية</span>
+            <strong>${highCount}</strong>
+            <small>High impact</small>
           </div>
 
           <div class="module-card">
-            <span>جاهزة كمشروع</span>
-            <strong>${ideas.filter(i => i.status === "ready").length}</strong>
+            <span>Quick Wins</span>
+            <strong>${quickWins}</strong>
+            <small>Low cost / easy</small>
           </div>
         </div>
 
         <div class="module-panel">
-          <h2>إضافة فكرة جديدة</h2>
+          <h2>خريطة الإدارات</h2>
+          <p>
+            الأفكار موزعة على الإدارات الرئيسية حتى لا تبقى المبادرة محصورة في تقنية المعلومات
+            والأمن الرقمي فقط.
+          </p>
 
-          <input id="ideaTitle" class="module-input" placeholder="اسم الفكرة">
-
-          <textarea id="ideaDesc" class="module-textarea" placeholder="وصف مختصر للفكرة"></textarea>
-
-          <select id="ideaStatus" class="module-input">
-            <option value="new">فكرة جديدة</option>
-            <option value="review">قيد الدراسة</option>
-            <option value="ready">جاهزة كمشروع</option>
-          </select>
-
-          <button id="saveIdeaBtn" class="module-btn">حفظ الفكرة</button>
+          <div class="department-grid">
+            ${departments.map(dep => `
+              <div class="department-chip">
+                <strong>${dep.name}</strong>
+                <span>${dep.count} أفكار</span>
+              </div>
+            `).join("")}
+          </div>
         </div>
 
-        <div class="module-panel module-list-panel">
-          <h2>قائمة الأفكار</h2>
+        <div class="module-section-title">
+          <h2>دليل الأفكار التنفيذي</h2>
+          <p>عرض جاهز للإدارة، بدون إظهار أدوات الإضافة والتعديل للمستخدم العادي.</p>
+        </div>
 
-          ${
-            ideas.length
-              ? ideas.map(item => `
-                <div class="module-list-item">
-                  <div>
-                    <strong>${item.title}</strong>
-                    <span>${item.description || "بدون وصف"}</span>
-                    <small>${this.statusLabel(item.status)}</small>
-                  </div>
+        ${
+          Object.keys(grouped).length
+            ? Object.entries(grouped).map(([department, items]) =>
+                this.renderDepartmentSection(department, items)
+              ).join("")
+            : `<div class="module-empty">لم يتم تحميل بيانات الأفكار بعد.</div>`
+        }
 
-                  <button data-delete-idea="${item.id}" class="module-delete-btn">حذف</button>
-                </div>
-              `).join("")
-              : `<div class="module-empty">لا توجد أفكار محفوظة حالياً.</div>`
-          }
+        <div class="module-panel admin-note">
+          <h2>⚙️ لوحة الإدارة</h2>
+          <p>
+            الإضافة والتعديل والحذف ستكون لاحقاً داخل Admin Mode مخفي،
+            أما هذه الصفحة فهي واجهة عرض تنفيذية جاهزة.
+          </p>
         </div>
       </section>
     `;
-
-    this.bind(container);
-  },
-
-  bind(container) {
-    const saveBtn = container.querySelector("#saveIdeaBtn");
-
-    saveBtn?.addEventListener("click", () => {
-      const title = container.querySelector("#ideaTitle")?.value.trim();
-      const description = container.querySelector("#ideaDesc")?.value.trim();
-      const status = container.querySelector("#ideaStatus")?.value || "new";
-
-      if (!title) {
-        alert("اكتب اسم الفكرة أولاً");
-        return;
-      }
-
-      AIW.Store.add("ideas", {
-        title,
-        description,
-        status
-      });
-
-      this.render(container);
-    });
-
-    container.querySelectorAll("[data-delete-idea]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        AIW.Store.remove("ideas", btn.dataset.deleteIdea);
-        this.render(container);
-      });
-    });
-  },
-
-  statusLabel(status) {
-    const labels = {
-      new: "فكرة جديدة",
-      review: "قيد الدراسة",
-      ready: "جاهزة كمشروع"
-    };
-
-    return labels[status] || "فكرة جديدة";
   }
 };
