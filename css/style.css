@@ -688,3 +688,11 @@ body {
   padding: 14px;
   font-weight: 700;
 }
+
+.aiw-page {
+  display: none;
+}
+
+.aiw-page.active {
+  display: block;
+}
