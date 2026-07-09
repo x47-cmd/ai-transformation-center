@@ -1451,3 +1451,183 @@ button:disabled {
   }
 }
 
+/* =========================================================
+   Governance Center V1 Add-ons
+========================================================= */
+
+.governance-flow {
+  display: grid;
+  gap: 10px;
+}
+
+.governance-flow div {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 4px 10px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(16, 24, 40, 0.04);
+}
+
+.governance-flow b {
+  grid-row: span 2;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #101828;
+  color: #fff;
+}
+
+.governance-flow strong {
+  font-size: 14px;
+}
+
+.governance-flow span {
+  color: var(--aiw-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.governance-decision-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.10), rgba(124, 58, 237, 0.08));
+  border: 1px solid rgba(37, 99, 235, 0.14);
+}
+
+.governance-decision-card strong {
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.governance-decision-card p {
+  margin: 0;
+}
+
+.governance-principles-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 11px;
+  margin-bottom: 16px;
+}
+
+.governance-principle-card {
+  padding: 16px;
+  border-radius: 24px;
+  background: var(--aiw-card);
+  border: 1px solid var(--aiw-border);
+  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.06);
+}
+
+.governance-principle-card div {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: #101828;
+  color: #fff;
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+
+.governance-principle-card strong {
+  display: block;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.governance-principle-card p {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.governance-list {
+  display: grid;
+  gap: 10px;
+}
+
+.governance-list-item {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(16, 24, 40, 0.04);
+}
+
+.governance-list-item b {
+  min-width: 42px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #101828;
+  color: #fff;
+}
+
+.governance-list-item strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.governance-list-item span {
+  display: block;
+  color: var(--aiw-muted);
+  font-size: 13px;
+  line-height: 1.7;
+  font-weight: 750;
+}
+
+.controls-table {
+  display: grid;
+  gap: 8px;
+}
+
+.controls-row {
+  display: grid;
+  grid-template-columns: 0.9fr 0.7fr 1.4fr;
+  gap: 10px;
+  padding: 13px;
+  border-radius: 16px;
+  background: rgba(16, 24, 40, 0.04);
+  align-items: center;
+}
+
+.controls-head {
+  background: #101828;
+  color: #fff;
+}
+
+.controls-row span {
+  color: var(--aiw-muted);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
+.controls-head strong {
+  font-size: 13px;
+}
+
+@media (max-width: 760px) {
+  .governance-principles-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .controls-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .governance-principles-grid {
+    grid-template-columns: 1fr;
+  }
+}
