@@ -246,3 +246,56 @@ AIW.Widgets = {
     `;
   }
 };
+
+/* =========================================================
+   Global Page Credit
+   Automatically added to the bottom of every module page
+========================================================= */
+
+(function () {
+  "use strict";
+
+  function addGlobalPageCredit() {
+    const pages = document.querySelectorAll(".module-page");
+
+    pages.forEach((page) => {
+      const existingCredit = page.querySelector(".aiw-global-credit");
+
+      if (existingCredit) return;
+
+      const credit = document.createElement("div");
+
+      credit.className = "aiw-global-credit";
+
+      credit.innerHTML = `
+        <span>Designed &amp; Developed by:</span>
+        <strong>يوسف الحوسني</strong>
+      `;
+
+      page.appendChild(credit);
+    });
+  }
+
+  function startGlobalPageCredit() {
+    addGlobalPageCredit();
+
+    const observer = new MutationObserver(() => {
+      addGlobalPageCredit();
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    window.addEventListener("hashchange", () => {
+      setTimeout(addGlobalPageCredit, 50);
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", startGlobalPageCredit);
+  } else {
+    startGlobalPageCredit();
+  }
+})();
