@@ -231,36 +231,91 @@
             typeof module.render === "function"
         ).length;
 
-      const engines = [
-        "Store",
-        "Router",
-        "Widgets",
-        "Analytics",
-        "BiometricAnalytics",
-        "Automation",
-        "AIEngine",
-        "DecisionEngine",
-        "RecommendationEngine",
-        "Notifications",
-        "Permissions",
-        "Export",
-        "Charts"
-      ];
+      const engines = {
+  Store:
+    Boolean(window.AIW?.Store),
 
-      const activeEngines =
-        engines.filter(
-          key => Boolean(window.AIW?.[key])
-        ).length;
+  Router:
+    Boolean(
+      window.AIW?.Router ||
+      window.ATCRouter
+    ),
 
-      const coreEngines = [
-        "Store",
-        "Router"
-      ];
+  App:
+    Boolean(
+      window.AIW?.App ||
+      window.ATCApp
+    ),
 
-      const coreReady =
-        coreEngines.every(
-          key => Boolean(window.AIW?.[key])
-        );
+  Widgets:
+    Boolean(window.AIW?.Widgets),
+
+  Analytics:
+    Boolean(window.AIW?.Analytics),
+
+  BiometricAnalytics:
+    Boolean(
+      window.AIW?.BiometricAnalytics
+    ),
+
+  Automation:
+    Boolean(window.AIW?.Automation),
+
+  AIEngine:
+    Boolean(
+      window.AIW?.AIEngine ||
+      window.AIW?.AI
+    ),
+
+  DecisionEngine:
+    Boolean(
+      window.AIW?.DecisionEngine ||
+      window.ATCDecisionEngine
+    ),
+
+  RecommendationEngine:
+    Boolean(
+      window.AIW?.RecommendationEngine ||
+      window.ATCRecommendationEngine
+    ),
+
+  Notifications:
+    Boolean(
+      window.AIW?.Notifications ||
+      window.ATCNotifications
+    ),
+
+  Permissions:
+    Boolean(
+      window.AIW?.Permissions ||
+      window.ATCPermissions
+    ),
+
+  Export:
+    Boolean(
+      window.AIW?.Export ||
+      window.ATCExport
+    ),
+
+  Charts:
+    Boolean(window.AIW?.Charts)
+};
+
+const engineEntries =
+  Object.entries(engines);
+
+const activeEngines =
+  engineEntries.filter(
+    ([, active]) => active
+  ).length;
+
+const totalEngines =
+  engineEntries.length;
+
+const coreReady =
+  engines.Store &&
+  engines.Router &&
+  engines.App;
 
       const collections = [
         data.ideas,
@@ -296,12 +351,12 @@
           : 0;
 
       const engineScore =
-        engines.length
-          ? (
-              activeEngines /
-              engines.length
-            ) * 100
-          : 0;
+  totalEngines
+    ? (
+        activeEngines /
+        totalEngines
+      ) * 100
+    : 0;
 
       const dataScore =
         collections.length
@@ -343,7 +398,7 @@
         totalModules,
         readyModules,
         activeEngines,
-        totalEngines: engines.length,
+        totalEngines,
         coreReady
       };
     },
