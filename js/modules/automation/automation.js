@@ -1,7 +1,17 @@
 /* =========================================================
-   AI Work - Biometric Operations Automation Center V2.0
+   AI Work - Biometric Operations Automation Center V2.1
    Workflow + Triggers + Approvals + Monitoring
-   Enterprise Biometric Intelligence Platform
+
+   Updates:
+   - Central AIW.Store integration
+   - Persistent workflow data
+   - Dynamic workflow statistics
+   - Governance and risk integration
+   - KPI and decision synchronization
+   - Approval queue management
+   - CRUD-ready automation workflows
+   - Human-in-the-Loop enforcement
+   - No UI design changes
 ========================================================= */
 
 window.AIW = window.AIW || {};
@@ -12,11 +22,21 @@ AIW.Modules.automation = {
   title: "الأتمتة",
   icon: "⚙️",
 
-  workflows: [
+  _container: null,
+  _syncBound: false,
+  _seedChecked: false,
+
+  /* =======================================================
+     Default Workflows
+  ======================================================= */
+
+  defaultWorkflows: [
     {
+      id: 1,
       icon: "🪪",
       title: "معالجة حالة تسجيل بيومتري",
       trigger: "عند إنشاء حالة تسجيل جديدة",
+      triggerCode: "BIOMETRIC_CASE_CREATED",
       steps: [
         "استقبال الحالة",
         "فحص اكتمال البيانات",
@@ -26,12 +46,21 @@ AIW.Modules.automation = {
       ],
       owner: "فريق العمليات البيومترية",
       status: "نشط",
-      automation: 82
+      automation: 82,
+      humanApprovalRequired: true,
+      riskLevel: "متوسط",
+      linkedModules: [
+        "kpis",
+        "governance",
+        "reports"
+      ]
     },
     {
+      id: 2,
       icon: "🔍",
       title: "مراجعة فشل المطابقة",
       trigger: "عند انخفاض نتيجة المطابقة عن الحد المعتمد",
+      triggerCode: "MATCH_FAILURE_DETECTED",
       steps: [
         "تسجيل حالة الفشل",
         "تحليل درجة الثقة",
@@ -41,12 +70,21 @@ AIW.Modules.automation = {
       ],
       owner: "فريق المطابقة والتحقق",
       status: "نشط",
-      automation: 76
+      automation: 76,
+      humanApprovalRequired: true,
+      riskLevel: "متوسط",
+      linkedModules: [
+        "governance",
+        "decision",
+        "reports"
+      ]
     },
     {
+      id: 3,
       icon: "📉",
       title: "معالجة انخفاض جودة العينة",
       trigger: "عند تجاوز نسبة العينات منخفضة الجودة الحد التشغيلي",
+      triggerCode: "QUALITY_THRESHOLD_BREACHED",
       steps: [
         "قراءة مؤشر الجودة",
         "تحديد الجهاز أو الموقع",
@@ -56,12 +94,21 @@ AIW.Modules.automation = {
       ],
       owner: "فريق جودة البيانات البيومترية",
       status: "نشط",
-      automation: 74
+      automation: 74,
+      humanApprovalRequired: false,
+      riskLevel: "متوسط",
+      linkedModules: [
+        "kpis",
+        "projects",
+        "reports"
+      ]
     },
     {
+      id: 4,
       icon: "🛡️",
       title: "مراجعة مخاطر البيانات البيومترية",
       trigger: "قبل استخدام بيانات حساسة أو إطلاق تحسين جديد",
+      triggerCode: "PRIVACY_REVIEW_REQUIRED",
       steps: [
         "تصنيف البيانات",
         "تقييم الخصوصية",
@@ -71,12 +118,21 @@ AIW.Modules.automation = {
       ],
       owner: "حوكمة البيانات والخصوصية",
       status: "قيد التفعيل",
-      automation: 66
+      automation: 66,
+      humanApprovalRequired: true,
+      riskLevel: "عالٍ",
+      linkedModules: [
+        "governance",
+        "decision",
+        "business"
+      ]
     },
     {
+      id: 5,
       icon: "🧠",
       title: "اعتماد تحسين خوارزمية المطابقة",
       trigger: "عند اقتراح تعديل الخوارزمية أو Threshold",
+      triggerCode: "ALGORITHM_CHANGE_REQUESTED",
       steps: [
         "تسجيل طلب التغيير",
         "تحليل الأثر",
@@ -86,12 +142,21 @@ AIW.Modules.automation = {
       ],
       owner: "لجنة الأنظمة البيومترية",
       status: "قيد التفعيل",
-      automation: 58
+      automation: 58,
+      humanApprovalRequired: true,
+      riskLevel: "عالٍ",
+      linkedModules: [
+        "governance",
+        "decision",
+        "maturity"
+      ]
     },
     {
+      id: 6,
       icon: "📡",
       title: "مراقبة صحة الأنظمة البيومترية",
       trigger: "عند تغير حالة النظام أو التكامل",
+      triggerCode: "SYSTEM_HEALTH_CHANGED",
       steps: [
         "قراءة حالة الأنظمة",
         "تحديد مصدر الخلل",
@@ -101,12 +166,21 @@ AIW.Modules.automation = {
       ],
       owner: "فريق المنصة والتكامل",
       status: "نشط",
-      automation: 86
+      automation: 86,
+      humanApprovalRequired: false,
+      riskLevel: "متوسط",
+      linkedModules: [
+        "dashboard",
+        "kpis",
+        "notifications"
+      ]
     },
     {
+      id: 7,
       icon: "🚨",
       title: "تصعيد الحالات عالية الخطورة",
       trigger: "عند تسجيل حالة بيومترية عالية الخطورة",
+      triggerCode: "HIGH_RISK_CASE",
       steps: [
         "تحديد الحالة",
         "تقييم الأثر",
@@ -116,12 +190,21 @@ AIW.Modules.automation = {
       ],
       owner: "مالك المخاطر البيومترية",
       status: "نشط",
-      automation: 84
+      automation: 84,
+      humanApprovalRequired: true,
+      riskLevel: "عالٍ",
+      linkedModules: [
+        "governance",
+        "decision",
+        "notifications"
+      ]
     },
     {
+      id: 8,
       icon: "📊",
       title: "إصدار تقرير العمليات البيومترية",
       trigger: "نهاية كل فترة تشغيلية",
+      triggerCode: "BIOMETRIC_REPORTING_PERIOD_END",
       steps: [
         "جمع المؤشرات",
         "تحليل حالات الفشل",
@@ -131,90 +214,159 @@ AIW.Modules.automation = {
       ],
       owner: "مكتب الذكاء البيومتري",
       status: "مخطط",
-      automation: 48
+      automation: 48,
+      humanApprovalRequired: false,
+      riskLevel: "منخفض",
+      linkedModules: [
+        "reports",
+        "kpis",
+        "decision"
+      ]
     }
   ],
 
-  triggers: [
-    [
-      "BIOMETRIC_CASE_CREATED",
-      "إنشاء حالة بيومترية",
-      "تشغيل Workflow فحص ومعالجة الحالة الجديدة"
-    ],
-    [
-      "MATCH_FAILURE_DETECTED",
-      "اكتشاف فشل مطابقة",
-      "تحليل درجة الثقة وإحالة الحالة للمراجعة"
-    ],
-    [
-      "QUALITY_THRESHOLD_BREACHED",
-      "انخفاض جودة العينة",
-      "تحديد مصدر المشكلة وإرسال تنبيه تشغيلي"
-    ],
-    [
-      "SYSTEM_HEALTH_CHANGED",
-      "تغير صحة النظام",
-      "تحديث مؤشرات صحة الأنظمة وفتح حالة دعم"
-    ],
-    [
-      "HIGH_RISK_CASE",
-      "حالة عالية الخطورة",
-      "تصعيد تلقائي لمالك الخطر واللجنة المختصة"
-    ],
-    [
-      "PRIVACY_REVIEW_REQUIRED",
-      "طلب مراجعة خصوصية",
-      "بدء مراجعة استخدام البيانات والصلاحيات"
-    ],
-    [
-      "ALGORITHM_CHANGE_REQUESTED",
-      "طلب تغيير خوارزمية",
-      "تشغيل مسار الاختبار والمراجعة والاعتماد"
-    ],
-    [
-      "BIOMETRIC_DATA_CHANGED",
-      "تحديث بيانات العمليات",
-      "تحديث المؤشرات والتقارير التنفيذية تلقائياً"
-    ]
+  defaultTriggers: [
+    {
+      id: 1,
+      code: "BIOMETRIC_CASE_CREATED",
+      title: "إنشاء حالة بيومترية",
+      action: "تشغيل Workflow فحص ومعالجة الحالة الجديدة",
+      status: "active"
+    },
+    {
+      id: 2,
+      code: "MATCH_FAILURE_DETECTED",
+      title: "اكتشاف فشل مطابقة",
+      action: "تحليل درجة الثقة وإحالة الحالة للمراجعة",
+      status: "active"
+    },
+    {
+      id: 3,
+      code: "QUALITY_THRESHOLD_BREACHED",
+      title: "انخفاض جودة العينة",
+      action: "تحديد مصدر المشكلة وإرسال تنبيه تشغيلي",
+      status: "active"
+    },
+    {
+      id: 4,
+      code: "SYSTEM_HEALTH_CHANGED",
+      title: "تغير صحة النظام",
+      action: "تحديث مؤشرات صحة الأنظمة وفتح حالة دعم",
+      status: "active"
+    },
+    {
+      id: 5,
+      code: "HIGH_RISK_CASE",
+      title: "حالة عالية الخطورة",
+      action: "تصعيد تلقائي لمالك الخطر واللجنة المختصة",
+      status: "active"
+    },
+    {
+      id: 6,
+      code: "PRIVACY_REVIEW_REQUIRED",
+      title: "طلب مراجعة خصوصية",
+      action: "بدء مراجعة استخدام البيانات والصلاحيات",
+      status: "active"
+    },
+    {
+      id: 7,
+      code: "ALGORITHM_CHANGE_REQUESTED",
+      title: "طلب تغيير خوارزمية",
+      action: "تشغيل مسار الاختبار والمراجعة والاعتماد",
+      status: "active"
+    },
+    {
+      id: 8,
+      code: "BIOMETRIC_DATA_CHANGED",
+      title: "تحديث بيانات العمليات",
+      action: "تحديث المؤشرات والتقارير التنفيذية تلقائياً",
+      status: "active"
+    }
   ],
 
-  approvals: [
-    [
-      "حالة تسجيل بيومتري استثنائية",
-      "مشرف العمليات البيومترية",
-      "قيد المراجعة",
-      "متوسط"
-    ],
-    [
-      "نتيجة مطابقة منخفضة الثقة",
-      "فريق المطابقة والتحقق",
-      "تتطلب تحققاً بشرياً",
-      "متوسط"
-    ],
-    [
-      "تعديل Threshold المطابقة",
-      "لجنة الأنظمة البيومترية",
-      "يتطلب قراراً",
-      "عالٍ"
-    ],
-    [
-      "الوصول إلى بيانات بيومترية حساسة",
-      "فريق الخصوصية",
-      "يتطلب مراجعة",
-      "عالٍ"
-    ],
-    [
-      "إطلاق تحسين في البيئة التشغيلية",
-      "مدير المنصة",
-      "جاهز للاعتماد",
-      "متوسط"
-    ],
-    [
-      "إغلاق حالة عالية الخطورة",
-      "مالك المخاطر البيومترية",
-      "بانتظار التحقق",
-      "عالٍ"
-    ]
+  defaultApprovals: [
+    {
+      id: 1,
+      title: "حالة تسجيل بيومتري استثنائية",
+      owner: "مشرف العمليات البيومترية",
+      status: "قيد المراجعة",
+      risk: "متوسط",
+      source: "workflow",
+      sourceId: 1
+    },
+    {
+      id: 2,
+      title: "نتيجة مطابقة منخفضة الثقة",
+      owner: "فريق المطابقة والتحقق",
+      status: "تتطلب تحققاً بشرياً",
+      risk: "متوسط",
+      source: "workflow",
+      sourceId: 2
+    },
+    {
+      id: 3,
+      title: "تعديل Threshold المطابقة",
+      owner: "لجنة الأنظمة البيومترية",
+      status: "يتطلب قراراً",
+      risk: "عالٍ",
+      source: "workflow",
+      sourceId: 5
+    },
+    {
+      id: 4,
+      title: "الوصول إلى بيانات بيومترية حساسة",
+      owner: "فريق الخصوصية",
+      status: "يتطلب مراجعة",
+      risk: "عالٍ",
+      source: "governance",
+      sourceId: 2
+    },
+    {
+      id: 5,
+      title: "إطلاق تحسين في البيئة التشغيلية",
+      owner: "مدير المنصة",
+      status: "جاهز للاعتماد",
+      risk: "متوسط",
+      source: "project",
+      sourceId: null
+    },
+    {
+      id: 6,
+      title: "إغلاق حالة عالية الخطورة",
+      owner: "مالك المخاطر البيومترية",
+      status: "بانتظار التحقق",
+      risk: "عالٍ",
+      source: "risk",
+      sourceId: null
+    }
+  ],
+
+  defaultRoadmap: [
+    {
+      id: 1,
+      title: "Manual Review",
+      desc: "توحيد خطوات مراجعة الحالات وتحديد المسؤوليات."
+    },
+    {
+      id: 2,
+      title: "Assisted Workflow",
+      desc: "تنبيهات وتوجيه تلقائي للحالات حسب النوع."
+    },
+    {
+      id: 3,
+      title: "Rule-Based Operations",
+      desc: "تشغيل الإجراءات حسب الجودة والمخاطر ودرجة الثقة."
+    },
+    {
+      id: 4,
+      title: "AI Assisted Review",
+      desc: "تحليل الحالات وتقديم توصيات للمراجع البشري."
+    },
+    {
+      id: 5,
+      title: "Human-Governed Automation",
+      desc: "تشغيل ذكي متقدم مع رقابة واعتماد بشري دائم."
+    }
   ],
 
   fallbackActions: [
@@ -225,92 +377,890 @@ AIW.Modules.automation = {
     "مراجعة صلاحيات الوصول إلى البيانات البيومترية الحساسة."
   ],
 
-  render(container) {
-    if (!container) return;
+  /* =======================================================
+     Shared Data Reader
+  ======================================================= */
 
-    const W = window.AIW?.Widgets;
-    const AUTO = window.AIW?.Automation;
-    const R = window.AIW?.Recommendation;
+  getSharedData() {
+    try {
+      if (
+        window.AIW?.Store &&
+        typeof window.AIW.Store.getState === "function"
+      ) {
+        return window.AIW.Store.getState() || {};
+      }
 
-    const localStats = {
-      total: this.workflows.length,
-      active: this.workflows.filter(
-        workflow => workflow.status === "نشط"
-      ).length,
-      completed: 0,
-      waiting: this.workflows.filter(
-        workflow => workflow.status !== "نشط"
-      ).length
+      if (
+        window.AIW?.Store &&
+        typeof window.AIW.Store.getData === "function"
+      ) {
+        return window.AIW.Store.getData() || {};
+      }
+
+      return window.AIW?.Data || {};
+    } catch (error) {
+      console.warn(
+        "AI Work Automation: Unable to read shared data.",
+        error
+      );
+
+      return window.AIW?.Data || {};
+    }
+  },
+
+  /* =======================================================
+     Automation Center Initialization
+  ======================================================= */
+
+  ensureAutomationSeeded() {
+    if (this._seedChecked) return;
+
+    this._seedChecked = true;
+
+    const data = this.getSharedData();
+
+    const exists =
+      data.automationCenter &&
+      typeof data.automationCenter === "object" &&
+      Array.isArray(data.automationCenter.workflows);
+
+    if (exists) return;
+
+    const now = new Date().toISOString();
+
+    const automationCenter = {
+      workflows: this.clone(this.defaultWorkflows),
+      triggers: this.clone(this.defaultTriggers),
+      approvals: this.clone(this.defaultApprovals),
+      roadmap: this.clone(this.defaultRoadmap),
+
+      settings: {
+        engineEnabled: true,
+        humanApprovalRequired: true,
+        automaticEscalation: true,
+        monitoringEnabled: true,
+        reportingCycle: "شهري",
+        minimumAutomationLevel: 60
+      },
+
+      statistics: {
+        completed: 0,
+        failed: 0,
+        running: 0,
+        lastRunAt: null
+      },
+
+      meta: {
+        createdAt: now,
+        updatedAt: now
+      }
     };
 
-    let stats = localStats;
+    if (
+      window.AIW?.Store &&
+      typeof window.AIW.Store.update === "function"
+    ) {
+      window.AIW.Store.update(
+        "automationCenter",
+        automationCenter,
+        {
+          event: "aiw:automationUpdated"
+        }
+      );
+
+      return;
+    }
+
+    if (window.AIW?.Data) {
+      window.AIW.Data.automationCenter =
+        automationCenter;
+    }
+  },
+
+  getAutomationCenter() {
+    const data = this.getSharedData();
+
+    const source =
+      data.automationCenter &&
+      typeof data.automationCenter === "object"
+        ? data.automationCenter
+        : {};
+
+    return {
+      workflows: Array.isArray(source.workflows)
+        ? source.workflows
+            .map((workflow, index) =>
+              this.normalizeWorkflow(workflow, index)
+            )
+            .filter(Boolean)
+        : this.clone(this.defaultWorkflows),
+
+      triggers: Array.isArray(source.triggers)
+        ? source.triggers
+            .map((trigger, index) =>
+              this.normalizeTrigger(trigger, index)
+            )
+            .filter(Boolean)
+        : this.clone(this.defaultTriggers),
+
+      approvals: Array.isArray(source.approvals)
+        ? source.approvals
+            .map((approval, index) =>
+              this.normalizeApproval(approval, index)
+            )
+            .filter(Boolean)
+        : this.clone(this.defaultApprovals),
+
+      roadmap: Array.isArray(source.roadmap)
+        ? source.roadmap
+        : this.clone(this.defaultRoadmap),
+
+      settings: {
+        engineEnabled:
+          source.settings?.engineEnabled !== false,
+
+        humanApprovalRequired:
+          source.settings?.humanApprovalRequired !== false,
+
+        automaticEscalation:
+          source.settings?.automaticEscalation !== false,
+
+        monitoringEnabled:
+          source.settings?.monitoringEnabled !== false,
+
+        reportingCycle:
+          source.settings?.reportingCycle || "شهري",
+
+        minimumAutomationLevel:
+          this.normalizePercent(
+            source.settings?.minimumAutomationLevel,
+            60
+          )
+      },
+
+      statistics: {
+        completed: this.toSafeNumber(
+          source.statistics?.completed,
+          0
+        ),
+
+        failed: this.toSafeNumber(
+          source.statistics?.failed,
+          0
+        ),
+
+        running: this.toSafeNumber(
+          source.statistics?.running,
+          0
+        ),
+
+        lastRunAt:
+          source.statistics?.lastRunAt || null
+      },
+
+      meta: {
+        createdAt: source.meta?.createdAt || null,
+        updatedAt: source.meta?.updatedAt || null
+      }
+    };
+  },
+
+  normalizeWorkflow(workflow, index = 0) {
+    if (!workflow || typeof workflow !== "object") {
+      return null;
+    }
+
+    return {
+      ...workflow,
+
+      id: workflow.id ?? index + 1,
+
+      icon: workflow.icon || "⚙️",
+
+      title:
+        workflow.title ||
+        "مسار عمل غير مسمى",
+
+      trigger:
+        workflow.trigger ||
+        "لا يوجد Trigger محدد",
+
+      triggerCode:
+        workflow.triggerCode ||
+        "",
+
+      steps:
+        Array.isArray(workflow.steps)
+          ? workflow.steps
+          : [],
+
+      owner:
+        workflow.owner ||
+        "غير محدد",
+
+      status:
+        workflow.status ||
+        "مخطط",
+
+      automation:
+        this.normalizePercent(
+          workflow.automation,
+          0
+        ),
+
+      humanApprovalRequired:
+        workflow.humanApprovalRequired === true,
+
+      riskLevel:
+        workflow.riskLevel ||
+        "متوسط",
+
+      linkedModules:
+        Array.isArray(workflow.linkedModules)
+          ? workflow.linkedModules
+          : []
+    };
+  },
+
+  normalizeTrigger(trigger, index = 0) {
+    if (Array.isArray(trigger)) {
+      return {
+        id: index + 1,
+        code: trigger[0] || "",
+        title: trigger[1] || "",
+        action: trigger[2] || "",
+        status: "active"
+      };
+    }
+
+    if (!trigger || typeof trigger !== "object") {
+      return null;
+    }
+
+    return {
+      id: trigger.id ?? index + 1,
+      code: trigger.code || "",
+      title: trigger.title || "",
+      action:
+        trigger.action ||
+        trigger.description ||
+        "",
+      status: trigger.status || "active"
+    };
+  },
+
+  normalizeApproval(approval, index = 0) {
+    if (Array.isArray(approval)) {
+      return {
+        id: index + 1,
+        title: approval[0] || "",
+        owner: approval[1] || "",
+        status: approval[2] || "",
+        risk: approval[3] || "متوسط",
+        source: "manual",
+        sourceId: null
+      };
+    }
+
+    if (!approval || typeof approval !== "object") {
+      return null;
+    }
+
+    return {
+      id: approval.id ?? index + 1,
+      title: approval.title || "",
+      owner: approval.owner || "غير محدد",
+      status: approval.status || "قيد المراجعة",
+      risk: approval.risk || "متوسط",
+      source: approval.source || "manual",
+      sourceId: approval.sourceId ?? null
+    };
+  },
+
+  /* =======================================================
+     Store Updates
+  ======================================================= */
+
+  updateAutomationCenter(changes = {}) {
+    if (!changes || typeof changes !== "object") {
+      return false;
+    }
+
+    const current = this.getAutomationCenter();
+
+    const updated = {
+      ...current,
+      ...changes,
+
+      settings: {
+        ...current.settings,
+        ...(changes.settings || {})
+      },
+
+      statistics: {
+        ...current.statistics,
+        ...(changes.statistics || {})
+      },
+
+      meta: {
+        ...current.meta,
+        updatedAt: new Date().toISOString()
+      }
+    };
+
+    if (
+      window.AIW?.Store &&
+      typeof window.AIW.Store.update === "function"
+    ) {
+      return window.AIW.Store.update(
+        "automationCenter",
+        updated,
+        {
+          event: "aiw:automationUpdated"
+        }
+      );
+    }
+
+    if (window.AIW?.Data) {
+      window.AIW.Data.automationCenter = updated;
+
+      window.dispatchEvent(
+        new CustomEvent("aiw:automationUpdated", {
+          detail: {
+            automationCenter: updated
+          }
+        })
+      );
+
+      return true;
+    }
+
+    return false;
+  },
+
+  addWorkflow(workflow = {}) {
+    const center = this.getAutomationCenter();
+    const workflows = [...center.workflows];
+    const now = new Date().toISOString();
+
+    const newWorkflow = this.normalizeWorkflow(
+      {
+        id: this.getNextId(workflows),
+        icon: workflow.icon || "⚙️",
+        title:
+          workflow.title ||
+          "مسار عمل جديد",
+        trigger:
+          workflow.trigger ||
+          "عند وقوع الحدث المحدد",
+        triggerCode:
+          workflow.triggerCode ||
+          "",
+        steps:
+          Array.isArray(workflow.steps)
+            ? workflow.steps
+            : [],
+        owner:
+          workflow.owner ||
+          "غير محدد",
+        status:
+          workflow.status ||
+          "مخطط",
+        automation:
+          workflow.automation ?? 0,
+        humanApprovalRequired:
+          workflow.humanApprovalRequired === true,
+        riskLevel:
+          workflow.riskLevel ||
+          "متوسط",
+        linkedModules:
+          Array.isArray(workflow.linkedModules)
+            ? workflow.linkedModules
+            : [],
+        createdAt: now,
+        updatedAt: now
+      },
+      workflows.length
+    );
+
+    workflows.push(newWorkflow);
+
+    this.updateAutomationCenter({
+      workflows
+    });
+
+    return newWorkflow;
+  },
+
+  updateWorkflow(id, changes = {}) {
+    const center = this.getAutomationCenter();
+
+    const workflowIndex =
+      center.workflows.findIndex(
+        workflow =>
+          String(workflow.id) === String(id)
+      );
+
+    if (workflowIndex === -1) {
+      return false;
+    }
+
+    const workflows =
+      center.workflows.map(
+        (workflow, index) => {
+          if (index !== workflowIndex) {
+            return workflow;
+          }
+
+          return this.normalizeWorkflow(
+            {
+              ...workflow,
+              ...changes,
+              id: workflow.id,
+              updatedAt:
+                new Date().toISOString()
+            },
+            index
+          );
+        }
+      );
+
+    this.updateAutomationCenter({
+      workflows
+    });
+
+    return workflows[workflowIndex];
+  },
+
+  removeWorkflow(id) {
+    const center = this.getAutomationCenter();
+
+    const removedWorkflow =
+      center.workflows.find(
+        workflow =>
+          String(workflow.id) === String(id)
+      );
+
+    if (!removedWorkflow) {
+      return false;
+    }
+
+    const workflows =
+      center.workflows.filter(
+        workflow =>
+          String(workflow.id) !== String(id)
+      );
+
+    this.updateAutomationCenter({
+      workflows
+    });
+
+    return removedWorkflow;
+  },
+
+  addApproval(approval = {}) {
+    const center = this.getAutomationCenter();
+    const approvals = [...center.approvals];
+
+    const newApproval = this.normalizeApproval(
+      {
+        id: this.getNextId(approvals),
+        title:
+          approval.title ||
+          "طلب اعتماد جديد",
+        owner:
+          approval.owner ||
+          "غير محدد",
+        status:
+          approval.status ||
+          "قيد المراجعة",
+        risk:
+          approval.risk ||
+          "متوسط",
+        source:
+          approval.source ||
+          "manual",
+        sourceId:
+          approval.sourceId ?? null,
+        createdAt:
+          new Date().toISOString()
+      },
+      approvals.length
+    );
+
+    approvals.push(newApproval);
+
+    this.updateAutomationCenter({
+      approvals
+    });
+
+    return newApproval;
+  },
+
+  updateApproval(id, changes = {}) {
+    const center = this.getAutomationCenter();
+
+    const approvalIndex =
+      center.approvals.findIndex(
+        approval =>
+          String(approval.id) === String(id)
+      );
+
+    if (approvalIndex === -1) {
+      return false;
+    }
+
+    const approvals =
+      center.approvals.map(
+        (approval, index) => {
+          if (index !== approvalIndex) {
+            return approval;
+          }
+
+          return this.normalizeApproval(
+            {
+              ...approval,
+              ...changes,
+              id: approval.id,
+              updatedAt:
+                new Date().toISOString()
+            },
+            index
+          );
+        }
+      );
+
+    this.updateAutomationCenter({
+      approvals
+    });
+
+    return approvals[approvalIndex];
+  },
+
+  removeApproval(id) {
+    const center = this.getAutomationCenter();
+
+    const removedApproval =
+      center.approvals.find(
+        approval =>
+          String(approval.id) === String(id)
+      );
+
+    if (!removedApproval) {
+      return false;
+    }
+
+    const approvals =
+      center.approvals.filter(
+        approval =>
+          String(approval.id) !== String(id)
+      );
+
+    this.updateAutomationCenter({
+      approvals
+    });
+
+    return removedApproval;
+  },
+
+  /* =======================================================
+     Dynamic Data Integration
+  ======================================================= */
+
+  getDynamicApprovals(storedApprovals) {
+    const data = this.getSharedData();
+    const approvals = [...storedApprovals];
+
+    const risks =
+      data.governanceCenter &&
+      Array.isArray(data.governanceCenter.risks)
+        ? data.governanceCenter.risks
+        : [];
+
+    risks.forEach(risk => {
+      if (
+        !this.isHighRisk(risk?.level) ||
+        this.isClosedStatus(risk?.status)
+      ) {
+        return;
+      }
+
+      const alreadyExists = approvals.some(
+        approval =>
+          approval.source === "risk" &&
+          String(approval.sourceId) ===
+            String(risk.id)
+      );
+
+      if (alreadyExists) return;
+
+      approvals.push({
+        id: `risk-${risk.id}`,
+        title: `مراجعة مخاطرة: ${risk.title}`,
+        owner:
+          risk.owner ||
+          "لجنة الحوكمة",
+        status: "يتطلب مراجعة",
+        risk: risk.level || "عالٍ",
+        source: "risk",
+        sourceId: risk.id
+      });
+    });
+
+    return approvals;
+  },
+
+  getStatistics(workflows, approvals, center) {
+    const localStats = {
+      total: workflows.length,
+
+      active: workflows.filter(
+        workflow =>
+          this.isActiveWorkflow(
+            workflow.status
+          )
+      ).length,
+
+      completed:
+        center.statistics.completed,
+
+      waiting:
+        workflows.filter(
+          workflow =>
+            !this.isActiveWorkflow(
+              workflow.status
+            )
+        ).length,
+
+      running:
+        center.statistics.running,
+
+      failed:
+        center.statistics.failed,
+
+      pendingApprovals:
+        approvals.filter(
+          approval =>
+            !this.isClosedStatus(
+              approval.status
+            )
+        ).length
+    };
 
     try {
-      if (AUTO?.statistics) {
-        const engineStats = AUTO.statistics();
+      if (
+        window.AIW?.Automation &&
+        typeof window.AIW.Automation.statistics ===
+          "function"
+      ) {
+        const engineStats =
+          window.AIW.Automation.statistics();
 
-        stats = {
-          total: Number(engineStats?.total ?? localStats.total),
-          active: Number(engineStats?.active ?? localStats.active),
-          completed: Number(
-            engineStats?.completed ?? localStats.completed
+        return {
+          ...localStats,
+
+          total: this.toSafeNumber(
+            engineStats?.total,
+            localStats.total
           ),
-          waiting: Number(engineStats?.waiting ?? localStats.waiting)
+
+          active: this.toSafeNumber(
+            engineStats?.active,
+            localStats.active
+          ),
+
+          completed: this.toSafeNumber(
+            engineStats?.completed,
+            localStats.completed
+          ),
+
+          waiting: this.toSafeNumber(
+            engineStats?.waiting,
+            localStats.waiting
+          ),
+
+          running: this.toSafeNumber(
+            engineStats?.running,
+            localStats.running
+          ),
+
+          failed: this.toSafeNumber(
+            engineStats?.failed,
+            localStats.failed
+          )
         };
       }
     } catch (error) {
       console.warn(
-        "AIW Automation statistics fallback activated:",
+        "AI Work Automation: Engine statistics unavailable.",
         error
       );
     }
 
-    const avgAutomation = this.average(
-      this.workflows.map(workflow => workflow.automation)
-    );
+    return localStats;
+  },
 
-    const activeWorkflows = this.workflows.filter(
-      workflow => workflow.status === "نشط"
-    ).length;
-
-    const highApprovals = this.approvals.filter(approval =>
-      String(approval[3]).includes("عال")
-    ).length;
-
-    let nextActions = [];
-
+  getNextActions(context) {
     try {
-      if (R?.nextActions) {
-        const engineActions = R.nextActions();
+      if (
+        window.AIW?.Recommendation &&
+        typeof window.AIW.Recommendation.nextActions ===
+          "function"
+      ) {
+        const actions =
+          window.AIW.Recommendation.nextActions(
+            context
+          );
 
-        if (Array.isArray(engineActions)) {
-          nextActions = engineActions.filter(Boolean);
+        if (
+          Array.isArray(actions) &&
+          actions.length
+        ) {
+          return actions.filter(Boolean);
         }
       }
     } catch (error) {
       console.warn(
-        "AIW Recommendation Engine fallback activated:",
+        "AI Work Automation: Recommendation engine unavailable.",
         error
       );
     }
 
-    if (!nextActions.length) {
-      nextActions = [...this.fallbackActions];
+    const actions = [];
+
+    if (context.highApprovals > 0) {
+      actions.push(
+        `مراجعة ${context.highApprovals} طلبات اعتماد عالية الخطورة قبل أي تنفيذ تلقائي.`
+      );
     }
+
+    if (
+      context.avgAutomation <
+      context.minimumAutomationLevel
+    ) {
+      actions.push(
+        "رفع مستوى أتمتة المسارات المخططة وقيد التفعيل إلى الحد التشغيلي المطلوب."
+      );
+    }
+
+    if (context.waitingWorkflows > 0) {
+      actions.push(
+        `تحديد متطلبات تفعيل ${context.waitingWorkflows} مسارات غير نشطة.`
+      );
+    }
+
+    this.fallbackActions.forEach(action => {
+      if (actions.length < 6) {
+        actions.push(action);
+      }
+    });
+
+    return actions.slice(0, 6);
+  },
+
+  /* =======================================================
+     Main Render
+  ======================================================= */
+
+  render(container) {
+    if (!container) return;
+
+    this._container = container;
+
+    this.ensureAutomationSeeded();
+
+    const W = window.AIW?.Widgets;
+
+    const center =
+      this.getAutomationCenter();
+
+    const workflows =
+      center.workflows.filter(
+        workflow =>
+          this.isVisibleStatus(
+            workflow.status
+          )
+      );
+
+    const triggers =
+      center.triggers.filter(
+        trigger =>
+          this.isEnabledStatus(
+            trigger.status
+          )
+      );
+
+    const approvals =
+      this.getDynamicApprovals(
+        center.approvals
+      );
+
+    const stats =
+      this.getStatistics(
+        workflows,
+        approvals,
+        center
+      );
+
+    const avgAutomation =
+      this.average(
+        workflows.map(
+          workflow =>
+            workflow.automation
+        )
+      );
+
+    const activeWorkflows =
+      workflows.filter(
+        workflow =>
+          this.isActiveWorkflow(
+            workflow.status
+          )
+      ).length;
+
+    const highApprovals =
+      approvals.filter(
+        approval =>
+          this.isHighRisk(
+            approval.risk
+          ) &&
+          !this.isClosedStatus(
+            approval.status
+          )
+      ).length;
+
+    const nextActions =
+      this.getNextActions({
+        workflows,
+        approvals,
+        stats,
+        avgAutomation,
+        highApprovals,
+        waitingWorkflows:
+          stats.waiting,
+        minimumAutomationLevel:
+          center.settings
+            .minimumAutomationLevel
+      });
 
     container.innerHTML = `
       <section class="module-page">
 
         ${
-          W
+          W?.hero
             ? W.hero({
-                kicker: "Biometric Automation · Workflow Engine",
-                title: "مركز أتمتة العمليات البيومترية",
+                kicker:
+                  "Biometric Automation · Workflow Engine",
+
+                title:
+                  "مركز أتمتة العمليات البيومترية",
+
                 description:
                   "إدارة سير العمل المؤسسي للحالات والأنظمة البيومترية من التسجيل والمطابقة إلى الحوكمة، المراجعة البشرية، التصعيد، ومراقبة الأداء التشغيلي.",
+
                 chips: [
                   "⚙️ Workflow Engine",
-                  `🔁 ${this.workflows.length} Workflows`,
+                  `🔁 ${workflows.length} Workflows`,
                   `✅ ${activeWorkflows} نشطة`,
                   `📊 ${avgAutomation}% أتمتة`
                 ]
@@ -321,7 +1271,7 @@ AIW.Modules.automation = {
         <div class="module-grid">
           ${this.kpi(
             "إجمالي Workflows",
-            this.workflows.length,
+            workflows.length,
             "Biometric Flows"
           )}
 
@@ -333,13 +1283,13 @@ AIW.Modules.automation = {
 
           ${this.kpi(
             "Event Triggers",
-            this.triggers.length,
+            triggers.length,
             "Operational Events"
           )}
 
           ${this.kpi(
             "طلبات الاعتماد",
-            this.approvals.length,
+            approvals.length,
             "Approval Queue"
           )}
 
@@ -357,7 +1307,6 @@ AIW.Modules.automation = {
         </div>
 
         <div class="module-wide-grid">
-
           <div class="module-panel">
             ${this.sectionTitle(
               "الخلاصة التشغيلية",
@@ -433,7 +1382,6 @@ AIW.Modules.automation = {
               </div>
             </div>
           </div>
-
         </div>
 
         <div class="module-panel">
@@ -442,38 +1390,71 @@ AIW.Modules.automation = {
             "مسارات العمل الرئيسية لإدارة العمليات والحالات البيومترية."
           )}
 
-          <div class="automation-workflow-grid">
-            ${this.workflows
-              .map(workflow => this.workflowCard(workflow))
-              .join("")}
-          </div>
+          ${
+            workflows.length
+              ? `
+                <div class="automation-workflow-grid">
+                  ${workflows
+                    .map(workflow =>
+                      this.workflowCard(workflow)
+                    )
+                    .join("")}
+                </div>
+              `
+              : this.emptyState(
+                  "لا توجد مسارات أتمتة مسجلة حالياً."
+                )
+          }
         </div>
 
         <div class="module-wide-grid">
-
           <div class="module-panel">
             ${this.sectionTitle(
               "Biometric Event Triggers",
               "الأحداث التشغيلية التي تشغل الأتمتة داخل المنصة."
             )}
 
-            <div class="automation-trigger-list">
-              ${this.triggers
-                .map(
-                  (trigger, index) => `
-                    <div>
-                      <b>${String(index + 1).padStart(2, "0")}</b>
+            ${
+              triggers.length
+                ? `
+                  <div class="automation-trigger-list">
+                    ${triggers
+                      .map(
+                        (trigger, index) => `
+                          <div>
+                            <b>
+                              ${String(
+                                index + 1
+                              ).padStart(2, "0")}
+                            </b>
 
-                      <strong>${trigger[0]}</strong>
+                            <strong>
+                              ${this.escapeHtml(
+                                trigger.code
+                              )}
+                            </strong>
 
-                      <span>${trigger[1]}</span>
+                            <span>
+                              ${this.escapeHtml(
+                                trigger.title
+                              )}
+                            </span>
 
-                      <p>${trigger[2]}</p>
-                    </div>
-                  `
-                )
-                .join("")}
-            </div>
+                            <p>
+                              ${this.escapeHtml(
+                                trigger.action
+                              )}
+                            </p>
+                          </div>
+                        `
+                      )
+                      .join("")}
+                  </div>
+                `
+                : this.emptyState(
+                    "لا توجد Event Triggers مفعلة حالياً."
+                  )
+            }
           </div>
 
           <div class="module-panel">
@@ -482,29 +1463,64 @@ AIW.Modules.automation = {
               "الطلبات التي تحتاج مراجعة بشرية أو اعتماداً تنفيذياً."
             )}
 
-            <div class="automation-approval-list">
-              ${this.approvals
-                .map(
-                  (approval, index) => `
-                    <div>
-                      <b>${String(index + 1).padStart(2, "0")}</b>
+            ${
+              approvals.length
+                ? `
+                  <div class="automation-approval-list">
+                    ${approvals
+                      .map(
+                        (approval, index) => `
+                          <div
+                            data-approval-id="${this.escapeAttribute(
+                              approval.id
+                            )}"
+                          >
+                            <b>
+                              ${String(
+                                index + 1
+                              ).padStart(2, "0")}
+                            </b>
 
-                      <div>
-                        <strong>${approval[0]}</strong>
-                        <span>${approval[1]}</span>
-                        <small>${approval[2]}</small>
-                      </div>
+                            <div>
+                              <strong>
+                                ${this.escapeHtml(
+                                  approval.title
+                                )}
+                              </strong>
 
-                      <em class="${this.riskClass(approval[3])}">
-                        ${approval[3]}
-                      </em>
-                    </div>
-                  `
-                )
-                .join("")}
-            </div>
+                              <span>
+                                ${this.escapeHtml(
+                                  approval.owner
+                                )}
+                              </span>
+
+                              <small>
+                                ${this.escapeHtml(
+                                  approval.status
+                                )}
+                              </small>
+                            </div>
+
+                            <em
+                              class="${this.riskClass(
+                                approval.risk
+                              )}"
+                            >
+                              ${this.escapeHtml(
+                                approval.risk
+                              )}
+                            </em>
+                          </div>
+                        `
+                      )
+                      .join("")}
+                  </div>
+                `
+                : this.emptyState(
+                    "لا توجد طلبات اعتماد معلقة حالياً."
+                  )
+            }
           </div>
-
         </div>
 
         <div class="module-panel">
@@ -514,72 +1530,44 @@ AIW.Modules.automation = {
           )}
 
           <div class="automation-roadmap">
-            <div>
-              <b>1</b>
-              <strong>Manual Review</strong>
-              <span>
-                توحيد خطوات مراجعة الحالات وتحديد المسؤوليات.
-              </span>
-            </div>
+            ${center.roadmap
+              .map(
+                (item, index) => `
+                  <div>
+                    <b>
+                      ${index + 1}
+                    </b>
 
-            <div>
-              <b>2</b>
-              <strong>Assisted Workflow</strong>
-              <span>
-                تنبيهات وتوجيه تلقائي للحالات حسب النوع.
-              </span>
-            </div>
+                    <strong>
+                      ${this.escapeHtml(
+                        item?.title || ""
+                      )}
+                    </strong>
 
-            <div>
-              <b>3</b>
-              <strong>Rule-Based Operations</strong>
-              <span>
-                تشغيل الإجراءات حسب الجودة والمخاطر ودرجة الثقة.
-              </span>
-            </div>
-
-            <div>
-              <b>4</b>
-              <strong>AI Assisted Review</strong>
-              <span>
-                تحليل الحالات وتقديم توصيات للمراجع البشري.
-              </span>
-            </div>
-
-            <div>
-              <b>5</b>
-              <strong>Human-Governed Automation</strong>
-              <span>
-                تشغيل ذكي متقدم مع رقابة واعتماد بشري دائم.
-              </span>
-            </div>
+                    <span>
+                      ${this.escapeHtml(
+                        item?.desc ||
+                        item?.description ||
+                        ""
+                      )}
+                    </span>
+                  </div>
+                `
+              )
+              .join("")}
           </div>
         </div>
 
         <div class="module-wide-grid">
-
           <div class="module-panel">
             ${this.sectionTitle(
               "Next Best Actions",
               "أهم الإجراءات التشغيلية المقترحة لتحسين أداء الأنظمة البيومترية."
             )}
 
-            <div class="executive-list">
-              ${nextActions
-                .slice(0, 6)
-                .map(
-                  (item, index) => `
-                    <div class="executive-item">
-                      <strong>
-                        ${String(index + 1).padStart(2, "0")}
-                      </strong>
-
-                      <span>${this.actionText(item)}</span>
-                    </div>
-                  `
-                )
-                .join("")}
-            </div>
+            ${this.renderExecutiveList(
+              nextActions
+            )}
           </div>
 
           <div class="module-panel">
@@ -589,17 +1577,30 @@ AIW.Modules.automation = {
             )}
 
             <div class="automation-engine-status">
-              <strong>AIW Biometric Automation Engine</strong>
+              <strong>
+                AIW Biometric Automation Engine
+              </strong>
 
               <p>
-                المحرك مفعّل لمراقبة أحداث التسجيل والمطابقة والجودة
+                المحرك
+                ${
+                  center.settings.engineEnabled
+                    ? "مفعّل"
+                    : "غير مفعّل"
+                }
+                لمراقبة أحداث التسجيل والمطابقة والجودة
                 وصحة الأنظمة والمخاطر، مع دعم التنبيهات والتصعيد
                 والمراجعة البشرية.
               </p>
 
               <div class="aiw-progress">
-                <div style="width:${this.clamp(avgAutomation, 0, 100)}%">
-                </div>
+                <div
+                  style="width:${this.clamp(
+                    avgAutomation,
+                    0,
+                    100
+                  )}%"
+                ></div>
               </div>
 
               <small>
@@ -608,107 +1609,243 @@ AIW.Modules.automation = {
               </small>
             </div>
           </div>
-
         </div>
 
       </section>
     `;
+
+    this.bindAutomaticSync();
   },
 
+  /* =======================================================
+     Workflow Card
+  ======================================================= */
+
   workflowCard(workflow) {
-    const automationLevel = this.clamp(
-      Number(workflow.automation || 0),
-      0,
-      100
-    );
+    const automationLevel =
+      this.clamp(
+        workflow.automation,
+        0,
+        100
+      );
 
     return `
-      <article class="automation-workflow-card">
-
+      <article
+        class="automation-workflow-card"
+        data-workflow-id="${this.escapeAttribute(
+          workflow.id
+        )}"
+      >
         <div class="automation-workflow-head">
-          <div>${workflow.icon}</div>
+          <div>
+            ${this.escapeHtml(
+              workflow.icon
+            )}
+          </div>
 
-          <span class="aiw-status ${this.statusClass(workflow.status)}">
-            ${workflow.status}
+          <span
+            class="aiw-status ${this.statusClass(
+              workflow.status
+            )}"
+          >
+            ${this.escapeHtml(
+              workflow.status
+            )}
           </span>
         </div>
 
-        <h3>${workflow.title}</h3>
+        <h3>
+          ${this.escapeHtml(
+            workflow.title
+          )}
+        </h3>
 
-        <p>${workflow.trigger}</p>
+        <p>
+          ${this.escapeHtml(
+            workflow.trigger
+          )}
+        </p>
 
         <div class="automation-steps">
           ${workflow.steps
             .map(
               (step, index) => `
-                <span>${index + 1}. ${step}</span>
+                <span>
+                  ${index + 1}.
+                  ${this.escapeHtml(step)}
+                </span>
               `
             )
             .join("")}
         </div>
 
         <div class="automation-meta">
-          <span>المالك: ${workflow.owner}</span>
-          <span>${automationLevel}% أتمتة</span>
+          <span>
+            المالك:
+            ${this.escapeHtml(
+              workflow.owner
+            )}
+          </span>
+
+          <span>
+            ${automationLevel}%
+            أتمتة
+          </span>
         </div>
 
         <div class="aiw-progress">
-          <div style="width:${automationLevel}%"></div>
+          <div
+            style="width:${automationLevel}%"
+          ></div>
         </div>
-
       </article>
     `;
   },
 
-  average(values) {
-    if (!Array.isArray(values) || !values.length) return 0;
+  /* =======================================================
+     Shared UI
+  ======================================================= */
 
-    const validValues = values
-      .map(value => Number(value))
-      .filter(value => Number.isFinite(value));
+  renderExecutiveList(items = []) {
+    if (
+      !Array.isArray(items) ||
+      !items.length
+    ) {
+      return this.emptyState(
+        "لا توجد إجراءات مقترحة حالياً."
+      );
+    }
 
-    if (!validValues.length) return 0;
+    return `
+      <div class="executive-list">
+        ${items
+          .slice(0, 6)
+          .map(
+            (item, index) => `
+              <div class="executive-item">
+                <strong>
+                  ${String(
+                    index + 1
+                  ).padStart(2, "0")}
+                </strong>
 
-    const total = validValues.reduce(
-      (sum, value) => sum + value,
-      0
-    );
-
-    return Math.round(total / validValues.length);
+                <span>
+                  ${this.escapeHtml(
+                    this.actionText(item)
+                  )}
+                </span>
+              </div>
+            `
+          )
+          .join("")}
+      </div>
+    `;
   },
 
-  clamp(value, min, max) {
-    const numericValue = Number(value);
+  kpi(label, value, note) {
+    if (
+      window.AIW?.Widgets &&
+      typeof window.AIW.Widgets.kpi ===
+        "function"
+    ) {
+      return window.AIW.Widgets.kpi({
+        label,
+        value,
+        note
+      });
+    }
 
-    if (!Number.isFinite(numericValue)) return min;
+    return `
+      <div class="module-card">
+        <span>
+          ${this.escapeHtml(label)}
+        </span>
 
-    return Math.min(max, Math.max(min, numericValue));
+        <strong>
+          ${this.escapeHtml(value)}
+        </strong>
+
+        <small>
+          ${this.escapeHtml(note)}
+        </small>
+      </div>
+    `;
   },
+
+  sectionTitle(title, description) {
+    if (
+      window.AIW?.Widgets &&
+      typeof window.AIW.Widgets.sectionTitle ===
+        "function"
+    ) {
+      return window.AIW.Widgets.sectionTitle(
+        title,
+        description
+      );
+    }
+
+    return `
+      <div class="module-section-title compact">
+        <h2>
+          ${this.escapeHtml(title)}
+        </h2>
+
+        <p>
+          ${this.escapeHtml(description)}
+        </p>
+      </div>
+    `;
+  },
+
+  fallbackHero() {
+    return `
+      <div class="module-hero">
+        <span class="module-kicker">
+          Biometric Automation · Workflow Engine
+        </span>
+
+        <h1>
+          مركز أتمتة العمليات البيومترية
+        </h1>
+
+        <p>
+          إدارة سير العمل للحالات والأنظمة البيومترية من التسجيل
+          والمطابقة إلى المراجعة والتصعيد والمراقبة التشغيلية.
+        </p>
+      </div>
+    `;
+  },
+
+  emptyState(message) {
+    return `
+      <div class="module-empty">
+        ${this.escapeHtml(message)}
+      </div>
+    `;
+  },
+
+  /* =======================================================
+     Status Helpers
+  ======================================================= */
 
   statusClass(status) {
-    const normalizedStatus = String(status || "").trim();
+    const normalized =
+      String(status || "").trim();
 
-    if (normalizedStatus === "نشط") {
+    if (normalized === "نشط") {
       return "green";
     }
 
     if (
-      normalizedStatus === "قيد التفعيل" ||
-      normalizedStatus === "قيد المراجعة"
+      normalized === "قيد التفعيل" ||
+      normalized === "قيد المراجعة"
     ) {
       return "orange";
     }
 
     if (
-      normalizedStatus === "مخطط" ||
-      normalizedStatus === "مسودة"
-    ) {
-      return "blue";
-    }
-
-    if (
-      normalizedStatus === "متوقف" ||
-      normalizedStatus === "متعثر"
+      normalized === "متوقف" ||
+      normalized === "متعثر"
     ) {
       return "red";
     }
@@ -717,17 +1854,98 @@ AIW.Modules.automation = {
   },
 
   riskClass(level) {
-    const normalizedLevel = String(level || "").trim();
-
-    if (normalizedLevel.includes("عال")) {
+    if (this.isHighRisk(level)) {
       return "red";
     }
 
-    if (normalizedLevel.includes("متوسط")) {
+    const value =
+      String(level || "")
+        .trim()
+        .toLowerCase();
+
+    if (
+      value.includes("متوسط") ||
+      value === "medium"
+    ) {
       return "orange";
     }
 
     return "green";
+  },
+
+  isHighRisk(level) {
+    const value =
+      String(level || "")
+        .trim()
+        .toLowerCase();
+
+    return (
+      value.includes("عال") ||
+      value === "high" ||
+      value === "critical" ||
+      value === "حرج"
+    );
+  },
+
+  isClosedStatus(status) {
+    const value =
+      String(status || "")
+        .trim()
+        .toLowerCase();
+
+    return [
+      "closed",
+      "resolved",
+      "completed",
+      "approved",
+      "مغلق",
+      "تم الحل",
+      "مكتمل",
+      "معتمد"
+    ].includes(value);
+  },
+
+  isActiveWorkflow(status) {
+    const value =
+      String(status || "")
+        .trim()
+        .toLowerCase();
+
+    return (
+      value === "نشط" ||
+      value === "active" ||
+      value === "running"
+    );
+  },
+
+  isVisibleStatus(status) {
+    const value =
+      String(status || "")
+        .trim()
+        .toLowerCase();
+
+    return ![
+      "archived",
+      "deleted",
+      "مؤرشف",
+      "محذوف"
+    ].includes(value);
+  },
+
+  isEnabledStatus(status) {
+    const value =
+      String(status || "")
+        .trim()
+        .toLowerCase();
+
+    return ![
+      "inactive",
+      "disabled",
+      "archived",
+      "موقوف",
+      "غير مفعل",
+      "مؤرشف"
+    ].includes(value);
   },
 
   actionText(item) {
@@ -748,54 +1966,198 @@ AIW.Modules.automation = {
     return "مراجعة الإجراء التشغيلي المقترح.";
   },
 
-  kpi(label, value, note) {
-    if (window.AIW?.Widgets?.kpi) {
-      return AIW.Widgets.kpi({
-        label,
-        value,
-        note
-      });
-    }
+  /* =======================================================
+     Automatic Synchronization
+  ======================================================= */
 
-    return `
-      <div class="module-card">
-        <span>${label}</span>
-        <strong>${value}</strong>
-        <small>${note}</small>
-      </div>
-    `;
-  },
+  bindAutomaticSync() {
+    if (this._syncBound) return;
 
-  sectionTitle(title, description) {
-    if (window.AIW?.Widgets?.sectionTitle) {
-      return AIW.Widgets.sectionTitle(
-        title,
-        description
+    this._syncBound = true;
+
+    const refreshAutomation = () => {
+      if (
+        !this._container ||
+        !this._container.isConnected
+      ) {
+        return;
+      }
+
+      this.render(this._container);
+    };
+
+    const syncEvents = [
+      "aiw:dataChanged",
+      "aiw:dataUpdated",
+      "aiw:dataImported",
+      "aiw:dataRestored",
+      "aiw:dataReset",
+      "aiw:storeChanged",
+
+      "aiw:automationChanged",
+      "aiw:automationUpdated",
+
+      "aiw:projectsChanged",
+      "aiw:projectsUpdated",
+
+      "aiw:kpisChanged",
+      "aiw:kpisUpdated",
+
+      "aiw:governanceChanged",
+      "aiw:governanceUpdated",
+
+      "aiw:decisionChanged",
+      "aiw:decisionUpdated",
+
+      "aiw:risksChanged",
+      "aiw:risksUpdated",
+
+      "aiw:alertsChanged",
+      "aiw:alertsUpdated",
+
+      "aiw:reportsChanged",
+      "aiw:reportsUpdated"
+    ];
+
+    syncEvents.forEach(eventName => {
+      window.addEventListener(
+        eventName,
+        refreshAutomation
       );
-    }
+    });
 
-    return `
-      <div class="module-section-title compact">
-        <h2>${title}</h2>
-        <p>${description}</p>
-      </div>
-    `;
+    window.addEventListener(
+      "storage",
+      event => {
+        const supportedKeys = [
+          "aiwDataV1",
+          "aiwData",
+          "AIW_DATA"
+        ];
+
+        if (
+          !event.key ||
+          supportedKeys.includes(event.key)
+        ) {
+          refreshAutomation();
+        }
+      }
+    );
   },
 
-  fallbackHero() {
-    return `
-      <div class="module-hero">
-        <span class="module-kicker">
-          Biometric Automation · Workflow Engine
-        </span>
+  /* =======================================================
+     Utilities
+  ======================================================= */
 
-        <h1>مركز أتمتة العمليات البيومترية</h1>
+  average(values) {
+    if (
+      !Array.isArray(values) ||
+      !values.length
+    ) {
+      return 0;
+    }
 
-        <p>
-          إدارة سير العمل للحالات والأنظمة البيومترية من التسجيل
-          والمطابقة إلى المراجعة والتصعيد والمراقبة التشغيلية.
-        </p>
-      </div>
-    `;
+    const validValues = values
+      .map(value => Number(value))
+      .filter(value =>
+        Number.isFinite(value)
+      );
+
+    if (!validValues.length) {
+      return 0;
+    }
+
+    return Math.round(
+      validValues.reduce(
+        (total, value) =>
+          total + value,
+        0
+      ) / validValues.length
+    );
+  },
+
+  clamp(value, min, max) {
+    const numericValue =
+      Number(value);
+
+    if (!Number.isFinite(numericValue)) {
+      return min;
+    }
+
+    return Math.min(
+      max,
+      Math.max(min, numericValue)
+    );
+  },
+
+  getNextId(items = []) {
+    if (!Array.isArray(items)) {
+      return 1;
+    }
+
+    const ids = items
+      .map(item =>
+        this.toSafeNumber(
+          item?.id,
+          0
+        )
+      )
+      .filter(id => id > 0);
+
+    return ids.length
+      ? Math.max(...ids) + 1
+      : 1;
+  },
+
+  toSafeNumber(value, fallback = 0) {
+    const number = Number(value);
+
+    return Number.isFinite(number)
+      ? number
+      : fallback;
+  },
+
+  normalizePercent(value, fallback = 0) {
+    return Math.min(
+      100,
+      Math.max(
+        0,
+        Math.round(
+          this.toSafeNumber(
+            value,
+            fallback
+          )
+        )
+      )
+    );
+  },
+
+  escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  },
+
+  escapeAttribute(value) {
+    return this.escapeHtml(value);
+  },
+
+  clone(value) {
+    if (
+      typeof structuredClone === "function"
+    ) {
+      try {
+        return structuredClone(value);
+      } catch (error) {
+        // JSON fallback below.
+      }
+    }
+
+    return JSON.parse(
+      JSON.stringify(value)
+    );
   }
 };
