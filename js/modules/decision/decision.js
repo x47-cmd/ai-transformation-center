@@ -1,16 +1,24 @@
 /* =========================================================
-   AI Work - Decision Intelligence Center V1.1
+   AI Work - Decision Intelligence Center V5.0
    Enterprise Biometric Executive Decision Support
+   Store V2.2 Native Architecture
 
-   Updates:
-   - Central AIW.Store integration
-   - Persistent decision scenarios and criteria
-   - Biometric and Smart Gate specialization
-   - Dynamic project and business-case ranking
-   - Governance, KPI, maturity and risk integration
-   - Automatic cross-page synchronization
-   - Human-in-the-Loop decision model
-   - No UI design changes
+   File Path:
+   js/modules/decision/decision.js
+
+   Features:
+   - AIW.Store V2.2 as Single Source of Truth
+   - No internal default scenario seeding
+   - Native decision object integration
+   - Real decisionHistory integration
+   - Idea approval and conversion decisions
+   - Project, governance and risk decisions
+   - Automation approval queue synchronization
+   - Human-in-the-Loop enforcement
+   - Dynamic project and scenario ranking
+   - Decision confirmation and audit trail
+   - Cross-page Store synchronization
+   - Existing core UI design preserved
 ========================================================= */
 
 window.AIW = window.AIW || {};
@@ -20,353 +28,158 @@ AIW.Modules.decision = {
   id: "decision",
   title: "القرار",
   icon: "🧭",
+  version: "5.0.0",
 
   _container: null,
+  _unsubscribeStore: null,
+  _refreshTimer: null,
+  _confirmationModal: null,
+  _detailsModal: null,
+  _pendingAction: null,
+  _eventsBound: false,
   _syncBound: false,
-  _seedChecked: false,
+  _isRendering: false,
+  _isExecuting: false,
 
-  /* =======================================================
-     Default Decision Scenarios
-  ======================================================= */
+  config: {
+    actor: "الإدارة",
+    refreshDelay: 80,
+    styleId: "aiw-decision-v50-styles",
+    defaultTopProjectsLimit: 5,
+    minimumDecisionScore: 60,
+    maximumHistoryRows: 30,
+    selectedProjectKey: "aiwSelectedProjectId",
+    selectedIdeaKey: "aiwSelectedIdeaId"
+  },
 
-  defaultScenarios: [
-    {
-      id: 1,
-      title: "البدء بلوحات القياس التشغيلية",
-      impact: 88,
-      risk: 18,
-      cost: 24,
-      speed: 94,
-      readiness: 90,
-      governance: 92,
-      recommendation: "ابدأ فوراً",
-      status: "recommended",
-      linkedModules: [
-        "kpis",
-        "reports",
-        "projects"
-      ]
-    },
-    {
-      id: 2,
-      title: "إطلاق Quick Wins البيومترية",
-      impact: 90,
-      risk: 26,
-      cost: 32,
-      speed: 88,
-      readiness: 86,
-      governance: 84,
-      recommendation: "مناسب للموجة الأولى",
-      status: "recommended",
-      linkedModules: [
-        "projects",
-        "business",
-        "governance"
-      ]
-    },
-    {
-      id: 3,
-      title: "تفعيل تحليل الصلاحيات والجلسات",
-      impact: 86,
-      risk: 38,
-      cost: 40,
-      speed: 78,
-      readiness: 76,
-      governance: 82,
-      recommendation: "ابدأ بعد اعتماد الضوابط",
-      status: "conditional",
-      linkedModules: [
-        "governance",
-        "kpis",
-        "automation"
-      ]
-    },
-    {
-      id: 4,
-      title: "تشغيل محرك سلامة البيانات البيومترية",
-      impact: 94,
-      risk: 52,
-      cost: 62,
-      speed: 58,
-      readiness: 72,
-      governance: 78,
-      recommendation: "قرار استراتيجي مرحلي",
-      status: "strategic",
-      linkedModules: [
-        "projects",
-        "business",
-        "maturity"
-      ]
-    },
-    {
-      id: 5,
-      title: "إطلاق الصيانة التنبؤية للبوابات",
-      impact: 92,
-      risk: 64,
-      cost: 74,
-      speed: 44,
-      readiness: 52,
-      governance: 74,
-      recommendation: "يؤجل حتى اكتمال البيانات",
-      status: "deferred",
-      linkedModules: [
-        "projects",
-        "business",
-        "maturity"
-      ]
-    }
-  ],
+  decisionStatus: {
+    PROPOSED: "proposed",
+    PENDING: "pending",
+    APPROVED: "approved",
+    REJECTED: "rejected",
+    DEFERRED: "deferred",
+    IMPLEMENTED: "implemented",
+    ARCHIVED: "archived"
+  },
 
-  defaultCriteria: [
-    {
-      id: 1,
-      title: "الأثر التشغيلي والاستراتيجي",
-      desc: "مدى تأثير القرار على جودة التسجيلات، البوابات الذكية، الصلاحيات، والأمن الرقمي.",
-      weight: 25
-    },
-    {
-      id: 2,
-      title: "القيمة التشغيلية والاستثمارية",
-      desc: "القيمة المتوقعة مقارنة بالتكلفة والموارد المطلوبة.",
-      weight: 20
-    },
-    {
-      id: 3,
-      title: "المخاطر والحوكمة",
-      desc: "الخصوصية، الأمن، جودة البيانات، الإشراف البشري، وقابلية التحكم بالمخاطر.",
-      weight: 20
-    },
-    {
-      id: 4,
-      title: "سرعة التنفيذ",
-      desc: "إمكانية تحقيق أثر قابل للقياس خلال 90–180 يوماً.",
-      weight: 15
-    },
-    {
-      id: 5,
-      title: "جاهزية البيانات والأنظمة",
-      desc: "توفر البيانات، جودتها، قابلية الربط، وجاهزية البنية التقنية.",
-      weight: 10
-    },
-    {
-      id: 6,
-      title: "الجاهزية المؤسسية",
-      desc: "توفر المالك، الحوكمة، المؤشرات، القدرة التشغيلية، وقبول التغيير.",
-      weight: 10
-    }
-  ],
+  sourceType: {
+    IDEA: "idea",
+    PROJECT: "project",
+    RISK: "risk",
+    GOVERNANCE: "governance",
+    AUTOMATION: "automation",
+    SCENARIO: "scenario",
+    MANUAL: "manual"
+  },
 
-  defaultAnalysisScenarios: [
-    {
-      id: 1,
-      icon: "🚀",
-      title: "سيناريو سريع",
-      desc: "البدء بلوحات القياس والمشاريع منخفضة التكلفة لإثبات القيمة خلال أول 90 يوماً.",
-      status: "مفضل الآن",
-      tone: "green"
-    },
-    {
-      id: 2,
-      icon: "📈",
-      title: "سيناريو متوازن",
-      desc: "Quick Wins مع مشروع استراتيجي واحد مثل سلامة البيانات أو تحليل الصلاحيات.",
-      status: "مناسب بعد الحوكمة",
-      tone: "orange"
-    },
-    {
-      id: 3,
-      icon: "🏛️",
-      title: "سيناريو استراتيجي",
-      desc: "البدء بالمحركات المتقدمة والصيانة التنبؤية والمنصة التنفيذية الموحدة.",
-      status: "يحتاج نضج بيانات",
-      tone: "red"
-    }
-  ],
-
-  defaultTimeline: [
-    {
-      id: 1,
-      title: "اعتماد Quick Wins",
-      period: "الأسبوع 1"
-    },
-    {
-      id: 2,
-      title: "اعتماد الحوكمة والمالكين",
-      period: "الأسبوع 2–4"
-    },
-    {
-      id: 3,
-      title: "ربط المؤشرات وخط الأساس",
-      period: "الشهر 2"
-    },
-    {
-      id: 4,
-      title: "قياس الأثر التشغيلي",
-      period: "الشهر 3"
-    },
-    {
-      id: 5,
-      title: "قرار التوسع أو التعديل",
-      period: "نهاية الربع"
-    }
-  ],
-
-  /* =======================================================
-     Shared Data Reader
-  ======================================================= */
-
-  getSharedData() {
-    try {
-      if (
-        window.AIW?.Store &&
-        typeof window.AIW.Store.getState === "function"
-      ) {
-        return window.AIW.Store.getState() || {};
-      }
-
-      if (
-        window.AIW?.Store &&
-        typeof window.AIW.Store.getData === "function"
-      ) {
-        return window.AIW.Store.getData() || {};
-      }
-
-      return window.AIW?.Data || {};
-    } catch (error) {
-      console.warn(
-        "AI Work Decision: Unable to read shared data.",
-        error
-      );
-
-      return window.AIW?.Data || {};
-    }
+  lifecycle: {
+    IDEA: "idea",
+    PENDING: "pending-approval",
+    APPROVED: "approved",
+    REJECTED: "rejected",
+    CONVERTED: "converted-to-project"
   },
 
   /* =======================================================
-     Decision Center Initialization
+     Store Access
   ======================================================= */
 
-  ensureDecisionSeeded() {
-    if (this._seedChecked) return;
+  getStore() {
+    return window.AIW?.Store || null;
+  },
 
-    this._seedChecked = true;
+  getState() {
+    const store = this.getStore();
 
-    const data = this.getSharedData();
-
-    const hasDecisionCenter =
-      data.decisionCenter &&
-      typeof data.decisionCenter === "object" &&
-      Array.isArray(data.decisionCenter.scenarios);
-
-    if (hasDecisionCenter) {
-      return;
+    if (!store) {
+      console.error("AI Work Decision V5.0: AIW.Store is unavailable.");
+      return {};
     }
 
-    const now = new Date().toISOString();
-
-    const decisionCenter = {
-      scenarios: this.clone(
-        this.defaultScenarios
-      ),
-
-      criteria: this.clone(
-        this.defaultCriteria
-      ),
-
-      analysisScenarios: this.clone(
-        this.defaultAnalysisScenarios
-      ),
-
-      timeline: this.clone(
-        this.defaultTimeline
-      ),
-
-      settings: {
-        decisionMode: "AI Assisted",
-        humanApprovalRequired: true,
-        topProjectsLimit: 5,
-        minimumDecisionScore: 60,
-        reviewCycle: "ربع سنوي"
-      },
-
-      briefing: {
-        title:
-          "إطلاق موجة Quick Wins البيومترية مع حوكمة ومؤشرات أداء واضحة",
-
-        description:
-          "أفضل قرار تنفيذي في المرحلة الحالية هو البدء بلوحات جودة التسجيلات، أخطاء التسجيل، استخدام الصلاحيات، والجلسات الطويلة، بالتوازي مع اعتماد الحوكمة وربط كل مشروع بمؤشر أداء وقيمة تشغيلية متوقعة."
-      },
-
-      meta: {
-        createdAt: now,
-        updatedAt: now
+    try {
+      if (typeof store.getState === "function") {
+        const state = store.getState();
+        return state && typeof state === "object" ? state : {};
       }
-    };
+
+      if (typeof store.getData === "function") {
+        const state = store.getData();
+        return state && typeof state === "object" ? state : {};
+      }
+    } catch (error) {
+      console.error(
+        "AI Work Decision V5.0: Unable to read Store state.",
+        error
+      );
+    }
+
+    return {};
+  },
+
+  getCollection(name) {
+    const collection = this.getState()?.[name];
+    return Array.isArray(collection) ? collection : [];
+  },
+
+  /* =======================================================
+     Native Decision Reader
+  ======================================================= */
+
+  getDecisionSource() {
+    const state = this.getState();
 
     if (
-      window.AIW?.Store &&
-      typeof window.AIW.Store.update === "function"
+      state.decision &&
+      typeof state.decision === "object"
     ) {
-      window.AIW.Store.update(
-        "decisionCenter",
-        decisionCenter,
-        {
-          event: "aiw:decisionUpdated"
-        }
-      );
-
-      return;
+      return state.decision;
     }
 
-    if (window.AIW?.Data) {
-      window.AIW.Data.decisionCenter =
-        decisionCenter;
+    if (
+      state.decisionCenter &&
+      typeof state.decisionCenter === "object"
+    ) {
+      return state.decisionCenter;
     }
+
+    return {};
   },
 
   getDecisionCenter() {
-    const data = this.getSharedData();
-
-    const source =
-      data.decisionCenter &&
-      typeof data.decisionCenter === "object"
-        ? data.decisionCenter
-        : {};
+    const source = this.getDecisionSource();
 
     return {
       scenarios: Array.isArray(source.scenarios)
         ? source.scenarios
             .map((scenario, index) =>
-              this.normalizeScenario(
-                scenario,
-                index
-              )
+              this.normalizeScenario(scenario, index)
             )
             .filter(Boolean)
-        : this.clone(this.defaultScenarios),
+        : [],
 
       criteria: Array.isArray(source.criteria)
         ? source.criteria
             .map((criterion, index) =>
-              this.normalizeCriterion(
-                criterion,
-                index
-              )
+              this.normalizeCriterion(criterion, index)
             )
             .filter(Boolean)
-        : this.clone(this.defaultCriteria),
+        : [],
 
-      analysisScenarios: Array.isArray(
-        source.analysisScenarios
-      )
+      analysisScenarios: Array.isArray(source.analysisScenarios)
         ? source.analysisScenarios
-        : this.clone(
-            this.defaultAnalysisScenarios
-          ),
+        : [],
 
       timeline: Array.isArray(source.timeline)
         ? source.timeline
-        : this.clone(this.defaultTimeline),
+        : [],
+
+      decisionHistory: Array.isArray(source.decisionHistory)
+        ? source.decisionHistory
+            .map((decision, index) =>
+              this.normalizeDecisionRecord(decision, index)
+            )
+            .filter(Boolean)
+        : [],
 
       settings: {
         decisionMode:
@@ -374,37 +187,66 @@ AIW.Modules.decision = {
           "AI Assisted",
 
         humanApprovalRequired:
-          source.settings?.humanApprovalRequired !==
-          false,
+          source.settings?.humanApprovalRequired !== false,
 
         topProjectsLimit:
           Math.max(
             1,
             this.toSafeNumber(
               source.settings?.topProjectsLimit,
-              5
+              this.config.defaultTopProjectsLimit
             )
           ),
 
         minimumDecisionScore:
           this.normalizePercent(
             source.settings?.minimumDecisionScore,
-            60
+            this.config.minimumDecisionScore
           ),
 
         reviewCycle:
           source.settings?.reviewCycle ||
-          "ربع سنوي"
+          "ربع سنوي",
+
+        autoCreateProject:
+          source.settings?.autoCreateProject === true
       },
 
       briefing: {
         title:
-          source.briefing?.title ||
-          "إطلاق موجة Quick Wins البيومترية مع حوكمة ومؤشرات أداء واضحة",
+          source.briefing?.title || "",
 
         description:
-          source.briefing?.description ||
-          "أفضل قرار تنفيذي هو البدء بالمشاريع سريعة القياس بالتوازي مع اعتماد الحوكمة والمؤشرات."
+          source.briefing?.description || ""
+      },
+
+      statistics: {
+        approved:
+          this.toSafeNumber(
+            source.statistics?.approved,
+            0
+          ),
+
+        rejected:
+          this.toSafeNumber(
+            source.statistics?.rejected,
+            0
+          ),
+
+        deferred:
+          this.toSafeNumber(
+            source.statistics?.deferred,
+            0
+          ),
+
+        pending:
+          this.toSafeNumber(
+            source.statistics?.pending,
+            0
+          ),
+
+        lastDecisionAt:
+          source.statistics?.lastDecisionAt || null
       },
 
       meta: {
@@ -417,11 +259,98 @@ AIW.Modules.decision = {
     };
   },
 
+  getIdeas() {
+    const store = this.getStore();
+
+    try {
+      if (typeof store?.getIdeas === "function") {
+        const ideas = store.getIdeas();
+        if (Array.isArray(ideas)) return ideas;
+      }
+    } catch (error) {
+      console.warn("AI Work Decision V5.0: getIdeas failed.", error);
+    }
+
+    return this.getCollection("ideas");
+  },
+
+  getProjects() {
+    const store = this.getStore();
+
+    try {
+      if (typeof store?.getProjects === "function") {
+        const projects = store.getProjects();
+        if (Array.isArray(projects)) return projects;
+      }
+    } catch (error) {
+      console.warn("AI Work Decision V5.0: getProjects failed.", error);
+    }
+
+    return this.getCollection("projects");
+  },
+
+  getRisks() {
+    const state = this.getState();
+    const risks = [];
+
+    [
+      state.risks,
+      state.riskRegister,
+      state.governance?.risks,
+      state.governanceCenter?.risks
+    ].forEach(source => {
+      if (Array.isArray(source)) risks.push(...source);
+    });
+
+    return this.uniqueBy(
+      risks,
+      risk =>
+        risk?.id ??
+        `${risk?.title || risk?.name || "risk"}-${risk?.level || risk?.riskLevel || ""}`
+    );
+  },
+
+  getGovernanceControls() {
+    const state = this.getState();
+
+    const sources = [
+      state.governance,
+      state.governanceControls,
+      state.controls,
+      state.governance?.controls,
+      state.governanceCenter?.controls
+    ];
+
+    for (const source of sources) {
+      if (Array.isArray(source)) return source;
+    }
+
+    return [];
+  },
+
+  getAutomationApprovals() {
+    const state = this.getState();
+
+    const source =
+      state.automation &&
+      typeof state.automation === "object"
+        ? state.automation
+        : state.automationCenter &&
+          typeof state.automationCenter === "object"
+          ? state.automationCenter
+          : {};
+
+    return Array.isArray(source.approvals)
+      ? source.approvals
+      : [];
+  },
+
+  /* =======================================================
+     Normalization
+  ======================================================= */
+
   normalizeScenario(scenario, index = 0) {
-    if (
-      !scenario ||
-      typeof scenario !== "object"
-    ) {
+    if (!scenario || typeof scenario !== "object") {
       return null;
     }
 
@@ -430,11 +359,18 @@ AIW.Modules.decision = {
 
       id:
         scenario.id ??
-        index + 1,
+        scenario.scenarioId ??
+        `scenario-${index + 1}`,
 
       title:
         scenario.title ||
+        scenario.name ||
         "سيناريو غير مسمى",
+
+      description:
+        scenario.description ||
+        scenario.desc ||
+        "",
 
       impact:
         this.normalizePercent(
@@ -463,13 +399,13 @@ AIW.Modules.decision = {
       readiness:
         this.normalizePercent(
           scenario.readiness,
-          50
+          0
         ),
 
       governance:
         this.normalizePercent(
           scenario.governance,
-          50
+          0
         ),
 
       recommendation:
@@ -477,44 +413,57 @@ AIW.Modules.decision = {
         "قيد التقييم",
 
       status:
-        scenario.status ||
-        "proposed",
+        this.normalizeDecisionStatus(
+          scenario.status ??
+          scenario.state ??
+          this.decisionStatus.PROPOSED
+        ),
 
       linkedModules:
-        Array.isArray(
-          scenario.linkedModules
-        )
+        Array.isArray(scenario.linkedModules)
           ? scenario.linkedModules
-          : []
+          : [],
+
+      sourceType:
+        scenario.sourceType ||
+        this.sourceType.SCENARIO,
+
+      sourceId:
+        scenario.sourceId ??
+        scenario.id ??
+        null,
+
+      createdAt:
+        scenario.createdAt || null,
+
+      updatedAt:
+        scenario.updatedAt || null
     };
   },
 
   normalizeCriterion(criterion, index = 0) {
     if (Array.isArray(criterion)) {
-      return {
-        id: index + 1,
-        title:
-          criterion[0] ||
-          "معيار غير مسمى",
-        desc: criterion[1] || "",
-        weight: 0
+      criterion = {
+        title: criterion[0],
+        desc: criterion[1],
+        weight: criterion[2]
       };
     }
 
-    if (
-      !criterion ||
-      typeof criterion !== "object"
-    ) {
+    if (!criterion || typeof criterion !== "object") {
       return null;
     }
 
     return {
+      ...criterion,
+
       id:
         criterion.id ??
-        index + 1,
+        `criterion-${index + 1}`,
 
       title:
         criterion.title ||
+        criterion.name ||
         "معيار غير مسمى",
 
       desc:
@@ -526,24 +475,187 @@ AIW.Modules.decision = {
         this.normalizePercent(
           criterion.weight,
           0
-        )
+        ),
+
+      key:
+        criterion.key ||
+        criterion.code ||
+        ""
     };
   },
 
+  normalizeDecisionRecord(decision, index = 0) {
+    if (!decision || typeof decision !== "object") {
+      return null;
+    }
+
+    return {
+      ...decision,
+
+      id:
+        decision.id ??
+        decision.decisionId ??
+        `decision-${index + 1}`,
+
+      title:
+        decision.title ||
+        decision.name ||
+        "قرار غير مسمى",
+
+      description:
+        decision.description ||
+        decision.notes ||
+        "",
+
+      sourceType:
+        decision.sourceType ||
+        decision.source ||
+        this.sourceType.MANUAL,
+
+      sourceId:
+        decision.sourceId ??
+        decision.entityId ??
+        null,
+
+      status:
+        this.normalizeDecisionStatus(
+          decision.status ??
+          decision.state ??
+          this.decisionStatus.PROPOSED
+        ),
+
+      score:
+        this.normalizePercent(
+          decision.score ??
+          decision.decisionScore,
+          0
+        ),
+
+      actor:
+        decision.actor ||
+        decision.decidedBy ||
+        this.config.actor,
+
+      reason:
+        decision.reason ||
+        decision.notes ||
+        "",
+
+      createdAt:
+        decision.createdAt ||
+        decision.decidedAt ||
+        null,
+
+      updatedAt:
+        decision.updatedAt || null,
+
+      implementedAt:
+        decision.implementedAt || null,
+
+      linkedProjectId:
+        decision.linkedProjectId ??
+        decision.projectId ??
+        null,
+
+      metadata:
+        decision.metadata &&
+        typeof decision.metadata === "object"
+          ? decision.metadata
+          : {}
+    };
+  },
+
+  normalizeDecisionStatus(value) {
+    const status = this.normalizeStatus(value);
+
+    if (
+      [
+        "approved",
+        "recommended",
+        "معتمد",
+        "مقبول"
+      ].includes(status)
+    ) {
+      return this.decisionStatus.APPROVED;
+    }
+
+    if (
+      [
+        "rejected",
+        "مرفوض",
+        "غير-معتمد"
+      ].includes(status)
+    ) {
+      return this.decisionStatus.REJECTED;
+    }
+
+    if (
+      [
+        "deferred",
+        "conditional",
+        "مؤجل",
+        "معلق"
+      ].includes(status)
+    ) {
+      return this.decisionStatus.DEFERRED;
+    }
+
+    if (
+      [
+        "implemented",
+        "completed",
+        "منفذ",
+        "تم-التنفيذ"
+      ].includes(status)
+    ) {
+      return this.decisionStatus.IMPLEMENTED;
+    }
+
+    if (
+      [
+        "archived",
+        "مؤرشف"
+      ].includes(status)
+    ) {
+      return this.decisionStatus.ARCHIVED;
+    }
+
+    if (
+      [
+        "pending",
+        "submitted",
+        "pending-approval",
+        "قيد-المراجعة",
+        "بانتظار-الاعتماد"
+      ].includes(status)
+    ) {
+      return this.decisionStatus.PENDING;
+    }
+
+    return this.decisionStatus.PROPOSED;
+  },
+
   /* =======================================================
-     Decision Center Updates
+     Decision Store Updates
   ======================================================= */
 
   updateDecisionCenter(changes = {}) {
-    if (
-      !changes ||
-      typeof changes !== "object"
-    ) {
-      return false;
+    if (!changes || typeof changes !== "object") {
+      return {
+        success: false,
+        message: "بيانات التحديث غير صالحة."
+      };
     }
 
-    const current =
-      this.getDecisionCenter();
+    const store = this.getStore();
+    const current = this.getDecisionCenter();
+
+    if (!store) {
+      return {
+        success: false,
+        message: "مخزن البيانات غير متاح."
+      };
+    }
 
     const updated = {
       ...current,
@@ -559,232 +671,731 @@ AIW.Modules.decision = {
         ...(changes.briefing || {})
       },
 
+      statistics: {
+        ...current.statistics,
+        ...(changes.statistics || {})
+      },
+
       meta: {
         ...current.meta,
-        updatedAt:
-          new Date().toISOString()
+        updatedAt: new Date().toISOString()
       }
     };
 
-    if (
-      window.AIW?.Store &&
-      typeof window.AIW.Store.update === "function"
-    ) {
-      return window.AIW.Store.update(
-        "decisionCenter",
-        updated,
-        {
-          event: "aiw:decisionUpdated"
-        }
-      );
-    }
-
-    if (window.AIW?.Data) {
-      window.AIW.Data.decisionCenter =
-        updated;
-
-      window.dispatchEvent(
-        new CustomEvent(
-          "aiw:decisionUpdated",
+    try {
+      if (typeof store.set === "function") {
+        const result = store.set(
+          "decision",
+          updated,
           {
-            detail: {
-              decisionCenter: updated
-            }
+            event: "aiw:decisionUpdated"
           }
-        )
-      );
+        );
 
-      return true;
-    }
+        return this.normalizeStoreResult(result, updated);
+      }
 
-    return false;
-  },
-
-  addScenario(scenario = {}) {
-    const center =
-      this.getDecisionCenter();
-
-    const scenarios = [
-      ...center.scenarios
-    ];
-
-    const now =
-      new Date().toISOString();
-
-    const newScenario =
-      this.normalizeScenario(
-        {
-          id:
-            this.getNextId(
-              scenarios
-            ),
-
-          title:
-            scenario.title ||
-            "سيناريو قرار جديد",
-
-          impact:
-            scenario.impact ?? 50,
-
-          risk:
-            scenario.risk ?? 50,
-
-          cost:
-            scenario.cost ?? 50,
-
-          speed:
-            scenario.speed ?? 50,
-
-          readiness:
-            scenario.readiness ?? 50,
-
-          governance:
-            scenario.governance ?? 50,
-
-          recommendation:
-            scenario.recommendation ||
-            "قيد التقييم",
-
-          status:
-            scenario.status ||
-            "proposed",
-
-          linkedModules:
-            Array.isArray(
-              scenario.linkedModules
-            )
-              ? scenario.linkedModules
-              : [],
-
-          createdAt: now,
-          updatedAt: now
-        },
-        scenarios.length
-      );
-
-    scenarios.push(newScenario);
-
-    this.updateDecisionCenter({
-      scenarios
-    });
-
-    return newScenario;
-  },
-
-  updateScenario(id, changes = {}) {
-    const center =
-      this.getDecisionCenter();
-
-    const scenarioIndex =
-      center.scenarios.findIndex(
-        (scenario) =>
-          String(scenario.id) ===
-          String(id)
-      );
-
-    if (scenarioIndex === -1) {
-      return false;
-    }
-
-    const scenarios =
-      center.scenarios.map(
-        (scenario, index) => {
-          if (
-            index !== scenarioIndex
-          ) {
-            return scenario;
+      if (typeof store.update === "function") {
+        const result = store.update(
+          "decision",
+          updated,
+          {
+            event: "aiw:decisionUpdated"
           }
+        );
 
-          return this.normalizeScenario(
-            {
-              ...scenario,
-              ...changes,
-              id: scenario.id,
-              updatedAt:
-                new Date().toISOString()
-            },
-            index
-          );
-        }
+        return this.normalizeStoreResult(result, updated);
+      }
+
+      if (typeof store.patch === "function") {
+        const result = store.patch(
+          "decision",
+          updated,
+          {
+            event: "aiw:decisionUpdated"
+          }
+        );
+
+        return this.normalizeStoreResult(result, updated);
+      }
+    } catch (error) {
+      console.error(
+        "AI Work Decision V5.0: updateDecisionCenter failed.",
+        error
       );
 
-    this.updateDecisionCenter({
-      scenarios
-    });
-
-    return scenarios[
-      scenarioIndex
-    ];
-  },
-
-  removeScenario(id) {
-    const center =
-      this.getDecisionCenter();
-
-    const removedScenario =
-      center.scenarios.find(
-        (scenario) =>
-          String(scenario.id) ===
-          String(id)
-      );
-
-    if (!removedScenario) {
-      return false;
+      return {
+        success: false,
+        message: "تعذر تحديث مركز القرار.",
+        error
+      };
     }
 
-    const scenarios =
-      center.scenarios.filter(
-        (scenario) =>
-          String(scenario.id) !==
-          String(id)
-      );
+    return {
+      success: false,
+      message: "Store V2.2 لا يدعم تحديث مركز القرار."
+    };
+  },
 
-    this.updateDecisionCenter({
-      scenarios
-    });
+  normalizeStoreResult(result, data = null) {
+    if (result?.success === false) return result;
 
-    return removedScenario;
+    if (result === false || result === null) {
+      return {
+        success: false,
+        message: "تعذر حفظ البيانات."
+      };
+    }
+
+    return {
+      success: true,
+      result,
+      data
+    };
   },
 
   /* =======================================================
-     Decision Calculations
+     Scenario CRUD
   ======================================================= */
 
-  decisionScore(scenario) {
+  addScenario(scenario = {}) {
+    const center = this.getDecisionCenter();
+    const now = new Date().toISOString();
+
+    const newScenario = this.normalizeScenario(
+      {
+        ...scenario,
+
+        id:
+          scenario.id ??
+          this.createId("scenario"),
+
+        createdAt:
+          scenario.createdAt ||
+          now,
+
+        updatedAt:
+          now
+      },
+      center.scenarios.length
+    );
+
+    const scenarios = [
+      ...center.scenarios,
+      newScenario
+    ];
+
+    const result = this.updateDecisionCenter({
+      scenarios
+    });
+
+    return result.success
+      ? {
+          success: true,
+          scenario: newScenario
+        }
+      : result;
+  },
+
+  updateScenario(scenarioId, changes = {}) {
+    const center = this.getDecisionCenter();
+
+    const index = center.scenarios.findIndex(
+      scenario =>
+        String(scenario.id) === String(scenarioId)
+    );
+
+    if (index < 0) {
+      return {
+        success: false,
+        message: "لم يتم العثور على السيناريو."
+      };
+    }
+
+    const scenarios = center.scenarios.map(
+      (scenario, scenarioIndex) => {
+        if (scenarioIndex !== index) return scenario;
+
+        return this.normalizeScenario(
+          {
+            ...scenario,
+            ...changes,
+            id: scenario.id,
+            updatedAt: new Date().toISOString()
+          },
+          scenarioIndex
+        );
+      }
+    );
+
+    const result = this.updateDecisionCenter({
+      scenarios
+    });
+
+    return result.success
+      ? {
+          success: true,
+          scenario: scenarios[index]
+        }
+      : result;
+  },
+
+  removeScenario(scenarioId) {
+    const center = this.getDecisionCenter();
+
+    const scenario = center.scenarios.find(
+      item =>
+        String(item.id) === String(scenarioId)
+    );
+
+    if (!scenario) {
+      return {
+        success: false,
+        message: "لم يتم العثور على السيناريو."
+      };
+    }
+
+    const scenarios = center.scenarios.filter(
+      item =>
+        String(item.id) !== String(scenarioId)
+    );
+
+    const result = this.updateDecisionCenter({
+      scenarios
+    });
+
+    return result.success
+      ? {
+          success: true,
+          scenario
+        }
+      : result;
+  },
+
+  /* =======================================================
+     Decision History
+  ======================================================= */
+
+  addDecisionRecord(record = {}) {
+    const center = this.getDecisionCenter();
+
+    const decision = this.normalizeDecisionRecord(
+      {
+        ...record,
+
+        id:
+          record.id ??
+          this.createId("decision"),
+
+        createdAt:
+          record.createdAt ||
+          new Date().toISOString()
+      },
+      center.decisionHistory.length
+    );
+
+    const decisionHistory = [
+      ...center.decisionHistory,
+      decision
+    ];
+
+    const statistics = this.calculateDecisionStatistics(
+      decisionHistory
+    );
+
+    const result = this.updateDecisionCenter({
+      decisionHistory,
+      statistics
+    });
+
+    return result.success
+      ? {
+          success: true,
+          decision
+        }
+      : result;
+  },
+
+  calculateDecisionStatistics(history = []) {
+    return {
+      approved: history.filter(
+        item =>
+          item.status === this.decisionStatus.APPROVED
+      ).length,
+
+      rejected: history.filter(
+        item =>
+          item.status === this.decisionStatus.REJECTED
+      ).length,
+
+      deferred: history.filter(
+        item =>
+          item.status === this.decisionStatus.DEFERRED
+      ).length,
+
+      pending: history.filter(
+        item =>
+          [
+            this.decisionStatus.PENDING,
+            this.decisionStatus.PROPOSED
+          ].includes(item.status)
+      ).length,
+
+      lastDecisionAt:
+        history.length
+          ? history[history.length - 1].createdAt
+          : null
+    };
+  },
+
+  /* =======================================================
+     Idea Lifecycle
+  ======================================================= */
+
+  getIdeaStatus(idea = {}) {
+    if (
+      idea.convertedToProject === true ||
+      idea.conversion?.converted === true ||
+      idea.projectId
+    ) {
+      return this.lifecycle.CONVERTED;
+    }
+
+    const raw = this.normalizeStatus(
+      idea.lifecycleStatus ??
+      idea.ideaStatus ??
+      idea.approval?.status ??
+      ""
+    );
+
+    if (
+      ["converted", "converted-to-project"].includes(raw)
+    ) {
+      return this.lifecycle.CONVERTED;
+    }
+
+    if (
+      ["pending", "submitted", "pending-approval"].includes(raw)
+    ) {
+      return this.lifecycle.PENDING;
+    }
+
+    if (raw === "approved") {
+      return this.lifecycle.APPROVED;
+    }
+
+    if (raw === "rejected") {
+      return this.lifecycle.REJECTED;
+    }
+
+    return this.lifecycle.IDEA;
+  },
+
+  getPendingIdeaDecisions() {
+    return this.getIdeas()
+      .filter(
+        idea =>
+          this.getIdeaStatus(idea) === this.lifecycle.PENDING
+      )
+      .map(idea => ({
+        id: `idea-decision-${idea.id}`,
+        title:
+          idea.title ||
+          "فكرة بانتظار القرار",
+
+        sourceType:
+          this.sourceType.IDEA,
+
+        sourceId:
+          idea.id,
+
+        score:
+          this.normalizePercent(
+            idea.decisionScore,
+            this.priorityScore(idea.priority)
+          ),
+
+        risk:
+          idea.riskLevel ||
+          idea.risk ||
+          "متوسط",
+
+        recommendation:
+          idea.decisionLevel ||
+          "بانتظار القرار الإداري",
+
+        status:
+          this.decisionStatus.PENDING,
+
+        department:
+          idea.department ||
+          "غير مصنف",
+
+        createdAt:
+          idea.approval?.submittedAt ||
+          idea.updatedAt ||
+          idea.createdAt ||
+          null
+      }));
+  },
+
+  getPendingAutomationDecisions() {
+    return this.getAutomationApprovals()
+      .filter(approval => {
+        const status = this.normalizeStatus(
+          approval.status ??
+          approval.state ??
+          ""
+        );
+
+        return ![
+          "approved",
+          "rejected",
+          "cancelled",
+          "معتمد",
+          "مرفوض",
+          "ملغي"
+        ].includes(status);
+      })
+      .map(approval => ({
+        id: `automation-decision-${approval.id}`,
+        title:
+          approval.title ||
+          "طلب اعتماد تشغيلي",
+
+        sourceType:
+          this.sourceType.AUTOMATION,
+
+        sourceId:
+          approval.id,
+
+        score:
+          this.priorityScore(
+            approval.risk
+          ),
+
+        risk:
+          approval.risk ||
+          approval.riskLevel ||
+          "متوسط",
+
+        recommendation:
+          approval.statusLabel ||
+          approval.status ||
+          "بانتظار الاعتماد",
+
+        status:
+          this.decisionStatus.PENDING,
+
+        department:
+          approval.owner ||
+          "الأتمتة",
+
+        createdAt:
+          approval.createdAt ||
+          null
+      }));
+  },
+
+  getPendingRiskDecisions() {
+    return this.getRisks()
+      .filter(risk => {
+        return (
+          this.isHighRisk(
+            risk.level ??
+            risk.riskLevel ??
+            risk.severity
+          ) &&
+          !this.isClosedStatus(risk.status)
+        );
+      })
+      .map(risk => ({
+        id: `risk-decision-${risk.id}`,
+        title:
+          risk.title ||
+          risk.name ||
+          "مخاطرة عالية",
+
+        sourceType:
+          this.sourceType.RISK,
+
+        sourceId:
+          risk.id,
+
+        score:
+          this.normalizePercent(
+            100 -
+            this.riskPenaltyScore(
+              risk.level ??
+              risk.riskLevel ??
+              risk.severity
+            )
+          ),
+
+        risk:
+          risk.level ||
+          risk.riskLevel ||
+          risk.severity ||
+          "عالٍ",
+
+        recommendation:
+          "يتطلب قرار معالجة أو قبول مخاطر",
+
+        status:
+          this.decisionStatus.PENDING,
+
+        department:
+          risk.owner ||
+          "الحوكمة",
+
+        createdAt:
+          risk.createdAt ||
+          risk.updatedAt ||
+          null
+      }));
+  },
+
+  getDecisionQueue() {
+    return this.uniqueBy(
+      [
+        ...this.getPendingIdeaDecisions(),
+        ...this.getPendingAutomationDecisions(),
+        ...this.getPendingRiskDecisions()
+      ],
+      item =>
+        `${item.sourceType}-${item.sourceId}`
+    );
+  },
+
+  /* =======================================================
+     Decision Actions
+  ======================================================= */
+
+  approveIdeaDecision(item, notes = "", createProject = false) {
+    const store = this.getStore();
+
+    if (!store) {
+      return {
+        success: false,
+        message: "مخزن البيانات غير متاح."
+      };
+    }
+
+    try {
+      let result;
+
+      if (
+        createProject &&
+        typeof store.approveAndCreateProject === "function"
+      ) {
+        result = store.approveAndCreateProject(
+          item.sourceId,
+          {
+            actor: this.config.actor,
+            approvedBy: this.config.actor,
+            convertedBy: this.config.actor,
+            notes,
+            approvalNotes: notes
+          }
+        );
+      } else if (
+        typeof store.approveIdea === "function"
+      ) {
+        result = store.approveIdea(
+          item.sourceId,
+          {
+            actor: this.config.actor,
+            notes
+          }
+        );
+      } else {
+        return {
+          success: false,
+          message: "خدمة اعتماد الأفكار غير متاحة."
+        };
+      }
+
+      const normalized = this.normalizeStoreResult(result);
+
+      if (!normalized.success) return normalized;
+
+      const record = this.addDecisionRecord({
+        title: item.title,
+        sourceType: this.sourceType.IDEA,
+        sourceId: item.sourceId,
+        status: this.decisionStatus.APPROVED,
+        score: item.score,
+        actor: this.config.actor,
+        reason: notes,
+        linkedProjectId:
+          result?.project?.id ??
+          result?.linkedProjectId ??
+          null,
+        metadata: {
+          createProject
+        }
+      });
+
+      return record.success
+        ? {
+            success: true,
+            result,
+            decision: record.decision
+          }
+        : record;
+    } catch (error) {
+      console.error(
+        "AI Work Decision V5.0: approveIdeaDecision failed.",
+        error
+      );
+
+      return {
+        success: false,
+        message: "تعذر اعتماد الفكرة.",
+        error
+      };
+    }
+  },
+
+  rejectIdeaDecision(item, notes = "") {
+    if (!notes.trim()) {
+      return {
+        success: false,
+        message: "يجب إدخال سبب الرفض."
+      };
+    }
+
+    const store = this.getStore();
+
+    if (typeof store?.rejectIdea !== "function") {
+      return {
+        success: false,
+        message: "خدمة رفض الأفكار غير متاحة."
+      };
+    }
+
+    try {
+      const result = store.rejectIdea(
+        item.sourceId,
+        {
+          actor: this.config.actor,
+          reason: notes,
+          notes
+        }
+      );
+
+      const normalized = this.normalizeStoreResult(result);
+
+      if (!normalized.success) return normalized;
+
+      const record = this.addDecisionRecord({
+        title: item.title,
+        sourceType: this.sourceType.IDEA,
+        sourceId: item.sourceId,
+        status: this.decisionStatus.REJECTED,
+        score: item.score,
+        actor: this.config.actor,
+        reason: notes
+      });
+
+      return record.success
+        ? {
+            success: true,
+            result,
+            decision: record.decision
+          }
+        : record;
+    } catch (error) {
+      return {
+        success: false,
+        message: "تعذر رفض الفكرة.",
+        error
+      };
+    }
+  },
+
+  approveGenericDecision(item, notes = "") {
+    return this.addDecisionRecord({
+      title: item.title,
+      sourceType: item.sourceType,
+      sourceId: item.sourceId,
+      status: this.decisionStatus.APPROVED,
+      score: item.score,
+      actor: this.config.actor,
+      reason: notes
+    });
+  },
+
+  rejectGenericDecision(item, notes = "") {
+    if (!notes.trim()) {
+      return {
+        success: false,
+        message: "يجب إدخال سبب الرفض."
+      };
+    }
+
+    return this.addDecisionRecord({
+      title: item.title,
+      sourceType: item.sourceType,
+      sourceId: item.sourceId,
+      status: this.decisionStatus.REJECTED,
+      score: item.score,
+      actor: this.config.actor,
+      reason: notes
+    });
+  },
+
+  deferGenericDecision(item, notes = "") {
+    return this.addDecisionRecord({
+      title: item.title,
+      sourceType: item.sourceType,
+      sourceId: item.sourceId,
+      status: this.decisionStatus.DEFERRED,
+      score: item.score,
+      actor: this.config.actor,
+      reason: notes
+    });
+  },
+
+  /* =======================================================
+     Scoring
+  ======================================================= */
+
+  decisionScore(scenario = {}) {
     const impact =
       this.normalizePercent(
-        scenario?.impact,
+        scenario.impact,
         0
       );
 
     const risk =
       this.normalizePercent(
-        scenario?.risk,
+        scenario.risk,
         0
       );
 
     const cost =
       this.normalizePercent(
-        scenario?.cost,
+        scenario.cost,
         0
       );
 
     const speed =
       this.normalizePercent(
-        scenario?.speed,
+        scenario.speed,
         0
       );
 
     const readiness =
       this.normalizePercent(
-        scenario?.readiness,
-        50
+        scenario.readiness,
+        0
       );
 
     const governance =
       this.normalizePercent(
-        scenario?.governance,
-        50
+        scenario.governance,
+        0
       );
 
     return this.normalizePercent(
@@ -793,729 +1404,332 @@ AIW.Modules.decision = {
       (100 - cost) * 0.14 +
       speed * 0.16 +
       readiness * 0.12 +
-      governance * 0.12,
-      0
+      governance * 0.12
     );
   },
 
   bestScenario(scenarios = []) {
-    if (
-      !Array.isArray(scenarios) ||
-      !scenarios.length
-    ) {
-      return {
-        title: "لا يوجد سيناريو",
-        impact: 0,
-        risk: 0,
-        cost: 0,
-        speed: 0,
-        readiness: 0,
-        governance: 0,
-        recommendation: "قيد التقييم"
-      };
-    }
+    if (!scenarios.length) return null;
 
-    return scenarios
-      .slice()
+    return [...scenarios]
       .sort(
-        (first, second) =>
-          this.decisionScore(second) -
-          this.decisionScore(first)
+        (a, b) =>
+          this.decisionScore(b) -
+          this.decisionScore(a)
       )[0];
   },
 
-  /* =======================================================
-     Shared Module Scores
-  ======================================================= */
-
   getScores() {
-    const data =
-      this.getSharedData();
+    const state = this.getState();
+    const projects = this.getProjects();
+    const controls = this.getGovernanceControls();
+    const risks = this.getRisks();
 
-    let analyticsScores = {};
+    const portfolioScore = projects.length
+      ? this.average(
+          projects.map(project =>
+            this.normalizePercent(
+              project.progress ??
+              project.readiness ??
+              project.score,
+              0
+            )
+          )
+        )
+      : 0;
 
-    try {
-      if (
-        window.AIW?.Analytics &&
-        typeof window.AIW.Analytics
-          .score === "function"
-      ) {
-        analyticsScores =
-          window.AIW.Analytics.score() ||
-          {};
-      }
-    } catch (error) {
-      console.warn(
-        "AI Work Decision: Analytics score unavailable.",
-        error
-      );
-    }
+    const riskScore = risks.length
+      ? this.normalizePercent(
+          100 -
+          risks.reduce(
+            (sum, risk) =>
+              sum +
+              this.riskPenaltyScore(
+                risk.level ??
+                risk.riskLevel ??
+                risk.severity
+              ),
+            0
+          )
+        )
+      : 100;
 
-    const projectScore =
-      this.calculateProjectScore(
-        data
-      );
-
-    const riskScore =
-      this.calculateRiskScore(
-        data
-      );
-
-    const governanceScore =
-      this.calculateGovernanceScore(
-        data
-      );
+    const governanceScore = controls.length
+      ? this.normalizePercent(
+          (
+            controls.filter(control =>
+              this.isActiveControl(control)
+            ).length /
+            controls.length
+          ) * 100
+        )
+      : 0;
 
     const maturityScore =
-      this.calculateMaturityScore(
-        data
+      this.normalizePercent(
+        state.summary?.maturityScore ??
+        state.maturity?.overallScore ??
+        state.maturity?.score,
+        0
       );
 
-    const kpiScore =
-      this.calculateKpiScore(
-        data
-      );
+    const kpiScore = this.calculateKpiScore(state);
 
-    const fallbackExecutive =
-      this.average([
-        projectScore,
+    const executiveScore = this.average(
+      [
+        portfolioScore,
         riskScore,
         governanceScore,
         maturityScore,
         kpiScore
-      ]);
+      ].filter(score => score > 0)
+    );
 
     return {
-      executiveScore:
-        this.normalizePercent(
-          analyticsScores
-            .executiveScore,
-          fallbackExecutive
-        ),
-
-      portfolioScore:
-        this.normalizePercent(
-          analyticsScores
-            .portfolioScore,
-          projectScore
-        ),
-
-      riskScore:
-        this.normalizePercent(
-          analyticsScores.riskScore,
-          riskScore
-        ),
-
-      governanceScore:
-        this.normalizePercent(
-          analyticsScores
-            .governanceScore,
-          governanceScore
-        ),
-
-      maturityScore:
-        this.normalizePercent(
-          analyticsScores
-            .maturityScore,
-          maturityScore
-        ),
-
+      executiveScore,
+      portfolioScore,
+      riskScore,
+      governanceScore,
+      maturityScore,
       kpiScore
     };
   },
 
-  calculateProjectScore(data) {
-    const projects =
-      Array.isArray(data.projects)
-        ? data.projects
-        : [];
+  calculateKpiScore(state = {}) {
+    const sources = [
+      state.kpis,
+      state.kpiCenter?.items,
+      state.kpiCenter?.kpis
+    ];
 
-    if (!projects.length) {
-      return this.normalizePercent(
-        data.summary
-          ?.portfolioHealth,
-        68
-      );
+    let kpis = [];
+
+    for (const source of sources) {
+      if (Array.isArray(source)) {
+        kpis = source;
+        break;
+      }
     }
+
+    if (!kpis.length) return 0;
 
     return this.average(
-      projects.map((project) =>
-        this.normalizePercent(
-          project?.progress ??
-          project?.readiness ??
-          project?.score,
-          0
-        )
-      )
-    );
-  },
-
-  calculateRiskScore(data) {
-    const risks =
-      data.governanceCenter &&
-      Array.isArray(
-        data.governanceCenter.risks
-      )
-        ? data.governanceCenter.risks
-        : Array.isArray(data.risks)
-          ? data.risks
-          : [];
-
-    if (!risks.length) {
-      return 100;
-    }
-
-    const penalty =
-      risks.reduce(
-        (total, risk) => {
-          const level =
-            String(
-              risk?.level ??
-              risk?.[1] ??
-              ""
-            )
-              .trim()
-              .toLowerCase();
-
-          const status =
-            String(
-              risk?.status || ""
-            )
-              .trim()
-              .toLowerCase();
-
-          if (
-            [
-              "resolved",
-              "closed",
-              "مغلق",
-              "تم الحل"
-            ].includes(status)
-          ) {
-            return total;
-          }
-
-          if (
-            level.includes("عال") ||
-            level === "high" ||
-            level === "critical"
-          ) {
-            return total + 12;
-          }
-
-          if (
-            level.includes("متوسط") ||
-            level === "medium"
-          ) {
-            return total + 6;
-          }
-
-          return total + 2;
-        },
-        0
-      );
-
-    return this.normalizePercent(
-      100 - penalty,
-      0
-    );
-  },
-
-  calculateGovernanceScore(data) {
-    try {
-      if (
-        window.AIW?.Modules
-          ?.governance &&
-        typeof window.AIW.Modules
-          .governance.getMetrics ===
-          "function" &&
-        data.governanceCenter
-      ) {
-        return this.normalizePercent(
-          window.AIW.Modules
-            .governance.getMetrics(
-              data.governanceCenter
-            ).governanceScore,
-          0
-        );
-      }
-    } catch (error) {
-      console.warn(
-        "AI Work Decision: Governance score failed.",
-        error
-      );
-    }
-
-    const controls =
-      Array.isArray(data.governance)
-        ? data.governance.length
-        : 0;
-
-    return controls
-      ? this.normalizePercent(
-          55 + controls * 5,
-          85
-        )
-      : 0;
-  },
-
-  calculateMaturityScore(data) {
-    try {
-      if (
-        window.AIW?.Modules
-          ?.maturity &&
-        typeof window.AIW.Modules
-          .maturity
-          .getAnalyticsMaturityScore ===
-          "function"
-      ) {
-        const score =
-          window.AIW.Modules
-            .maturity
-            .getAnalyticsMaturityScore();
-
-        if (score !== null) {
-          return this.normalizePercent(
-            score,
+      kpis.map(kpi => {
+        const current =
+          this.toSafeNumber(
+            kpi.current ??
+            kpi.value,
             0
           );
+
+        const target =
+          this.toSafeNumber(
+            kpi.target,
+            0
+          );
+
+        if (target <= 0) return 0;
+
+        if (
+          this.normalizeStatus(kpi.direction) ===
+          "lower"
+        ) {
+          return current <= target
+            ? 100
+            : this.normalizePercent(
+                (target / Math.max(current, 1)) * 100
+              );
         }
-      }
-    } catch (error) {
-      console.warn(
-        "AI Work Decision: Maturity score failed.",
-        error
-      );
-    }
 
-    return this.normalizePercent(
-      data.summary?.maturityScore,
-      34
-    );
-  },
-
-  calculateKpiScore(data) {
-    const kpis =
-      data.kpiCenter &&
-      Array.isArray(
-        data.kpiCenter.items
-      )
-        ? data.kpiCenter.items
-        : [];
-
-    if (!kpis.length) {
-      return 0;
-    }
-
-    return this.average(
-      kpis.map((kpi) =>
-        this.getKpiProgress(kpi)
-      )
-    );
-  },
-
-  getKpiProgress(kpi) {
-    try {
-      if (
-        window.AIW?.Modules?.kpis &&
-        typeof window.AIW.Modules
-          .kpis.progress === "function"
-      ) {
         return this.normalizePercent(
-          window.AIW.Modules
-            .kpis.progress(kpi),
-          0
+          (current / target) * 100
         );
-      }
-    } catch (error) {
-      console.warn(
-        "AI Work Decision: KPI progress failed.",
-        error
-      );
-    }
-
-    const current =
-      this.toSafeNumber(
-        kpi?.current,
-        0
-      );
-
-    const target =
-      this.toSafeNumber(
-        kpi?.target,
-        0
-      );
-
-    if (target <= 0) {
-      return 0;
-    }
-
-    if (kpi?.direction === "lower") {
-      if (current <= target) {
-        return 100;
-      }
-
-      return this.normalizePercent(
-        (
-          target /
-          Math.max(current, 1)
-        ) * 100,
-        0
-      );
-    }
-
-    return this.normalizePercent(
-      (
-        current /
-        target
-      ) * 100,
-      0
+      })
     );
   },
-
-  /* =======================================================
-     Recommended Projects
-  ======================================================= */
 
   getTopProjects(limit = 5) {
-    const data =
-      this.getSharedData();
+    const projects = this.getProjects();
+    const ideas = this.getIdeas();
 
-    const projects =
-      Array.isArray(data.projects)
-        ? data.projects
-        : [];
+    return projects
+      .map((project, index) => {
+        const sourceIdeaId =
+          project.sourceIdeaId ??
+          project.ideaId ??
+          project.origin?.ideaId ??
+          null;
 
-    const ideas =
-      Array.isArray(data.ideas)
-        ? data.ideas
-        : [];
+        const linkedIdea = ideas.find(
+          idea =>
+            sourceIdeaId &&
+            String(idea.id) === String(sourceIdeaId)
+        );
 
-    const businessCases =
-      data.businessCenter &&
-      Array.isArray(
-        data.businessCenter.cases
-      )
-        ? data.businessCenter.cases
-        : [];
+        const progress =
+          this.normalizePercent(
+            project.progress ??
+            project.readiness,
+            0
+          );
 
-    const candidates =
-      projects.map(
-        (project, index) => {
-          const linkedIdea =
-            ideas.find(
-              (idea) =>
-                idea?.title ===
-                  project?.englishTitle ||
-                idea?.title ===
-                  project?.title
-            );
-
-          const linkedCase =
-            businessCases.find(
-              (businessCase) =>
-                String(
-                  businessCase
-                    ?.projectId
-                ) ===
-                  String(
-                    project?.id
-                  ) ||
-                businessCase
-                  ?.englishTitle ===
-                  project?.englishTitle
-            );
-
-          const projectScore =
-            this.normalizePercent(
-              project?.progress ??
-              project?.readiness,
-              0
-            );
-
-          const ideaScore =
-            this.normalizePercent(
-              linkedIdea
-                ?.decisionScore,
-              this.priorityScore(
-                linkedIdea
-                  ?.priority ||
-                project?.priority
-              )
-            );
-
-          const caseScore =
-            linkedCase
-              ? this.businessCaseScore(
-                  linkedCase
+        const ideaScore =
+          linkedIdea
+            ? this.normalizePercent(
+                linkedIdea.decisionScore,
+                this.priorityScore(
+                  linkedIdea.priority
                 )
-              : projectScore;
+              )
+            : this.priorityScore(
+                project.priority
+              );
 
-          const finalScore =
-            this.average([
-              projectScore,
-              ideaScore,
-              caseScore
-            ]);
+        const riskScore =
+          100 -
+          this.riskPenaltyScore(
+            project.riskLevel ??
+            project.risk
+          );
 
-          return {
-            id:
-              project?.id ??
-              index + 1,
+        const score = this.average(
+          [progress, ideaScore, riskScore]
+        );
 
-            title:
-              project?.title ||
-              project?.englishTitle ||
-              "مشروع غير مسمى",
+        return {
+          id:
+            project.id ??
+            `project-${index + 1}`,
 
-            department:
-              project?.department ||
-              linkedIdea
-                ?.department ||
-              "غير مصنف",
+          title:
+            project.title ||
+            project.name ||
+            "مشروع غير مسمى",
 
-            priority:
-              project?.priority ||
-              linkedIdea
-                ?.priority ||
-              "متوسطة",
+          department:
+            project.department ||
+            linkedIdea?.department ||
+            "غير مصنف",
 
-            score: finalScore
-          };
-        }
-      );
+          priority:
+            project.priority ||
+            linkedIdea?.priority ||
+            "متوسطة",
 
-    if (!candidates.length) {
-      return this.fallbackProjects();
-    }
+          score,
 
-    return candidates
-      .sort(
-        (first, second) =>
-          second.score -
-          first.score
-      )
+          sourceIdeaId
+        };
+      })
+      .sort((a, b) => b.score - a.score)
       .slice(0, limit);
   },
 
-  businessCaseScore(item) {
-    const cost =
-      Math.max(
-        0,
-        this.toSafeNumber(
-          item?.cost,
-          0
-        )
-      );
-
-    const value =
-      Math.max(
-        0,
-        this.toSafeNumber(
-          item?.value,
-          0
-        )
-      );
-
-    const readiness =
-      this.normalizePercent(
-        item?.readiness,
-        0
-      );
-
-    const roi =
-      cost > 0
-        ? this.normalizePercent(
-            (
-              (value - cost) /
-              cost
-            ) * 100,
-            0
-          )
-        : 0;
-
-    return this.average([
-      readiness,
-      roi
-    ]);
-  },
-
-  priorityScore(priority) {
-    const value =
-      String(priority || "")
-        .trim()
-        .toLowerCase();
-
-    if (
-      value === "عالية" ||
-      value === "عالي" ||
-      value === "high" ||
-      value === "critical"
-    ) {
-      return 85;
-    }
-
-    if (
-      value === "متوسطة" ||
-      value === "متوسط" ||
-      value === "medium"
-    ) {
-      return 65;
-    }
-
-    return 45;
-  },
-
-  fallbackProjects() {
-    return [
-      {
-        title:
-          "لوحة ذكاء أخطاء التسجيل",
-        department:
-          "التحليلات والتقارير التنفيذية",
-        priority: "عالية",
-        score: 92
-      },
-      {
-        title:
-          "مراقبة جودة التسجيلات البيومترية",
-        department:
-          "الأنظمة البيومترية",
-        priority: "عالية",
-        score: 89
-      },
-      {
-        title:
-          "تحليل استخدام الصلاحيات",
-        department:
-          "المستخدمون والصلاحيات",
-        priority: "عالية",
-        score: 86
-      },
-      {
-        title:
-          "لوحة العمليات البيومترية بالمطارات",
-        department:
-          "التحليلات والتقارير التنفيذية",
-        priority: "عالية",
-        score: 84
-      },
-      {
-        title:
-          "كشف الجلسات الطويلة غير الطبيعية",
-        department:
-          "المستخدمون والصلاحيات",
-        priority: "عالية",
-        score: 82
-      }
-    ];
-  },
-
   /* =======================================================
-     AI and Recommendation Engines
+     Executive Narrative
   ======================================================= */
 
-  getAiReport(context) {
+  getAiReport(context = {}) {
     try {
       if (
-        window.AIW?.AI &&
-        typeof window.AIW.AI
-          .generateExecutiveReport ===
-          "function"
+        typeof window.AIW?.AI?.generateExecutiveReport ===
+        "function"
       ) {
         const report =
-          window.AIW.AI
-            .generateExecutiveReport(
-              context
-            );
+          window.AIW.AI.generateExecutiveReport(context);
 
-        if (
-          report &&
-          typeof report === "object"
-        ) {
+        if (report && typeof report === "object") {
           return report;
         }
       }
     } catch (error) {
       console.warn(
-        "AI Work Decision: AI report unavailable.",
+        "AI Work Decision V5.0: AI report unavailable.",
         error
       );
+    }
+
+    const queueCount =
+      context.decisionQueue?.length || 0;
+
+    if (queueCount > 0) {
+      return {
+        status:
+          "الأولوية الحالية هي معالجة القرارات المعلقة",
+
+        message:
+          `يوجد ${queueCount} قراراً يحتاج اعتماداً أو معالجة. ` +
+          "ابدأ بالقرارات الأعلى أثراً والأقل مخاطرة، مع توثيق السبب والنتيجة."
+      };
+    }
+
+    if (context.bestScenario) {
+      return {
+        status:
+          context.bestScenario.recommendation ||
+          "السيناريو الأعلى جاهزية هو الأنسب للمرحلة الحالية",
+
+        message:
+          `السيناريو «${context.bestScenario.title}» يحقق Decision Score ` +
+          `${this.decisionScore(context.bestScenario)}% ويوازن بين الأثر والسرعة والمخاطر.`
+      };
     }
 
     return {
       status:
-        "ابدأ بالمشاريع سريعة القياس ثم توسع تدريجياً",
+        "مركز القرار جاهز لاستقبال أول قرار تنفيذي",
 
       message:
-        "أفضل مسار حالي هو تشغيل لوحات جودة التسجيلات والصلاحيات والبوابات، مع تفعيل الحوكمة وربط كل مشروع بمؤشر أداء قبل المحركات التنبؤية الكبرى."
+        "لا توجد سيناريوهات أو قرارات معلقة حالياً. يتم إنشاء القرارات من الأفكار والمشاريع والمخاطر والأتمتة."
     };
   },
 
-  getExternalDecision() {
-    try {
-      if (
-        window.AIW?.Decision &&
-        typeof window.AIW.Decision
-          .executiveDecision ===
-          "function"
-      ) {
-        const decision =
-          window.AIW.Decision
-            .executiveDecision();
+  getNextActions(context = {}) {
+    const actions = [];
 
-        if (
-          decision &&
-          typeof decision === "object"
-        ) {
-          return decision;
-        }
-      }
-    } catch (error) {
-      console.warn(
-        "AI Work Decision: Decision engine unavailable.",
-        error
+    if (context.queueStats.idea > 0) {
+      actions.push(
+        `مراجعة ${context.queueStats.idea} أفكار بانتظار القرار الإداري.`
       );
     }
 
-    return {};
-  },
-
-  getNextActions(context) {
-    try {
-      if (
-        window.AIW?.Recommendation &&
-        typeof window.AIW
-          .Recommendation
-          .nextActions ===
-          "function"
-      ) {
-        const actions =
-          window.AIW
-            .Recommendation
-            .nextActions(context);
-
-        if (
-          Array.isArray(actions) &&
-          actions.length
-        ) {
-          return actions;
-        }
-      }
-    } catch (error) {
-      console.warn(
-        "AI Work Decision: Recommendation engine unavailable.",
-        error
+    if (context.queueStats.risk > 0) {
+      actions.push(
+        `معالجة ${context.queueStats.risk} قرارات مخاطر عالية قبل التوسع.`
       );
     }
 
-    return [
-      "اعتماد ثلاث مبادرات Quick Wins للبدء ضمن الموجة الأولى.",
-      "تحديد المالك التنفيذي ومؤشر الأداء وخط الأساس لكل مشروع.",
-      "اعتماد ضوابط المراجعة البشرية والخصوصية قبل تشغيل التنبيهات.",
-      "ربط المشاريع السريعة بلوحات Power BI وتقارير شهرية.",
-      "إعادة تقييم قرار التوسع بعد أول دورة قياس تشغيلية."
-    ];
+    if (context.queueStats.automation > 0) {
+      actions.push(
+        `إكمال ${context.queueStats.automation} اعتمادات تشغيلية قادمة من الأتمتة.`
+      );
+    }
+
+    if (context.scores.governanceScore < 70) {
+      actions.push(
+        "رفع مستوى الحوكمة قبل اعتماد المشاريع عالية الحساسية."
+      );
+    }
+
+    if (context.scores.portfolioScore < 60) {
+      actions.push(
+        "إعادة ترتيب المشاريع حسب الجاهزية والأثر التنفيذي."
+      );
+    }
+
+    if (context.bestScenario) {
+      actions.push(
+        `اعتماد أو تحديث السيناريو «${context.bestScenario.title}».`
+      );
+    }
+
+    if (!actions.length) {
+      actions.push(
+        "مراجعة Decision History وتحديد القرار التنفيذي التالي."
+      );
+    }
+
+    return actions.slice(0, 6);
   },
 
   /* =======================================================
@@ -1523,532 +1737,613 @@ AIW.Modules.decision = {
   ======================================================= */
 
   render(container) {
-    if (!container) return;
+    if (!container || this._isRendering) return;
 
+    this._isRendering = true;
     this._container = container;
 
-    this.ensureDecisionSeeded();
+    try {
+      this.injectStyles();
 
-    const W =
-      window.AIW?.Widgets;
+      const widgets =
+        window.AIW?.Widgets;
 
-    const center =
-      this.getDecisionCenter();
+      const center =
+        this.getDecisionCenter();
 
-    const scenarios =
-      center.scenarios.filter(
-        (scenario) =>
-          this.isActiveStatus(
-            scenario.status
-          )
-      );
+      const scenarios =
+        center.scenarios.filter(
+          scenario =>
+            scenario.status !==
+            this.decisionStatus.ARCHIVED
+        );
 
-    const criteria =
-      center.criteria;
+      const decisionQueue =
+        this.getDecisionQueue();
 
-    const scores =
-      this.getScores();
+      const scores =
+        this.getScores();
 
-    const bestScenario =
-      this.bestScenario(
-        scenarios
-      );
+      const bestScenario =
+        this.bestScenario(scenarios);
 
-    const bestScenarioScore =
-      this.decisionScore(
+      const bestScenarioScore =
         bestScenario
-      );
+          ? this.decisionScore(bestScenario)
+          : 0;
 
-    const externalDecision =
-      this.getExternalDecision();
+      const topProjects =
+        this.getTopProjects(
+          center.settings.topProjectsLimit
+        );
 
-    const generatedProjects =
-      this.getTopProjects(
-        center.settings
-          .topProjectsLimit
-      );
+      const queueStats = {
+        total: decisionQueue.length,
 
-    const externalProjects =
-      Array.isArray(
-        externalDecision
-          ?.topProjects
-      )
-        ? externalDecision
-            .topProjects
-        : [];
+        idea:
+          decisionQueue.filter(
+            item =>
+              item.sourceType ===
+              this.sourceType.IDEA
+          ).length,
 
-    const topProjects =
-      externalProjects.length
-        ? externalProjects
-        : generatedProjects;
+        risk:
+          decisionQueue.filter(
+            item =>
+              item.sourceType ===
+              this.sourceType.RISK
+          ).length,
 
-    const aiReport =
-      this.getAiReport({
-        scores,
-        scenarios,
-        bestScenario,
-        topProjects
-      });
+        automation:
+          decisionQueue.filter(
+            item =>
+              item.sourceType ===
+              this.sourceType.AUTOMATION
+          ).length
+      };
 
-    const nextActions =
-      this.getNextActions({
-        scores,
-        scenarios,
-        bestScenario,
-        topProjects
-      });
+      const aiReport =
+        this.getAiReport({
+          center,
+          scenarios,
+          bestScenario,
+          topProjects,
+          scores,
+          decisionQueue
+        });
 
-    container.innerHTML = `
-      <section class="module-page">
+      const nextActions =
+        this.getNextActions({
+          center,
+          scenarios,
+          bestScenario,
+          topProjects,
+          scores,
+          decisionQueue,
+          queueStats
+        });
 
-        ${
-          W?.hero
-            ? W.hero({
-                kicker:
-                  "Decision Intelligence · DSS",
-
-                title:
-                  "مركز القرار التنفيذي",
-
-                description:
-                  "مركز ذكي لدعم القرار التنفيذي يربط الاستراتيجية، المشاريع، الجدوى، المخاطر، النضج، الحوكمة، والمؤشرات في توصيات قابلة للتنفيذ.",
-
-                chips: [
-                  "🧭 Decision Support",
-                  `📊 Executive Score ${scores.executiveScore}%`,
-                  `🚀 ${topProjects.length} مشاريع مرشحة`,
-                  `✅ أفضل خيار: ${bestScenario.recommendation}`
-                ]
-              })
-            : this.fallbackHero()
-        }
-
-        <div class="module-grid">
-          ${this.kpi(
-            "Executive Score",
-            `${scores.executiveScore}%`,
-            "Overall Readiness"
-          )}
-
-          ${this.kpi(
-            "Portfolio Health",
-            `${scores.portfolioScore}%`,
-            "Portfolio"
-          )}
-
-          ${this.kpi(
-            "Risk Score",
-            `${scores.riskScore}%`,
-            "Risk Position"
-          )}
-
-          ${this.kpi(
-            "Governance",
-            `${scores.governanceScore}%`,
-            "Controls"
-          )}
-
-          ${this.kpi(
-            "أفضل سيناريو",
-            bestScenario.title,
-            bestScenario.recommendation
-          )}
-
-          ${this.kpi(
-            "Decision Mode",
-            center.settings
-              .decisionMode,
-            center.settings
-              .humanApprovalRequired
-              ? "Human-in-the-Loop"
-              : "Advisory"
-          )}
-        </div>
-
-        <div class="module-wide-grid">
-          <div class="module-panel">
-            ${this.sectionTitle(
-              "الخلاصة التنفيذية للقرار",
-              "التوصية الأعلى للإدارة بناءً على الأثر، المخاطر، التكلفة، والجاهزية."
-            )}
-
-            <div class="decision-summary-card">
-              <strong>
-                ${this.escapeHtml(
-                  aiReport.status ||
-                  "ابدأ بالمشاريع السريعة ثم توسع تدريجياً"
-                )}
-              </strong>
-
-              <p>
-                ${this.escapeHtml(
-                  aiReport.message ||
-                  "أفضل مسار حالي هو البدء بمشاريع Quick Wins لإثبات القيمة، مع تفعيل الحوكمة والمؤشرات قبل المشاريع الاستراتيجية الكبرى."
-                )}
-              </p>
-
-              <div class="decision-summary-strip">
-                <div>
-                  <span>Impact</span>
-                  <b>
-                    ${bestScenario.impact}%
-                  </b>
-                </div>
-
-                <div>
-                  <span>Risk</span>
-                  <b>
-                    ${bestScenario.risk}%
-                  </b>
-                </div>
-
-                <div>
-                  <span>Cost</span>
-                  <b>
-                    ${bestScenario.cost}%
-                  </b>
-                </div>
-
-                <div>
-                  <span>Speed</span>
-                  <b>
-                    ${bestScenario.speed}%
-                  </b>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="module-panel">
-            ${this.sectionTitle(
-              "Recommended Next Decision",
-              "القرار المقترح الآن."
-            )}
-
-            <div class="decision-next-card">
-              <strong>
-                ${this.escapeHtml(
-                  bestScenario.title
-                )}
-              </strong>
-
-              <p>
-                ${this.escapeHtml(
-                  bestScenario
-                    .recommendation
-                )}
-              </p>
-
-              <div class="aiw-progress">
-                <div
-                  style="width:${bestScenarioScore}%"
-                ></div>
-              </div>
-
-              <small>
-                Decision Score:
-                ${bestScenarioScore}%
-              </small>
-
-              <button
-                class="module-btn secondary"
-                data-module="business"
-              >
-                فتح الجدوى
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="module-panel">
-          ${this.sectionTitle(
-            "Decision Priority Matrix",
-            "مقارنة السيناريوهات حسب الأثر والمخاطر والتكلفة والسرعة."
-          )}
-
+      container.innerHTML = `
+        <section class="module-page">
           ${
-            scenarios.length
-              ? `
-                <div class="decision-scenario-grid">
-                  ${scenarios
-                    .map((scenario) =>
-                      this.scenarioCard(
-                        scenario
-                      )
-                    )
-                    .join("")}
-                </div>
-              `
-              : this.emptyState(
-                  "لا توجد سيناريوهات قرار مسجلة حالياً."
+            typeof widgets?.hero === "function"
+              ? widgets.hero({
+                  kicker:
+                    "Decision Intelligence · DSS",
+
+                  title:
+                    "مركز القرار التنفيذي",
+
+                  description:
+                    "مركز قرار فعلي يربط الأفكار والمشاريع والمخاطر والحوكمة والأتمتة ضمن Store V2.2، مع Decision History ومراجعة بشرية كاملة.",
+
+                  chips: [
+                    "🧭 Decision Support",
+                    `📊 Executive Score ${scores.executiveScore}%`,
+                    `⏳ ${queueStats.total} قرارات معلقة`,
+                    `📚 ${center.decisionHistory.length} قرارات مسجلة`,
+                    `🚀 ${topProjects.length} مشاريع مرشحة`
+                  ]
+                })
+              : this.fallbackHero(
+                  scores.executiveScore,
+                  queueStats.total,
+                  center.decisionHistory.length
                 )
           }
-        </div>
 
-        <div class="module-wide-grid">
+          <div class="module-grid">
+            ${this.kpi(
+              "Executive Score",
+              `${scores.executiveScore}%`,
+              "Overall Readiness"
+            )}
+
+            ${this.kpi(
+              "Portfolio Health",
+              `${scores.portfolioScore}%`,
+              "Portfolio"
+            )}
+
+            ${this.kpi(
+              "Risk Score",
+              `${scores.riskScore}%`,
+              "Risk Position"
+            )}
+
+            ${this.kpi(
+              "Governance",
+              `${scores.governanceScore}%`,
+              "Controls"
+            )}
+
+            ${this.kpi(
+              "قرارات معلقة",
+              queueStats.total,
+              "Decision Queue"
+            )}
+
+            ${this.kpi(
+              "Decision Mode",
+              center.settings.decisionMode,
+              center.settings.humanApprovalRequired
+                ? "Human-in-the-Loop"
+                : "Advisory"
+            )}
+          </div>
+
+          <div class="module-wide-grid">
+            <div class="module-panel">
+              ${this.sectionTitle(
+                "الخلاصة التنفيذية للقرار",
+                "التوصية الحالية بناءً على البيانات والقرارات المعلقة."
+              )}
+
+              <div class="decision-summary-card">
+                <strong>
+                  ${this.escapeHtml(aiReport.status)}
+                </strong>
+
+                <p>
+                  ${this.escapeHtml(aiReport.message)}
+                </p>
+
+                <div class="decision-summary-strip">
+                  <div>
+                    <span>Pending</span>
+                    <b>${queueStats.total}</b>
+                  </div>
+
+                  <div>
+                    <span>Approved</span>
+                    <b>${center.statistics.approved}</b>
+                  </div>
+
+                  <div>
+                    <span>Rejected</span>
+                    <b>${center.statistics.rejected}</b>
+                  </div>
+
+                  <div>
+                    <span>History</span>
+                    <b>${center.decisionHistory.length}</b>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="module-panel">
+              ${this.sectionTitle(
+                "Recommended Next Decision",
+                "أفضل سيناريو قرار متاح حالياً."
+              )}
+
+              ${
+                bestScenario
+                  ? `
+                    <div class="decision-next-card">
+                      <strong>
+                        ${this.escapeHtml(
+                          bestScenario.title
+                        )}
+                      </strong>
+
+                      <p>
+                        ${this.escapeHtml(
+                          bestScenario.recommendation
+                        )}
+                      </p>
+
+                      <div class="aiw-progress">
+                        <div
+                          style="width:${bestScenarioScore}%"
+                        ></div>
+                      </div>
+
+                      <small>
+                        Decision Score:
+                        ${bestScenarioScore}%
+                      </small>
+
+                      <button
+                        type="button"
+                        class="module-btn secondary"
+                        data-decision-action="scenario-details"
+                        data-scenario-id="${this.escapeAttribute(
+                          bestScenario.id
+                        )}"
+                      >
+                        عرض السيناريو
+                      </button>
+                    </div>
+                  `
+                  : this.emptyState(
+                      "لا توجد سيناريوهات قرار مسجلة حالياً."
+                    )
+              }
+            </div>
+          </div>
+
           <div class="module-panel">
             ${this.sectionTitle(
-              "Top Recommended Projects",
-              "أفضل المشاريع المقترحة من محرك القرار."
+              "Decision Queue",
+              "القرارات المعلقة القادمة من الأفكار والمخاطر والأتمتة."
             )}
 
             ${
-              topProjects.length
+              decisionQueue.length
                 ? `
-                  <div class="decision-project-list">
-                    ${topProjects
-                      .map(
-                        (
-                          project,
+                  <div class="decision-queue-list">
+                    ${decisionQueue
+                      .map((item, index) =>
+                        this.decisionQueueRow(
+                          item,
                           index
-                        ) => `
-                          <div class="decision-project-item">
-                            <b>
-                              ${String(
-                                index + 1
-                              ).padStart(
-                                2,
-                                "0"
-                              )}
-                            </b>
-
-                            <div>
-                              <strong>
-                                ${this.escapeHtml(
-                                  project
-                                    ?.title ||
-                                  "مشروع غير مسمى"
-                                )}
-                              </strong>
-
-                              <span>
-                                ${this.escapeHtml(
-                                  project
-                                    ?.department ||
-                                  "غير مصنف"
-                                )}
-                                ·
-                                ${this.escapeHtml(
-                                  project
-                                    ?.priority ||
-                                  "متوسطة"
-                                )}
-                              </span>
-                            </div>
-
-                            <em>
-                              ${this.normalizePercent(
-                                project?.score,
-                                80
-                              )}%
-                            </em>
-                          </div>
-                        `
+                        )
                       )
                       .join("")}
                   </div>
                 `
                 : this.emptyState(
-                    "لا توجد مشاريع مرشحة حالياً."
+                    "لا توجد قرارات معلقة حالياً."
                   )
             }
           </div>
 
           <div class="module-panel">
             ${this.sectionTitle(
-              "Decision Criteria",
-              "المعايير المستخدمة لدعم القرار."
+              "Decision Priority Matrix",
+              "مقارنة السيناريوهات حسب الأثر والمخاطر والتكلفة والسرعة."
             )}
 
-            <div class="decision-criteria-list">
-              ${criteria
-                .map(
-                  (
-                    criterion,
-                    index
-                  ) => `
-                    <div>
-                      <b>
-                        ${String(
-                          index + 1
-                        ).padStart(
-                          2,
-                          "0"
-                        )}
-                      </b>
-
-                      <strong>
-                        ${this.escapeHtml(
-                          criterion.title
-                        )}
-                      </strong>
-
-                      <span>
-                        ${this.escapeHtml(
-                          criterion.desc
-                        )}
-                      </span>
-                    </div>
-                  `
-                )
-                .join("")}
-            </div>
-          </div>
-        </div>
-
-        <div class="module-panel">
-          ${this.sectionTitle(
-            "Scenario Analysis",
-            "تحليل السيناريوهات المحتملة قبل الاعتماد."
-          )}
-
-          <div class="decision-analysis-grid">
-            ${center.analysisScenarios
-              .map(
-                (scenario) => `
-                  <div>
-                    <strong>
-                      ${this.escapeHtml(
-                        scenario.icon ||
-                        "🧭"
-                      )}
-                      ${this.escapeHtml(
-                        scenario.title ||
-                        ""
-                      )}
-                    </strong>
-
-                    <p>
-                      ${this.escapeHtml(
-                        scenario.desc ||
-                        scenario.description ||
-                        ""
-                      )}
-                    </p>
-
-                    <span
-                      class="aiw-status ${this.escapeAttribute(
-                        scenario.tone ||
-                        "orange"
-                      )}"
-                    >
-                      ${this.escapeHtml(
-                        scenario.status ||
-                        ""
-                      )}
-                    </span>
+            ${
+              scenarios.length
+                ? `
+                  <div class="decision-scenario-grid">
+                    ${scenarios
+                      .map(scenario =>
+                        this.scenarioCard(scenario)
+                      )
+                      .join("")}
                   </div>
                 `
-              )
-              .join("")}
-          </div>
-        </div>
-
-        <div class="module-wide-grid">
-          <div class="module-panel">
-            ${this.sectionTitle(
-              "Executive Actions",
-              "الخطوات التنفيذية التالية."
-            )}
-
-            ${this.renderExecutiveList(
-              nextActions
-            )}
+                : this.emptyState(
+                    "لا توجد سيناريوهات قرار مسجلة حالياً."
+                  )
+            }
           </div>
 
-          <div class="module-panel">
-            ${this.sectionTitle(
-              "Decision Timeline",
-              "تسلسل القرار المقترح."
-            )}
+          <div class="module-wide-grid">
+            <div class="module-panel">
+              ${this.sectionTitle(
+                "Top Recommended Projects",
+                "أفضل المشاريع المرشحة من البيانات الفعلية."
+              )}
 
-            <div class="decision-timeline">
-              ${center.timeline
-                .map(
-                  (
-                    timelineItem,
-                    index
-                  ) => `
-                    <div>
-                      <b>
-                        ${index + 1}
-                      </b>
-
-                      <strong>
-                        ${this.escapeHtml(
-                          timelineItem
-                            ?.title ||
-                          ""
-                        )}
-                      </strong>
-
-                      <span>
-                        ${this.escapeHtml(
-                          timelineItem
-                            ?.period ||
-                          ""
-                        )}
-                      </span>
+              ${
+                topProjects.length
+                  ? `
+                    <div class="decision-project-list">
+                      ${topProjects
+                        .map((project, index) =>
+                          this.projectRow(
+                            project,
+                            index
+                          )
+                        )
+                        .join("")}
                     </div>
                   `
-                )
-                .join("")}
+                  : this.emptyState(
+                      "لا توجد مشاريع مرشحة حالياً."
+                    )
+              }
+            </div>
+
+            <div class="module-panel">
+              ${this.sectionTitle(
+                "Decision Criteria",
+                "المعايير الفعلية المستخدمة لدعم القرار."
+              )}
+
+              ${
+                center.criteria.length
+                  ? `
+                    <div class="decision-criteria-list">
+                      ${center.criteria
+                        .map((criterion, index) => `
+                          <div>
+                            <b>
+                              ${String(index + 1).padStart(2, "0")}
+                            </b>
+
+                            <strong>
+                              ${this.escapeHtml(
+                                criterion.title
+                              )}
+                            </strong>
+
+                            <span>
+                              ${this.escapeHtml(
+                                criterion.desc
+                              )}
+                              ${
+                                criterion.weight
+                                  ? ` · وزن ${criterion.weight}%`
+                                  : ""
+                              }
+                            </span>
+                          </div>
+                        `)
+                        .join("")}
+                    </div>
+                  `
+                  : this.emptyState(
+                      "لا توجد معايير قرار مسجلة حالياً."
+                    )
+              }
             </div>
           </div>
-        </div>
 
-        <div class="module-panel">
-          ${this.sectionTitle(
-            "AI Executive Briefing",
-            "صياغة مختصرة قابلة للرفع للإدارة العليا."
-          )}
+          <div class="module-panel">
+            ${this.sectionTitle(
+              "Decision History",
+              "السجل الكامل للقرارات التي تم اعتمادها أو رفضها أو تأجيلها."
+            )}
 
-          <div class="decision-briefing">
-            <strong>
-              التوصية:
-              ${this.escapeHtml(
-                center.briefing.title
+            ${this.renderDecisionHistory(
+              center.decisionHistory
+            )}
+          </div>
+
+          <div class="module-wide-grid">
+            <div class="module-panel">
+              ${this.sectionTitle(
+                "Executive Actions",
+                "الخطوات التنفيذية التالية."
               )}
-            </strong>
 
-            <p>
-              ${this.escapeHtml(
-                center.briefing
-                  .description
+              ${this.renderExecutiveList(
+                nextActions
               )}
-            </p>
+            </div>
 
-            <div class="aiw-chip-row">
-              <span class="aiw-chip">
-                قرار منخفض المخاطر
-              </span>
+            <div class="module-panel">
+              ${this.sectionTitle(
+                "Decision Timeline",
+                "تسلسل القرار المقترح."
+              )}
 
-              <span class="aiw-chip">
-                أثر سريع
-              </span>
+              ${
+                center.timeline.length
+                  ? `
+                    <div class="decision-timeline">
+                      ${center.timeline
+                        .map((item, index) => `
+                          <div>
+                            <b>${index + 1}</b>
 
-              <span class="aiw-chip">
-                إشراف بشري
-              </span>
+                            <strong>
+                              ${this.escapeHtml(
+                                item?.title ||
+                                item?.name ||
+                                ""
+                              )}
+                            </strong>
+
+                            <span>
+                              ${this.escapeHtml(
+                                item?.period ||
+                                item?.date ||
+                                ""
+                              )}
+                            </span>
+                          </div>
+                        `)
+                        .join("")}
+                    </div>
+                  `
+                  : this.emptyState(
+                      "لا يوجد Timeline مسجل حالياً."
+                    )
+              }
             </div>
           </div>
-        </div>
 
-      </section>
-    `;
+          ${
+            center.briefing.title ||
+            center.briefing.description
+              ? `
+                <div class="module-panel">
+                  ${this.sectionTitle(
+                    "AI Executive Briefing",
+                    "صياغة مختصرة قابلة للرفع للإدارة العليا."
+                  )}
 
-    this.bindAutomaticSync();
+                  <div class="decision-briefing">
+                    ${
+                      center.briefing.title
+                        ? `
+                          <strong>
+                            التوصية:
+                            ${this.escapeHtml(
+                              center.briefing.title
+                            )}
+                          </strong>
+                        `
+                        : ""
+                    }
+
+                    ${
+                      center.briefing.description
+                        ? `
+                          <p>
+                            ${this.escapeHtml(
+                              center.briefing.description
+                            )}
+                          </p>
+                        `
+                        : ""
+                    }
+
+                    <div class="aiw-chip-row">
+                      <span class="aiw-chip">
+                        قرار موثق
+                      </span>
+
+                      <span class="aiw-chip">
+                        Human-in-the-Loop
+                      </span>
+
+                      <span class="aiw-chip">
+                        Audit Trail
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              `
+              : ""
+          }
+        </section>
+      `;
+
+      this.bindActionEvents();
+      this.bindAutomaticSync();
+    } finally {
+      this._isRendering = false;
+    }
   },
 
   /* =======================================================
-     Scenario Card
+     Queue and Cards
   ======================================================= */
 
+  decisionQueueRow(item, index) {
+    return `
+      <div
+        class="decision-queue-row"
+        data-decision-source="${this.escapeAttribute(
+          item.sourceType
+        )}"
+        data-decision-source-id="${this.escapeAttribute(
+          item.sourceId
+        )}"
+      >
+        <b>
+          ${String(index + 1).padStart(2, "0")}
+        </b>
+
+        <div>
+          <strong>
+            ${this.escapeHtml(item.title)}
+          </strong>
+
+          <span>
+            ${this.escapeHtml(item.department)}
+            · ${this.escapeHtml(item.recommendation)}
+          </span>
+
+          <small>
+            المصدر:
+            ${this.escapeHtml(
+              this.sourceLabel(item.sourceType)
+            )}
+          </small>
+        </div>
+
+        <em class="${this.riskClass(item.risk)}">
+          ${this.escapeHtml(item.risk)}
+        </em>
+
+        <div class="decision-queue-actions">
+          ${
+            item.sourceType === this.sourceType.IDEA
+              ? `
+                <button
+                  type="button"
+                  class="decision-mini-action convert"
+                  data-decision-action="approve-convert"
+                  data-source-type="${this.escapeAttribute(
+                    item.sourceType
+                  )}"
+                  data-source-id="${this.escapeAttribute(
+                    item.sourceId
+                  )}"
+                >
+                  اعتماد وتحويل
+                </button>
+              `
+              : ""
+          }
+
+          <button
+            type="button"
+            class="decision-mini-action approve"
+            data-decision-action="approve"
+            data-source-type="${this.escapeAttribute(
+              item.sourceType
+            )}"
+            data-source-id="${this.escapeAttribute(
+              item.sourceId
+            )}"
+          >
+            اعتماد
+          </button>
+
+          <button
+            type="button"
+            class="decision-mini-action defer"
+            data-decision-action="defer"
+            data-source-type="${this.escapeAttribute(
+              item.sourceType
+            )}"
+            data-source-id="${this.escapeAttribute(
+              item.sourceId
+            )}"
+          >
+            تأجيل
+          </button>
+
+          <button
+            type="button"
+            class="decision-mini-action reject"
+            data-decision-action="reject"
+            data-source-type="${this.escapeAttribute(
+              item.sourceType
+            )}"
+            data-source-id="${this.escapeAttribute(
+              item.sourceId
+            )}"
+          >
+            رفض
+          </button>
+        </div>
+      </div>
+    `;
+  },
+
   scenarioCard(scenario) {
-    const score =
-      this.decisionScore(
-        scenario
-      );
+    const score = this.decisionScore(scenario);
 
     return `
       <article
@@ -2065,14 +2360,10 @@ AIW.Modules.decision = {
       >
         <div class="decision-scenario-head">
           <strong>
-            ${this.escapeHtml(
-              scenario.title
-            )}
+            ${this.escapeHtml(scenario.title)}
           </strong>
 
-          <b>
-            ${score}%
-          </b>
+          <b>${score}%</b>
         </div>
 
         <p>
@@ -2082,34 +2373,795 @@ AIW.Modules.decision = {
         </p>
 
         <div class="decision-metrics">
-          <span>
-            الأثر
-            ${scenario.impact}%
-          </span>
-
-          <span>
-            المخاطر
-            ${scenario.risk}%
-          </span>
-
-          <span>
-            التكلفة
-            ${scenario.cost}%
-          </span>
-
-          <span>
-            السرعة
-            ${scenario.speed}%
-          </span>
+          <span>الأثر ${scenario.impact}%</span>
+          <span>المخاطر ${scenario.risk}%</span>
+          <span>التكلفة ${scenario.cost}%</span>
+          <span>السرعة ${scenario.speed}%</span>
         </div>
 
         <div class="aiw-progress">
-          <div
-            style="width:${score}%"
-          ></div>
+          <div style="width:${score}%"></div>
+        </div>
+
+        <div class="decision-scenario-actions">
+          <button
+            type="button"
+            class="decision-action-button secondary"
+            data-decision-action="scenario-details"
+            data-scenario-id="${this.escapeAttribute(
+              scenario.id
+            )}"
+          >
+            عرض التفاصيل
+          </button>
         </div>
       </article>
     `;
+  },
+
+  projectRow(project, index) {
+    return `
+      <div class="decision-project-item">
+        <b>
+          ${String(index + 1).padStart(2, "0")}
+        </b>
+
+        <div>
+          <strong>
+            ${this.escapeHtml(project.title)}
+          </strong>
+
+          <span>
+            ${this.escapeHtml(project.department)}
+            · ${this.escapeHtml(project.priority)}
+          </span>
+        </div>
+
+        <em>${project.score}%</em>
+
+        <button
+          type="button"
+          class="decision-project-open"
+          data-decision-action="open-project"
+          data-project-id="${this.escapeAttribute(
+            project.id
+          )}"
+        >
+          فتح
+        </button>
+      </div>
+    `;
+  },
+
+  renderDecisionHistory(history = []) {
+    if (!history.length) {
+      return this.emptyState(
+        "لا يوجد Decision History حالياً."
+      );
+    }
+
+    const rows = [...history]
+      .sort((a, b) => {
+        const timeA =
+          new Date(
+            a.createdAt ||
+            a.updatedAt ||
+            0
+          ).getTime();
+
+        const timeB =
+          new Date(
+            b.createdAt ||
+            b.updatedAt ||
+            0
+          ).getTime();
+
+        return timeB - timeA;
+      })
+      .slice(0, this.config.maximumHistoryRows);
+
+    return `
+      <div class="decision-history-list">
+        ${rows
+          .map(item => `
+            <div class="decision-history-row">
+              <span
+                class="decision-history-status ${this.decisionStatusClass(
+                  item.status
+                )}"
+              >
+                ${this.decisionStatusIcon(
+                  item.status
+                )}
+              </span>
+
+              <div>
+                <strong>
+                  ${this.escapeHtml(item.title)}
+                </strong>
+
+                <small>
+                  ${this.escapeHtml(
+                    this.sourceLabel(
+                      item.sourceType
+                    )
+                  )}
+                  · ${this.escapeHtml(item.actor)}
+                </small>
+              </div>
+
+              <div class="decision-history-meta">
+                <span>
+                  ${this.escapeHtml(
+                    this.decisionStatusLabel(
+                      item.status
+                    )
+                  )}
+                </span>
+
+                <small>
+                  ${this.escapeHtml(
+                    this.formatDateTime(
+                      item.createdAt,
+                      "غير محدد"
+                    )
+                  )}
+                </small>
+              </div>
+            </div>
+          `)
+          .join("")}
+      </div>
+    `;
+  },
+
+  /* =======================================================
+     Events
+  ======================================================= */
+
+  bindActionEvents() {
+    if (
+      this._eventsBound ||
+      !this._container
+    ) {
+      return;
+    }
+
+    this._eventsBound = true;
+
+    this._container.addEventListener(
+      "click",
+      event => {
+        const button =
+          event.target.closest(
+            "[data-decision-action]"
+          );
+
+        if (
+          !button ||
+          !this._container?.contains(button)
+        ) {
+          return;
+        }
+
+        const action =
+          button.dataset.decisionAction;
+
+        if (
+          action === "approve" ||
+          action === "approve-convert" ||
+          action === "reject" ||
+          action === "defer"
+        ) {
+          const item =
+            this.findDecisionQueueItem(
+              button.dataset.sourceType,
+              button.dataset.sourceId
+            );
+
+          if (!item) {
+            this.showToast(
+              "لم يتم العثور على القرار.",
+              "error"
+            );
+            return;
+          }
+
+          this.confirmDecisionAction(
+            action,
+            item
+          );
+          return;
+        }
+
+        if (
+          action === "scenario-details"
+        ) {
+          this.openScenarioDetails(
+            button.dataset.scenarioId
+          );
+          return;
+        }
+
+        if (
+          action === "open-project"
+        ) {
+          this.openProject(
+            button.dataset.projectId
+          );
+        }
+      }
+    );
+  },
+
+  findDecisionQueueItem(
+    sourceType,
+    sourceId
+  ) {
+    return (
+      this.getDecisionQueue().find(
+        item =>
+          String(item.sourceType) ===
+            String(sourceType) &&
+          String(item.sourceId) ===
+            String(sourceId)
+      ) ||
+      null
+    );
+  },
+
+  confirmDecisionAction(action, item) {
+    const labels = {
+      approve: {
+        icon: "✅",
+        title: "اعتماد القرار",
+        confirmText: "تأكيد الاعتماد",
+        noteLabel: "ملاحظات الاعتماد"
+      },
+
+      "approve-convert": {
+        icon: "🚀",
+        title: "اعتماد وتحويل إلى مشروع",
+        confirmText: "اعتماد وإنشاء المشروع",
+        noteLabel: "ملاحظات القرار"
+      },
+
+      reject: {
+        icon: "⛔",
+        title: "رفض القرار",
+        confirmText: "تأكيد الرفض",
+        noteLabel: "سبب الرفض",
+        requiredNotes: true,
+        danger: true
+      },
+
+      defer: {
+        icon: "⏸️",
+        title: "تأجيل القرار",
+        confirmText: "تأكيد التأجيل",
+        noteLabel: "سبب التأجيل"
+      }
+    };
+
+    const config = labels[action];
+
+    if (!config) return;
+
+    this.openConfirmation({
+      type: action,
+      item,
+      ...config,
+      message:
+        `سيتم ${this.actionLabel(action)} «${item.title}».`
+    });
+  },
+
+  executePendingAction(notes = "") {
+    if (
+      !this._pendingAction ||
+      this._isExecuting
+    ) {
+      return;
+    }
+
+    if (
+      this._pendingAction.requiredNotes &&
+      !notes.trim()
+    ) {
+      this.showToast(
+        "يرجى إدخال السبب قبل المتابعة.",
+        "error"
+      );
+      return;
+    }
+
+    this._isExecuting = true;
+
+    try {
+      const {
+        type,
+        item
+      } = this._pendingAction;
+
+      let result = null;
+
+      if (
+        item.sourceType ===
+        this.sourceType.IDEA
+      ) {
+        if (type === "approve") {
+          result =
+            this.approveIdeaDecision(
+              item,
+              notes,
+              false
+            );
+        }
+
+        if (
+          type === "approve-convert"
+        ) {
+          result =
+            this.approveIdeaDecision(
+              item,
+              notes,
+              true
+            );
+        }
+
+        if (type === "reject") {
+          result =
+            this.rejectIdeaDecision(
+              item,
+              notes
+            );
+        }
+
+        if (type === "defer") {
+          result =
+            this.deferGenericDecision(
+              item,
+              notes
+            );
+        }
+      } else {
+        if (type === "approve") {
+          result =
+            this.approveGenericDecision(
+              item,
+              notes
+            );
+        }
+
+        if (type === "reject") {
+          result =
+            this.rejectGenericDecision(
+              item,
+              notes
+            );
+        }
+
+        if (type === "defer") {
+          result =
+            this.deferGenericDecision(
+              item,
+              notes
+            );
+        }
+      }
+
+      if (!result?.success) {
+        this.showToast(
+          result?.message ||
+          "تعذر تنفيذ القرار.",
+          "error"
+        );
+        return;
+      }
+
+      const actionType = type;
+
+      this.closeConfirmation();
+
+      if (
+        actionType ===
+        "approve-convert"
+      ) {
+        this.showToast(
+          "تم اعتماد الفكرة وإنشاء المشروع وتسجيل القرار.",
+          "success"
+        );
+      } else if (
+        actionType === "approve"
+      ) {
+        this.showToast(
+          "تم اعتماد القرار وتسجيله.",
+          "success"
+        );
+      } else if (
+        actionType === "reject"
+      ) {
+        this.showToast(
+          "تم رفض القرار وتسجيل السبب.",
+          "success"
+        );
+      } else {
+        this.showToast(
+          "تم تأجيل القرار وتسجيل الملاحظة.",
+          "success"
+        );
+      }
+
+      this.scheduleRefresh();
+    } finally {
+      this._isExecuting = false;
+    }
+  },
+
+  /* =======================================================
+     Scenario Details
+  ======================================================= */
+
+  openScenarioDetails(scenarioId) {
+    const scenario =
+      this.getDecisionCenter()
+        .scenarios
+        .find(
+          item =>
+            String(item.id) ===
+            String(scenarioId)
+        );
+
+    if (!scenario) {
+      this.showToast(
+        "لم يتم العثور على السيناريو.",
+        "error"
+      );
+      return;
+    }
+
+    this.closeScenarioDetails();
+
+    const score =
+      this.decisionScore(scenario);
+
+    const modal =
+      document.createElement("div");
+
+    modal.className =
+      "decision-details-overlay";
+
+    modal.innerHTML = `
+      <div
+        class="decision-details-dialog"
+        role="dialog"
+        aria-modal="true"
+      >
+        <button
+          type="button"
+          class="decision-details-close"
+          data-decision-details-close
+        >
+          ×
+        </button>
+
+        <div class="decision-details-heading">
+          <div>🧭</div>
+
+          <span>
+            Decision Scenario
+          </span>
+
+          <h3>
+            ${this.escapeHtml(
+              scenario.title
+            )}
+          </h3>
+
+          <p>
+            ${this.escapeHtml(
+              scenario.description ||
+              scenario.recommendation
+            )}
+          </p>
+        </div>
+
+        <div class="decision-details-kpis">
+          <div>
+            <small>Decision Score</small>
+            <strong>${score}%</strong>
+          </div>
+
+          <div>
+            <small>Impact</small>
+            <strong>${scenario.impact}%</strong>
+          </div>
+
+          <div>
+            <small>Risk</small>
+            <strong>${scenario.risk}%</strong>
+          </div>
+
+          <div>
+            <small>Readiness</small>
+            <strong>${scenario.readiness}%</strong>
+          </div>
+        </div>
+
+        <div class="decision-details-section">
+          <strong>المؤشرات</strong>
+
+          <div class="decision-details-list">
+            <span>التكلفة: ${scenario.cost}%</span>
+            <span>السرعة: ${scenario.speed}%</span>
+            <span>الحوكمة: ${scenario.governance}%</span>
+            <span>
+              الحالة:
+              ${this.escapeHtml(
+                this.decisionStatusLabel(
+                  scenario.status
+                )
+              )}
+            </span>
+          </div>
+        </div>
+
+        <div class="decision-details-section">
+          <strong>التوصية</strong>
+
+          <p>
+            ${this.escapeHtml(
+              scenario.recommendation
+            )}
+          </p>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    this._detailsModal = modal;
+
+    modal.addEventListener(
+      "click",
+      event => {
+        if (
+          event.target === modal ||
+          event.target.closest(
+            "[data-decision-details-close]"
+          )
+        ) {
+          this.closeScenarioDetails();
+        }
+      }
+    );
+
+    requestAnimationFrame(() => {
+      modal.classList.add("visible");
+    });
+  },
+
+  closeScenarioDetails() {
+    if (!this._detailsModal) return;
+
+    const modal = this._detailsModal;
+
+    modal.classList.remove("visible");
+
+    setTimeout(() => {
+      modal.remove();
+    }, 180);
+
+    this._detailsModal = null;
+  },
+
+  /* =======================================================
+     Confirmation Modal
+  ======================================================= */
+
+  openConfirmation(config = {}) {
+    this.closeConfirmation();
+
+    this._pendingAction = {
+      ...config
+    };
+
+    const modal =
+      document.createElement("div");
+
+    modal.className =
+      "decision-confirmation-overlay";
+
+    modal.innerHTML = `
+      <div
+        class="decision-confirmation-dialog"
+        role="dialog"
+        aria-modal="true"
+      >
+        <button
+          type="button"
+          class="decision-confirmation-close"
+          data-decision-confirmation-close
+        >
+          ×
+        </button>
+
+        <div class="decision-confirmation-icon">
+          ${this.escapeHtml(
+            config.icon || "🧭"
+          )}
+        </div>
+
+        <h3>
+          ${this.escapeHtml(
+            config.title ||
+            "تأكيد القرار"
+          )}
+        </h3>
+
+        <p>
+          ${this.escapeHtml(
+            config.message ||
+            "هل تريد متابعة القرار؟"
+          )}
+        </p>
+
+        <label class="decision-confirmation-field">
+          <span>
+            ${this.escapeHtml(
+              config.noteLabel ||
+              "ملاحظات"
+            )}
+
+            ${
+              config.requiredNotes
+                ? "<em>مطلوب</em>"
+                : ""
+            }
+          </span>
+
+          <textarea
+            rows="3"
+            data-decision-confirmation-notes
+            placeholder="${
+              config.requiredNotes
+                ? "أدخل السبب قبل المتابعة..."
+                : "إضافة ملاحظة اختيارية..."
+            }"
+          ></textarea>
+        </label>
+
+        <div class="decision-confirmation-actions">
+          <button
+            type="button"
+            class="decision-action-button secondary"
+            data-decision-confirmation-close
+          >
+            إلغاء
+          </button>
+
+          <button
+            type="button"
+            class="decision-action-button ${
+              config.danger
+                ? "danger"
+                : "primary"
+            }"
+            data-decision-confirmation-submit
+          >
+            ${this.escapeHtml(
+              config.confirmText ||
+              "تأكيد"
+            )}
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    this._confirmationModal = modal;
+
+    modal.addEventListener(
+      "click",
+      event => {
+        if (
+          event.target === modal ||
+          event.target.closest(
+            "[data-decision-confirmation-close]"
+          )
+        ) {
+          this.closeConfirmation();
+          return;
+        }
+
+        if (
+          event.target.closest(
+            "[data-decision-confirmation-submit]"
+          )
+        ) {
+          const notes =
+            modal
+              .querySelector(
+                "[data-decision-confirmation-notes]"
+              )
+              ?.value?.trim() ||
+            "";
+
+          this.executePendingAction(notes);
+        }
+      }
+    );
+
+    requestAnimationFrame(() => {
+      modal.classList.add("visible");
+
+      modal
+        .querySelector(
+          "[data-decision-confirmation-notes]"
+        )
+        ?.focus();
+    });
+  },
+
+  closeConfirmation() {
+    if (!this._confirmationModal) {
+      this._pendingAction = null;
+      return;
+    }
+
+    const modal =
+      this._confirmationModal;
+
+    modal.classList.remove("visible");
+
+    setTimeout(() => {
+      modal.remove();
+    }, 180);
+
+    this._confirmationModal = null;
+    this._pendingAction = null;
+  },
+
+  /* =======================================================
+     Navigation
+  ======================================================= */
+
+  openProject(projectId) {
+    if (!projectId) return;
+
+    try {
+      localStorage.setItem(
+        this.config.selectedProjectKey,
+        String(projectId)
+      );
+
+      sessionStorage.setItem(
+        this.config.selectedProjectKey,
+        String(projectId)
+      );
+    } catch (error) {
+      console.warn(
+        "AI Work Decision V5.0: Unable to save project selection.",
+        error
+      );
+    }
+
+    if (
+      typeof window.AIW?.App?.go ===
+      "function"
+    ) {
+      window.AIW.App.go("projects");
+      return;
+    }
+
+    if (
+      typeof window.AIW?.Router?.go ===
+      "function"
+    ) {
+      window.AIW.Router.go("projects");
+      return;
+    }
+
+    window.location.hash = "#projects";
   },
 
   /* =======================================================
@@ -2117,40 +3169,32 @@ AIW.Modules.decision = {
   ======================================================= */
 
   renderExecutiveList(items = []) {
-    if (
-      !Array.isArray(items) ||
-      !items.length
-    ) {
+    if (!items.length) {
       return this.emptyState(
-        "لا توجد إجراءات تنفيذية متاحة حالياً."
+        "لا توجد إجراءات تنفيذية حالياً."
       );
     }
 
     return `
       <div class="executive-list">
         ${items
-          .map(
-            (item, index) => `
-              <div class="executive-item">
-                <strong>
-                  ${String(
-                    index + 1
-                  ).padStart(2, "0")}
-                </strong>
+          .map((item, index) => `
+            <div class="executive-item">
+              <strong>
+                ${String(index + 1).padStart(2, "0")}
+              </strong>
 
-                <span>
-                  ${this.escapeHtml(
-                    typeof item ===
-                      "string"
-                      ? item
-                      : item?.title ||
-                        item?.description ||
-                        ""
-                  )}
-                </span>
-              </div>
-            `
-          )
+              <span>
+                ${this.escapeHtml(
+                  typeof item === "string"
+                    ? item
+                    : item?.title ||
+                      item?.description ||
+                      ""
+                )}
+              </span>
+            </div>
+          `)
           .join("")}
       </div>
     `;
@@ -2158,9 +3202,8 @@ AIW.Modules.decision = {
 
   kpi(label, value, note) {
     if (
-      window.AIW?.Widgets &&
-      typeof window.AIW.Widgets.kpi ===
-        "function"
+      typeof window.AIW?.Widgets?.kpi ===
+      "function"
     ) {
       return window.AIW.Widgets.kpi({
         label,
@@ -2171,48 +3214,37 @@ AIW.Modules.decision = {
 
     return `
       <div class="module-card">
-        <span>
-          ${this.escapeHtml(label)}
-        </span>
-
-        <strong>
-          ${this.escapeHtml(value)}
-        </strong>
-
-        <small>
-          ${this.escapeHtml(note)}
-        </small>
+        <span>${this.escapeHtml(label)}</span>
+        <strong>${this.escapeHtml(value)}</strong>
+        <small>${this.escapeHtml(note)}</small>
       </div>
     `;
   },
 
-  sectionTitle(title, desc) {
+  sectionTitle(title, description) {
     if (
-      window.AIW?.Widgets &&
-      typeof window.AIW.Widgets
-        .sectionTitle === "function"
+      typeof window.AIW?.Widgets?.sectionTitle ===
+      "function"
     ) {
-      return window.AIW.Widgets
-        .sectionTitle(
-          title,
-          desc
-        );
+      return window.AIW.Widgets.sectionTitle(
+        title,
+        description
+      );
     }
 
     return `
       <div class="module-section-title compact">
-        <h2>
-          ${this.escapeHtml(title)}
-        </h2>
-
-        <p>
-          ${this.escapeHtml(desc)}
-        </p>
+        <h2>${this.escapeHtml(title)}</h2>
+        <p>${this.escapeHtml(description)}</p>
       </div>
     `;
   },
 
-  fallbackHero() {
+  fallbackHero(
+    executiveScore,
+    pendingCount,
+    historyCount
+  ) {
     return `
       <div class="module-hero">
         <span class="module-kicker">
@@ -2224,8 +3256,22 @@ AIW.Modules.decision = {
         </h1>
 
         <p>
-          مركز ذكي لدعم القرار التنفيذي وربط الاستراتيجية بالمشاريع والمخاطر والنتائج.
+          إدارة القرارات التنفيذية وربطها بالأفكار والمشاريع والمخاطر وسجل القرار.
         </p>
+
+        <div class="aiw-chip-row">
+          <span class="aiw-chip">
+            📊 Executive Score ${executiveScore}%
+          </span>
+
+          <span class="aiw-chip">
+            ⏳ ${pendingCount} قرارات معلقة
+          </span>
+
+          <span class="aiw-chip">
+            📚 ${historyCount} قرارات مسجلة
+          </span>
+        </div>
       </div>
     `;
   },
@@ -2239,57 +3285,252 @@ AIW.Modules.decision = {
   },
 
   /* =======================================================
-     Status Helpers
+     Status Presentation
   ======================================================= */
 
-  isActiveStatus(status) {
+  sourceLabel(source) {
+    const labels = {
+      [this.sourceType.IDEA]: "فكرة",
+      [this.sourceType.PROJECT]: "مشروع",
+      [this.sourceType.RISK]: "مخاطر",
+      [this.sourceType.GOVERNANCE]: "حوكمة",
+      [this.sourceType.AUTOMATION]: "أتمتة",
+      [this.sourceType.SCENARIO]: "سيناريو",
+      [this.sourceType.MANUAL]: "قرار يدوي"
+    };
+
+    return labels[source] || "قرار";
+  },
+
+  actionLabel(action) {
+    const labels = {
+      approve: "اعتماد",
+      "approve-convert": "اعتماد وتحويل إلى مشروع",
+      reject: "رفض",
+      defer: "تأجيل"
+    };
+
+    return labels[action] || "تنفيذ قرار على";
+  },
+
+  decisionStatusLabel(status) {
+    const labels = {
+      [this.decisionStatus.PROPOSED]: "مقترح",
+      [this.decisionStatus.PENDING]: "قيد المراجعة",
+      [this.decisionStatus.APPROVED]: "معتمد",
+      [this.decisionStatus.REJECTED]: "مرفوض",
+      [this.decisionStatus.DEFERRED]: "مؤجل",
+      [this.decisionStatus.IMPLEMENTED]: "تم التنفيذ",
+      [this.decisionStatus.ARCHIVED]: "مؤرشف"
+    };
+
+    return labels[status] || "مقترح";
+  },
+
+  decisionStatusIcon(status) {
+    const icons = {
+      [this.decisionStatus.PROPOSED]: "💡",
+      [this.decisionStatus.PENDING]: "⏳",
+      [this.decisionStatus.APPROVED]: "✅",
+      [this.decisionStatus.REJECTED]: "⛔",
+      [this.decisionStatus.DEFERRED]: "⏸️",
+      [this.decisionStatus.IMPLEMENTED]: "🚀",
+      [this.decisionStatus.ARCHIVED]: "🗄️"
+    };
+
+    return icons[status] || "🧭";
+  },
+
+  decisionStatusClass(status) {
     if (
-      status === undefined ||
-      status === null ||
-      status === ""
+      status === this.decisionStatus.APPROVED
+    ) {
+      return "approved";
+    }
+
+    if (
+      status === this.decisionStatus.REJECTED
+    ) {
+      return "rejected";
+    }
+
+    if (
+      status === this.decisionStatus.DEFERRED
+    ) {
+      return "deferred";
+    }
+
+    if (
+      status === this.decisionStatus.IMPLEMENTED
+    ) {
+      return "implemented";
+    }
+
+    if (
+      status === this.decisionStatus.ARCHIVED
+    ) {
+      return "archived";
+    }
+
+    return "pending";
+  },
+
+  riskClass(level) {
+    if (this.isHighRisk(level)) {
+      return "red";
+    }
+
+    const value =
+      this.normalizeStatus(level);
+
+    if (
+      [
+        "متوسط",
+        "متوسطة",
+        "medium"
+      ].includes(value)
+    ) {
+      return "orange";
+    }
+
+    return "green";
+  },
+
+  isHighRisk(level) {
+    const value =
+      this.normalizeStatus(level);
+
+    return (
+      value.includes("عال") ||
+      [
+        "high",
+        "critical",
+        "حرج"
+      ].includes(value)
+    );
+  },
+
+  isClosedStatus(status) {
+    const value =
+      this.normalizeStatus(status);
+
+    return [
+      "closed",
+      "resolved",
+      "completed",
+      "approved",
+      "مغلق",
+      "تم-الحل",
+      "مكتمل",
+      "معتمد"
+    ].includes(value);
+  },
+
+  isActiveControl(control = {}) {
+    if (
+      control.enabled === true ||
+      control.active === true
     ) {
       return true;
     }
 
-    const value =
-      String(status)
-        .trim()
-        .toLowerCase();
+    const status =
+      this.normalizeStatus(
+        control.status ??
+        control.state ??
+        ""
+      );
 
-    return ![
-      "inactive",
-      "archived",
-      "cancelled",
-      "rejected",
-      "مؤرشف",
-      "ملغي",
-      "مرفوض"
-    ].includes(value);
+    return [
+      "active",
+      "enabled",
+      "approved",
+      "نشط",
+      "مفعل",
+      "مفعّل",
+      "معتمد"
+    ].includes(status);
+  },
+
+  priorityScore(priority) {
+    const value =
+      this.normalizeStatus(priority);
+
+    if (
+      [
+        "عالية",
+        "عالي",
+        "high",
+        "critical"
+      ].includes(value)
+    ) {
+      return 85;
+    }
+
+    if (
+      [
+        "متوسطة",
+        "متوسط",
+        "medium"
+      ].includes(value)
+    ) {
+      return 65;
+    }
+
+    return 45;
+  },
+
+  riskPenaltyScore(level) {
+    const value =
+      this.normalizeStatus(level);
+
+    if (
+      value.includes("عال") ||
+      [
+        "high",
+        "critical",
+        "حرج"
+      ].includes(value)
+    ) {
+      return 18;
+    }
+
+    if (
+      value.includes("متوسط") ||
+      value === "medium"
+    ) {
+      return 8;
+    }
+
+    return 3;
   },
 
   /* =======================================================
-     Automatic Synchronization
+     Synchronization
   ======================================================= */
+
+  scheduleRefresh() {
+    clearTimeout(this._refreshTimer);
+
+    this._refreshTimer =
+      setTimeout(() => {
+        if (!this._container?.isConnected) {
+          return;
+        }
+
+        this.render(this._container);
+      }, this.config.refreshDelay);
+  },
 
   bindAutomaticSync() {
     if (this._syncBound) return;
 
     this._syncBound = true;
 
-    const refreshDecision = () => {
-      if (
-        !this._container ||
-        !this._container.isConnected
-      ) {
-        return;
-      }
+    const refresh =
+      () => this.scheduleRefresh();
 
-      this.render(
-        this._container
-      );
-    };
-
-    const syncEvents = [
+    const events = [
       "aiw:dataChanged",
       "aiw:dataUpdated",
       "aiw:dataImported",
@@ -2299,115 +3540,712 @@ AIW.Modules.decision = {
 
       "aiw:decisionChanged",
       "aiw:decisionUpdated",
+      "aiw:decisionCreated",
+      "aiw:decisionApproved",
+      "aiw:decisionRejected",
+      "aiw:decisionDeferred",
 
-      "aiw:ideasChanged",
-      "aiw:ideasUpdated",
+      "aiw:ideaSubmittedForApproval",
+      "aiw:ideaApproved",
+      "aiw:ideaRejected",
+      "aiw:ideaConvertedToProject",
 
-      "aiw:projectsChanged",
-      "aiw:projectsUpdated",
+      "aiw:projectCreated",
+      "aiw:projectUpdated",
+      "aiw:projectCreatedFromIdea",
 
-      "aiw:businessChanged",
-      "aiw:businessUpdated",
+      "aiw:automationUpdated",
+      "aiw:workflowExecuted",
 
-      "aiw:kpisChanged",
-      "aiw:kpisUpdated",
-
-      "aiw:governanceChanged",
       "aiw:governanceUpdated",
-
-      "aiw:maturityChanged",
-      "aiw:maturityUpdated",
-
-      "aiw:reportsChanged",
-      "aiw:reportsUpdated",
-
-      "aiw:risksChanged",
       "aiw:risksUpdated",
 
-      "aiw:alertsChanged",
-      "aiw:alertsUpdated"
+      "aiw:kpisUpdated",
+      "aiw:maturityUpdated",
+      "aiw:reportsUpdated"
     ];
 
-    syncEvents.forEach(
-      (eventName) => {
-        window.addEventListener(
-          eventName,
-          refreshDecision
-        );
-      }
-    );
+    events.forEach(eventName => {
+      window.addEventListener(
+        eventName,
+        refresh
+      );
+    });
+
+    const store =
+      this.getStore();
+
+    if (
+      typeof store?.subscribe ===
+      "function"
+    ) {
+      this._unsubscribeStore =
+        store.subscribe(refresh);
+    }
 
     window.addEventListener(
       "storage",
-      (event) => {
+      event => {
         const supportedKeys = [
+          window.AIW?.KEYS?.DATA,
+          "atcDataV1",
           "aiwDataV1",
           "aiwData",
           "AIW_DATA"
-        ];
+        ].filter(Boolean);
 
         if (
           !event.key ||
-          supportedKeys.includes(
-            event.key
-          )
+          supportedKeys.includes(event.key)
         ) {
-          refreshDecision();
+          refresh();
         }
       }
     );
+  },
+
+  destroy() {
+    clearTimeout(this._refreshTimer);
+
+    if (
+      typeof this._unsubscribeStore ===
+      "function"
+    ) {
+      this._unsubscribeStore();
+    }
+
+    this._unsubscribeStore = null;
+    this._container = null;
+    this._eventsBound = false;
+    this._syncBound = false;
+
+    this.closeConfirmation();
+    this.closeScenarioDetails();
+  },
+
+  /* =======================================================
+     Toast
+  ======================================================= */
+
+  showToast(message, type = "success") {
+    document
+      .querySelector(
+        ".decision-workflow-toast"
+      )
+      ?.remove();
+
+    const toast =
+      document.createElement("div");
+
+    toast.className =
+      `decision-workflow-toast ${type}`;
+
+    toast.textContent = message;
+
+    document.body.appendChild(toast);
+
+    requestAnimationFrame(() => {
+      toast.classList.add("visible");
+    });
+
+    setTimeout(() => {
+      toast.classList.remove("visible");
+
+      setTimeout(() => {
+        toast.remove();
+      }, 200);
+    }, 2800);
+  },
+
+  /* =======================================================
+     Styles
+  ======================================================= */
+
+  injectStyles() {
+    if (
+      document.getElementById(
+        this.config.styleId
+      )
+    ) {
+      return;
+    }
+
+    const style =
+      document.createElement("style");
+
+    style.id =
+      this.config.styleId;
+
+    style.textContent = `
+      .decision-queue-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .decision-queue-row {
+        display: grid;
+        grid-template-columns:
+          auto minmax(0, 1fr) auto auto;
+        align-items: center;
+        gap: 12px;
+        padding: 14px;
+        border: 1px solid rgba(15, 23, 42, 0.07);
+        border-radius: 17px;
+        background: #f9fafb;
+      }
+
+      .decision-queue-row > b {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        color: #ffffff;
+        background: #101b2f;
+        font-size: 11px;
+      }
+
+      .decision-queue-row strong,
+      .decision-queue-row span,
+      .decision-queue-row small {
+        display: block;
+      }
+
+      .decision-queue-row strong {
+        color: #101828;
+        font-size: 13px;
+      }
+
+      .decision-queue-row span {
+        margin-top: 4px;
+        color: #475467;
+        font-size: 11px;
+      }
+
+      .decision-queue-row small {
+        margin-top: 4px;
+        color: #667085;
+        font-size: 10px;
+      }
+
+      .decision-queue-row > em {
+        padding: 6px 9px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-style: normal;
+        font-weight: 800;
+      }
+
+      .decision-queue-row > em.red {
+        color: #b42318;
+        background: #feeceb;
+      }
+
+      .decision-queue-row > em.orange {
+        color: #b75c00;
+        background: #fff3d9;
+      }
+
+      .decision-queue-row > em.green {
+        color: #087d3e;
+        background: #e2f7ea;
+      }
+
+      .decision-queue-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+        min-width: 150px;
+      }
+
+      .decision-mini-action {
+        appearance: none;
+        min-height: 30px;
+        padding: 6px 8px;
+        border: 0;
+        border-radius: 9px;
+        font: inherit;
+        font-size: 10px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .decision-mini-action.approve {
+        color: #087d3e;
+        background: #e2f7ea;
+      }
+
+      .decision-mini-action.convert {
+        color: #3159bf;
+        background: #edf3ff;
+      }
+
+      .decision-mini-action.defer {
+        color: #b75c00;
+        background: #fff3d9;
+      }
+
+      .decision-mini-action.reject {
+        color: #b42318;
+        background: #feeceb;
+      }
+
+      .decision-scenario-actions {
+        display: grid;
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid rgba(15, 23, 42, 0.08);
+      }
+
+      .decision-action-button {
+        appearance: none;
+        min-height: 42px;
+        padding: 10px 13px;
+        border: 0;
+        border-radius: 13px;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .decision-action-button.primary {
+        color: #ffffff;
+        background: #101b2f;
+      }
+
+      .decision-action-button.secondary {
+        color: #344054;
+        background: #f2f4f7;
+        border: 1px solid #e4e7ec;
+      }
+
+      .decision-action-button.danger {
+        color: #b42318;
+        background: #feeceb;
+        border: 1px solid #fbd3d0;
+      }
+
+      .decision-project-item {
+        grid-template-columns:
+          auto minmax(0, 1fr) auto auto !important;
+      }
+
+      .decision-project-open {
+        appearance: none;
+        min-height: 32px;
+        padding: 7px 10px;
+        border: 1px solid #dbe7ff;
+        border-radius: 10px;
+        color: #3159bf;
+        background: #ffffff;
+        font: inherit;
+        font-size: 10px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .decision-history-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .decision-history-row {
+        display: grid;
+        grid-template-columns:
+          auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 12px;
+        padding: 13px 14px;
+        border: 1px solid rgba(15, 23, 42, 0.07);
+        border-radius: 16px;
+        background: #f9fafb;
+      }
+
+      .decision-history-status {
+        display: grid;
+        place-items: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 13px;
+        background: #edf3ff;
+      }
+
+      .decision-history-status.approved {
+        background: #e2f7ea;
+      }
+
+      .decision-history-status.rejected {
+        background: #feeceb;
+      }
+
+      .decision-history-status.deferred {
+        background: #fff3d9;
+      }
+
+      .decision-history-status.implemented {
+        color: #ffffff;
+        background: #101b2f;
+      }
+
+      .decision-history-row strong,
+      .decision-history-row small {
+        display: block;
+      }
+
+      .decision-history-row strong {
+        color: #101828;
+        font-size: 13px;
+      }
+
+      .decision-history-row small {
+        margin-top: 4px;
+        color: #667085;
+        font-size: 10px;
+      }
+
+      .decision-history-meta {
+        text-align: left;
+      }
+
+      .decision-history-meta span {
+        display: block;
+        color: #344054;
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .decision-details-overlay,
+      .decision-confirmation-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding:
+          24px
+          18px
+          calc(24px + env(safe-area-inset-bottom));
+        direction: rtl;
+        background: rgba(15, 23, 42, 0.48);
+        backdrop-filter: blur(10px);
+        opacity: 0;
+        transition: opacity 0.18s ease;
+      }
+
+      .decision-details-overlay.visible,
+      .decision-confirmation-overlay.visible {
+        opacity: 1;
+      }
+
+      .decision-details-dialog,
+      .decision-confirmation-dialog {
+        position: relative;
+        width: min(100%, 570px);
+        max-height: min(86vh, 760px);
+        overflow-y: auto;
+        padding: 28px 22px 22px;
+        border-radius: 28px;
+        background: #ffffff;
+        box-shadow:
+          0 28px 80px rgba(15, 23, 42, 0.28);
+        transform:
+          translateY(12px)
+          scale(0.98);
+        transition: transform 0.18s ease;
+      }
+
+      .decision-details-overlay.visible
+      .decision-details-dialog,
+      .decision-confirmation-overlay.visible
+      .decision-confirmation-dialog {
+        transform:
+          translateY(0)
+          scale(1);
+      }
+
+      .decision-details-close,
+      .decision-confirmation-close {
+        position: absolute;
+        top: 14px;
+        left: 15px;
+        width: 36px;
+        height: 36px;
+        border: 0;
+        border-radius: 50%;
+        color: #475467;
+        background: #f2f4f7;
+        font-size: 24px;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .decision-details-heading > div,
+      .decision-confirmation-icon {
+        display: grid;
+        place-items: center;
+        width: 62px;
+        height: 62px;
+        margin-bottom: 16px;
+        border-radius: 20px;
+        font-size: 30px;
+        background: #101b2f;
+      }
+
+      .decision-details-heading > span {
+        color: #667085;
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .decision-details-heading h3,
+      .decision-confirmation-dialog h3 {
+        margin: 7px 0 8px;
+        color: #101828;
+        font-size: 22px;
+        line-height: 1.5;
+      }
+
+      .decision-details-heading p,
+      .decision-confirmation-dialog > p {
+        margin: 0;
+        color: #667085;
+        font-size: 14px;
+        line-height: 1.8;
+      }
+
+      .decision-details-kpis {
+        display: grid;
+        grid-template-columns:
+          repeat(4, minmax(0, 1fr));
+        gap: 9px;
+        margin-top: 20px;
+      }
+
+      .decision-details-kpis > div {
+        min-width: 0;
+        padding: 12px 9px;
+        border-radius: 14px;
+        text-align: center;
+        background: #f7f8fa;
+      }
+
+      .decision-details-kpis small,
+      .decision-details-kpis strong {
+        display: block;
+      }
+
+      .decision-details-kpis small {
+        margin-bottom: 5px;
+        color: #667085;
+        font-size: 10px;
+      }
+
+      .decision-details-kpis strong {
+        color: #101828;
+        font-size: 13px;
+      }
+
+      .decision-details-section {
+        margin-top: 20px;
+        padding-top: 17px;
+        border-top:
+          1px solid rgba(15, 23, 42, 0.08);
+      }
+
+      .decision-details-section > strong {
+        display: block;
+        margin-bottom: 9px;
+        color: #101828;
+        font-size: 14px;
+      }
+
+      .decision-details-section > p {
+        margin: 0;
+        color: #667085;
+        font-size: 13px;
+        line-height: 1.8;
+      }
+
+      .decision-details-list {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .decision-details-list span {
+        padding: 10px 11px;
+        border-radius: 12px;
+        color: #475467;
+        background: #f9fafb;
+        font-size: 11px;
+      }
+
+      .decision-confirmation-field {
+        display: block;
+        margin-top: 20px;
+      }
+
+      .decision-confirmation-field > span {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        color: #344054;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .decision-confirmation-field em {
+        padding: 3px 7px;
+        border-radius: 999px;
+        color: #b42318;
+        background: #feeceb;
+        font-size: 10px;
+        font-style: normal;
+      }
+
+      .decision-confirmation-field textarea {
+        width: 100%;
+        min-height: 94px;
+        resize: vertical;
+        box-sizing: border-box;
+        padding: 13px 14px;
+        border: 1px solid #d0d5dd;
+        border-radius: 15px;
+        color: #101828;
+        background: #ffffff;
+        font: inherit;
+        outline: none;
+      }
+
+      .decision-confirmation-actions {
+        display: grid;
+        grid-template-columns: 1fr 1.3fr;
+        gap: 10px;
+        margin-top: 22px;
+      }
+
+      .decision-workflow-toast {
+        position: fixed;
+        right: 50%;
+        bottom:
+          calc(
+            108px +
+            env(safe-area-inset-bottom)
+          );
+        z-index: 100000;
+        width: min(
+          calc(100% - 36px),
+          420px
+        );
+        box-sizing: border-box;
+        padding: 14px 17px;
+        border-radius: 16px;
+        color: #ffffff;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 800;
+        line-height: 1.6;
+        background: #101b2f;
+        box-shadow:
+          0 18px 45px rgba(15, 23, 42, 0.25);
+        opacity: 0;
+        transform:
+          translateX(50%)
+          translateY(14px);
+        transition:
+          opacity 0.2s ease,
+          transform 0.2s ease;
+      }
+
+      .decision-workflow-toast.visible {
+        opacity: 1;
+        transform:
+          translateX(50%)
+          translateY(0);
+      }
+
+      .decision-workflow-toast.success {
+        background: #087d3e;
+      }
+
+      .decision-workflow-toast.error {
+        background: #b42318;
+      }
+
+      @media (max-width: 760px) {
+        .decision-queue-row {
+          grid-template-columns:
+            auto minmax(0, 1fr) auto;
+        }
+
+        .decision-queue-actions {
+          grid-column: 2 / -1;
+          grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+          width: 100%;
+        }
+
+        .decision-project-item {
+          grid-template-columns:
+            auto minmax(0, 1fr) auto !important;
+        }
+
+        .decision-project-open {
+          grid-column: 2 / -1;
+          width: 100%;
+        }
+
+        .decision-details-kpis,
+        .decision-details-list {
+          grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+        }
+
+        .decision-confirmation-actions {
+          grid-template-columns: 1fr;
+        }
+      }
+    `;
+
+    document.head.appendChild(style);
   },
 
   /* =======================================================
      Utilities
   ======================================================= */
 
-  average(values) {
-    if (
-      !Array.isArray(values) ||
-      !values.length
-    ) {
-      return 0;
-    }
+  normalizeStatus(value) {
+    return String(value ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/_/g, "-");
+  },
+
+  average(values = []) {
+    const validValues =
+      values
+        .map(value => Number(value))
+        .filter(value =>
+          Number.isFinite(value)
+        );
+
+    if (!validValues.length) return 0;
 
     return Math.round(
-      values.reduce(
-        (total, value) =>
-          total +
-          this.toSafeNumber(
-            value,
-            0
-          ),
+      validValues.reduce(
+        (sum, value) =>
+          sum + value,
         0
-      ) / values.length
+      ) / validValues.length
     );
   },
 
-  getNextId(items = []) {
-    if (!Array.isArray(items)) {
-      return 1;
-    }
-
-    const ids =
-      items
-        .map((item) =>
-          this.toSafeNumber(
-            item?.id,
-            0
-          )
-        )
-        .filter(
-          (id) => id > 0
-        );
-
-    return ids.length
-      ? Math.max(...ids) + 1
-      : 1;
-  },
-
   toSafeNumber(value, fallback = 0) {
-    const number =
-      Number(value);
+    const number = Number(value);
 
     return Number.isFinite(number)
       ? number
@@ -2429,6 +4267,50 @@ AIW.Modules.decision = {
     );
   },
 
+  createId(prefix = "item") {
+    return (
+      `${prefix}-${Date.now()}-` +
+      Math.random()
+        .toString(36)
+        .slice(2, 8)
+    );
+  },
+
+  formatDateTime(value, fallback = "") {
+    if (!value) return fallback;
+
+    try {
+      const date = new Date(value);
+
+      if (Number.isNaN(date.getTime())) {
+        return String(value);
+      }
+
+      return date.toLocaleString("ar-AE", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    } catch (error) {
+      return String(value);
+    }
+  },
+
+  uniqueBy(items = [], selector) {
+    const seen = new Set();
+
+    return items.filter(item => {
+      const key = String(selector(item));
+
+      if (seen.has(key)) return false;
+
+      seen.add(key);
+      return true;
+    });
+  },
+
   escapeHtml(value) {
     return String(value ?? "")
       .replace(/&/g, "&amp;")
@@ -2440,24 +4322,5 @@ AIW.Modules.decision = {
 
   escapeAttribute(value) {
     return this.escapeHtml(value);
-  },
-
-  clone(value) {
-    if (
-      typeof structuredClone ===
-      "function"
-    ) {
-      try {
-        return structuredClone(
-          value
-        );
-      } catch (error) {
-        // JSON fallback below.
-      }
-    }
-
-    return JSON.parse(
-      JSON.stringify(value)
-    );
   }
 };
