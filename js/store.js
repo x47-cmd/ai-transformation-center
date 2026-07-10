@@ -1,2723 +1,1780 @@
 /* =========================================================
-   AI Work - Store V2.2
+   AI Work - Store V2.3 Final
    Enterprise Single Source of Truth
+   File Path: js/store.js
 
-   Scope:
-   - Centralized State Management
-   - Ideas to Projects Lifecycle
-   - Approval and Conversion Workflow
-   - Project Blueprint Support
-   - Deep Data Merge
-   - Legacy Data Compatibility
-   - Automatic Persistence
-   - Automatic Backup
-   - Metadata Management
-   - State Subscription
-   - Cross-Tab Synchronization
-   - Activity Logging
-   - Soft Delete
-   - Import / Export / Restore
-   - Safe Recovery
+   Native support:
+   - Store V2.2 compatibility
+   - Ideas approval lifecycle
+   - Idea-to-project conversion
+   - Projects/tasks/phases
+   - Automation approvals + execution history
+   - Metadata and settings
+   - Backup/import/restore/reset
+   - Cross-tab synchronization
+   - Activity logging and soft delete
 ========================================================= */
 
-window.AIW = window.AIW || {};
+(function () {
+  "use strict";
 
-/* =========================================================
-   STORAGE KEYS
-========================================================= */
+  window.AIW = window.AIW || {};
+  const AIW = window.AIW;
 
-AIW.KEYS = {
-  DATA:
-    (
-      window.ATC_CONFIG &&
-      ATC_CONFIG.storage &&
-      ATC_CONFIG.storage.data
-    ) ||
-    "atcDataV1",
+  /* =======================================================
+     Storage Keys
+  ======================================================= */
 
-  SETTINGS:
-    (
-      window.ATC_CONFIG &&
-      ATC_CONFIG.storage &&
-      ATC_CONFIG.storage.settings
-    ) ||
-    "atcSettingsV1",
+  AIW.KEYS = {
+    DATA:
+      window.ATC_CONFIG?.storage?.data ||
+      AIW.Config?.storage?.data ||
+      "aiwDataV2",
 
-  BACKUP:
-    (
-      window.ATC_CONFIG &&
-      ATC_CONFIG.storage &&
-      ATC_CONFIG.storage.backup
-    ) ||
-    "atcBackupV1",
+    SETTINGS:
+      window.ATC_CONFIG?.storage?.settings ||
+      AIW.Config?.storage?.settings ||
+      "aiwSettingsV2",
 
-  CURRENT_MODULE:
-    (
-      window.ATC_CONFIG &&
-      ATC_CONFIG.storage &&
-      ATC_CONFIG.storage.currentModule
-    ) ||
-    "aiwCurrentModule"
-};
+    BACKUP:
+      window.ATC_CONFIG?.storage?.backup ||
+      AIW.Config?.storage?.backup ||
+      "aiwBackupV2",
 
-/* =========================================================
-   DEFAULT PLATFORM DATA
-========================================================= */
+    CURRENT_MODULE:
+      window.ATC_CONFIG?.storage?.currentModule ||
+      AIW.Config?.storage?.currentModule ||
+      "aiwCurrentModule"
+  };
 
-AIW.DEFAULT_DATA = {
-  meta: {
-    app: "Enterprise Biometric Intelligence Platform",
-    shortName: "AI Work",
-    version: "2.2.0",
-    schemaVersion: "2.2",
-    environment: "Enterprise",
-    architecture: "Modular Single Page Application",
-    dataModel: "Single Source of Truth",
-    synchronization: "Automatic",
-    createdAt: null,
-    updatedAt: null,
-    lastSync: null,
-    lastBackupAt: null,
-    lastImportedAt: null,
-    lastRestoredAt: null,
-    lastMigrationAt: null
-  },
+  /* =======================================================
+     Lifecycle
+  ======================================================= */
 
-  dashboard: {
-    maturityScore: 34,
-    portfolioHealth: 68,
-    platformHealth: 0,
-    readinessScore: 0,
-    expectedROI: 42000000,
-    targetYear: 2030
-  },
+  AIW.LIFECYCLE = {
+    IDEA_STATUS: {
+      IDEA: "idea",
+      DRAFT: "draft",
+      SUBMITTED: "submitted",
+      PENDING_APPROVAL: "pending-approval",
+      APPROVED: "approved",
+      REJECTED: "rejected",
+      CONVERTED: "converted-to-project",
+      ARCHIVED: "archived"
+    },
 
-  pipeline: {
-    totalIdeas: 0,
-    draftIdeas: 0,
-    submittedIdeas: 0,
-    pendingIdeas: 0,
-    approvedIdeas: 0,
-    rejectedIdeas: 0,
-    convertedIdeas: 0,
-    totalProjects: 0,
-    activeProjects: 0,
-    completedProjects: 0,
-    archivedProjects: 0,
-    conversionRate: 0,
-    averageProjectProgress: 0,
-    updatedAt: null
-  },
+    PROJECT_STATUS: {
+      PLANNING: "planning",
+      READY: "ready",
+      IN_PROGRESS: "in-progress",
+      PILOT: "pilot",
+      PRODUCTION: "production",
+      ON_HOLD: "on-hold",
+      COMPLETED: "completed",
+      CANCELLED: "cancelled",
+      ARCHIVED: "archived"
+    },
 
-  strategy: [],
-  projects: [],
-  flagshipProjects: [],
-  ideas: [],
-  departments: [],
-  kpis: [],
-  maturity: [],
-  governance: [],
-  reports: [],
-  businessCases: [],
-  decisionCenter: [],
-  risks: [],
+    PROJECT_PHASES: [
+      { id: "discovery", title: "التحليل", titleEn: "Discovery", order: 1 },
+      { id: "planning", title: "التخطيط", titleEn: "Planning", order: 2 },
+      { id: "design", title: "التصميم", titleEn: "Design", order: 3 },
+      { id: "development", title: "التطوير", titleEn: "Development", order: 4 },
+      { id: "testing", title: "الاختبار", titleEn: "Testing", order: 5 },
+      { id: "pilot", title: "التجربة الأولية", titleEn: "Pilot", order: 6 },
+      { id: "production", title: "التشغيل", titleEn: "Production", order: 7 },
+      { id: "measurement", title: "قياس النتائج", titleEn: "Measurement", order: 8 }
+    ]
+  };
 
-  automation: {
-    workflows: [],
-    triggers: [],
-    approvals: [],
+  /* =======================================================
+     Defaults
+  ======================================================= */
+
+  AIW.DEFAULT_DATA = {
+    meta: {
+      app: "Enterprise Biometric Intelligence Platform",
+      shortName: "AI Work",
+      version: "2.3.0",
+      schemaVersion: "2.3",
+      environment: "production",
+      architecture: "Modular Single Page Application",
+      dataModel: "Single Source of Truth",
+      synchronization: "Automatic",
+      createdAt: null,
+      updatedAt: null,
+      lastSync: null,
+      lastBackupAt: null,
+      lastImportedAt: null,
+      lastRestoredAt: null,
+      lastMigrationAt: null
+    },
+
+    summary: {
+      targetIdeas: 100,
+      targetProjects: 15,
+      targetDepartments: 5,
+      maturityScore: 34,
+      portfolioHealth: 68,
+      systemHealth: 68,
+      operationsHealth: 92,
+      aiReadiness: 34,
+      targetYear: 2030,
+      roadmapPeriod: "2026–2030"
+    },
+
+    dashboard: {
+      maturityScore: 34,
+      portfolioHealth: 68,
+      platformHealth: 0,
+      readinessScore: 34,
+      expectedROI: 0,
+      targetYear: 2030
+    },
+
+    pipeline: {
+      totalIdeas: 0,
+      draftIdeas: 0,
+      submittedIdeas: 0,
+      pendingIdeas: 0,
+      pendingApproval: 0,
+      approvedIdeas: 0,
+      rejectedIdeas: 0,
+      convertedIdeas: 0,
+      totalProjects: 0,
+      activeProjects: 0,
+      completedProjects: 0,
+      archivedProjects: 0,
+      conversionRate: 0,
+      averageProjectProgress: 0,
+      updatedAt: null
+    },
+
+    strategy: [],
+    projects: [],
+    flagshipProjects: [],
+    ideas: [],
+    departments: [],
+    kpis: [],
+    maturity: [],
+    governance: [],
+    reports: [],
+    businessCases: [],
+    risks: [],
     roadmap: [],
-    settings: {},
-    statistics: {},
-    executionHistory: []
-  },
 
-  notifications: [],
-  recommendations: [],
-  diagnostics: [],
-  activity: []
-};
-
-/* =========================================================
-   DEFAULT PLATFORM SETTINGS
-========================================================= */
-
-AIW.DEFAULT_SETTINGS = {
-  language: "ar",
-  locale: "ar-AE",
-  direction: "rtl",
-  theme: "light",
-  compactMode: false,
-  autoBackup: true,
-  backupLimit: 1,
-  notifications: true,
-  autoSync: true,
-  activityLogging: true,
-  softDelete: true,
-
-  ideaProjectWorkflow: {
-    requireApproval: true,
-    allowDirectConversion: false,
-    calculateProgressFromTasks: true,
-    preserveProjectHistory: true
-  }
-};
-
-/* =========================================================
-   LIFECYCLE CONSTANTS
-========================================================= */
-
-AIW.LIFECYCLE = {
-  IDEA_STATUS: {
-    DRAFT: "draft",
-    SUBMITTED: "submitted",
-    PENDING_APPROVAL: "pending-approval",
-    APPROVED: "approved",
-    REJECTED: "rejected",
-    CONVERTED: "converted",
-    ARCHIVED: "archived"
-  },
-
-  PROJECT_STATUS: {
-    PLANNING: "planning",
-    READY: "ready",
-    IN_PROGRESS: "in-progress",
-    PILOT: "pilot",
-    PRODUCTION: "production",
-    ON_HOLD: "on-hold",
-    COMPLETED: "completed",
-    CANCELLED: "cancelled",
-    ARCHIVED: "archived"
-  },
-
-  PROJECT_PHASES: [
-    {
-      id: "discovery",
-      title: "التحليل",
-      titleEn: "Discovery",
-      order: 1
+    kpiCenter: {
+      items: [],
+      settings: {},
+      meta: {}
     },
-    {
-      id: "planning",
-      title: "التخطيط",
-      titleEn: "Planning",
-      order: 2
+
+    reportsCenter: {
+      settings: {},
+      executiveSummary: {},
+      executiveHighlight: {},
+      finalRecommendation: {},
+      meta: {}
     },
-    {
-      id: "design",
-      title: "التصميم",
-      titleEn: "Design",
-      order: 3
+
+    decisionCenter: {
+      scenarios: [],
+      criteria: [],
+      analysisScenarios: [],
+      timeline: [],
+      settings: {},
+      briefing: {},
+      meta: {}
     },
-    {
-      id: "development",
-      title: "التطوير",
-      titleEn: "Development",
-      order: 4
+
+    automationCenter: {
+      workflows: [],
+      triggers: [],
+      approvals: [],
+      roadmap: [],
+      settings: {},
+      statistics: {},
+      executionHistory: [],
+      meta: {}
     },
-    {
-      id: "testing",
-      title: "الاختبار",
-      titleEn: "Testing",
-      order: 5
+
+    automation: {
+      workflows: [],
+      triggers: [],
+      approvals: [],
+      roadmap: [],
+      settings: {},
+      statistics: {},
+      executionHistory: []
     },
-    {
-      id: "pilot",
-      title: "التجربة الأولية",
-      titleEn: "Pilot",
-      order: 6
-    },
-    {
-      id: "production",
-      title: "التشغيل",
-      titleEn: "Production",
-      order: 7
-    },
-    {
-      id: "measurement",
-      title: "قياس النتائج",
-      titleEn: "Measurement",
-      order: 8
+
+    notifications: [],
+    recommendations: [],
+    diagnostics: [],
+    activity: []
+  };
+
+  AIW.DEFAULT_SETTINGS = {
+    language: "ar",
+    locale: "ar-AE",
+    direction: "rtl",
+    theme: "light",
+    compactMode: false,
+    autoBackup: true,
+    backupLimit: 1,
+    notifications: true,
+    autoSync: true,
+    activityLogging: true,
+    softDelete: true,
+
+    ideaProjectWorkflow: {
+      requireApproval: true,
+      allowDirectConversion: false,
+      calculateProgressFromTasks: true,
+      preserveProjectHistory: true
     }
-  ]
-};
+  };
 
-/* =========================================================
-   CENTRAL STORE
-========================================================= */
+  /* =======================================================
+     Store
+  ======================================================= */
 
-AIW.Store = {
-  version: "2.2.0",
-  storageKey: AIW.KEYS.DATA,
+  const Store = {
+    id: "store",
+    version: "2.3.0",
+    storageKey: AIW.KEYS.DATA,
 
-  _state: null,
-  _settings: null,
-  _subscribers: new Set(),
-  _initialized: false,
-  _storageListenerAttached: false,
-  _writeLock: false,
+    _state: null,
+    _settings: null,
+    _subscribers: new Set(),
+    _initialized: false,
+    _storageListenerAttached: false,
+    _writeLock: false,
 
-  /* =========================================================
-     INITIALIZATION
-  ========================================================= */
+    /* -------------------------------------------------------
+       Initialization
+    ------------------------------------------------------- */
 
-  init() {
-    if (this._initialized) {
+    init() {
+      if (this._initialized) return this.getState();
+
+      this._initialized = true;
+
+      const stored = this.read(AIW.KEYS.DATA, null);
+      const legacy =
+        AIW.Data && typeof AIW.Data === "object"
+          ? AIW.Data
+          : null;
+
+      const source = stored || legacy || {};
+
+      this._state = this.normalizeData(
+        this.mergeDefaults(AIW.DEFAULT_DATA, source)
+      );
+
+      this._settings = this.mergeDefaults(
+        AIW.DEFAULT_SETTINGS,
+        this.read(AIW.KEYS.SETTINGS, {})
+      );
+
+      this.ensureMetadata(this._state);
+      this.repairIdeaProjectLinks(this._state);
+      this.refreshPipelineStats(this._state);
+      this.syncCompatibilityModels(this._state);
+
+      this.persistState({
+        emit: false,
+        backup: false,
+        notify: false
+      });
+
+      this.persistSettings({
+        emit: false,
+        notify: false
+      });
+
+      this.attachStorageListener();
+      this.syncGlobalDataReference();
+
       return this.getState();
-    }
+    },
 
-    this._initialized = true;
+    /* -------------------------------------------------------
+       Utilities
+    ------------------------------------------------------- */
 
-    const storedData = this.read(
-      AIW.KEYS.DATA,
-      null
-    );
+    clone(value) {
+      if (value === undefined) return undefined;
 
-    const legacyData =
-      window.AIW?.Data &&
-      typeof window.AIW.Data === "object"
-        ? window.AIW.Data
-        : null;
+      if (typeof structuredClone === "function") {
+        try {
+          return structuredClone(value);
+        } catch (_) {}
+      }
 
-    let sourceData = storedData;
-
-    if (!sourceData && legacyData) {
-      sourceData = legacyData;
-    }
-
-    this._state = this.normalizeData(
-      this.mergeDefaults(
-        AIW.DEFAULT_DATA,
-        sourceData || {}
-      )
-    );
-
-    this._settings = this.mergeDefaults(
-      AIW.DEFAULT_SETTINGS,
-      this.read(
-        AIW.KEYS.SETTINGS,
-        null
-      )
-    );
-
-    this.ensureMetadata(this._state);
-    this.refreshPipelineStats(this._state);
-
-    this.persistState({
-      emit: false,
-      backup: false,
-      notify: false
-    });
-
-    this.persistSettings({
-      emit: false,
-      notify: false
-    });
-
-    this.attachStorageListener();
-    this.syncGlobalDataReference();
-
-    return this.getState();
-  },
-
-  /* =========================================================
-     CORE HELPERS
-  ========================================================= */
-
-  clone(value) {
-    if (value === undefined) {
-      return undefined;
-    }
-
-    try {
-      return structuredClone(value);
-    } catch (error) {
       try {
-        return JSON.parse(
-          JSON.stringify(value)
-        );
-      } catch (cloneError) {
-        console.error(
-          "[AIW.Store] Clone failed:",
-          cloneError
-        );
-
+        return JSON.parse(JSON.stringify(value));
+      } catch (error) {
+        console.error("[AIW.Store] Clone failed:", error);
         return value;
       }
-    }
-  },
+    },
 
-  now() {
-    return new Date().toISOString();
-  },
+    now() {
+      return new Date().toISOString();
+    },
 
-  id(prefix = "aiw") {
-    const randomPart = Math.random()
-      .toString(36)
-      .slice(2, 10);
+    id(prefix = "aiw") {
+      const random = Math.random().toString(36).slice(2, 10);
+      return `${prefix}-${Date.now()}-${random}`;
+    },
 
-    return `${prefix}-${Date.now()}-${randomPart}`;
-  },
+    isPlainObject(value) {
+      return Boolean(
+        value &&
+        typeof value === "object" &&
+        !Array.isArray(value)
+      );
+    },
 
-  isPlainObject(value) {
-    return Boolean(
-      value &&
-      typeof value === "object" &&
-      !Array.isArray(value)
-    );
-  },
+    toArray(value) {
+      if (Array.isArray(value)) return value;
+      if (this.isPlainObject(value)) return Object.values(value);
+      return [];
+    },
 
-  toArray(value) {
-    if (Array.isArray(value)) {
-      return value;
-    }
+    toNumber(value, fallback = 0) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number : fallback;
+    },
 
-    if (this.isPlainObject(value)) {
-      return Object.values(value);
-    }
+    clamp(value, min = 0, max = 100) {
+      return Math.min(max, Math.max(min, this.toNumber(value, min)));
+    },
 
-    return [];
-  },
+    normalizeText(value) {
+      return String(value ?? "").trim().toLowerCase();
+    },
 
-  normalizeText(value) {
-    return String(value || "")
-      .trim()
-      .toLowerCase();
-  },
+    deepMerge(target, patch) {
+      const output = this.isPlainObject(target)
+        ? this.clone(target)
+        : {};
 
-  toNumber(value, fallback = 0) {
-    const number = Number(value);
+      if (!this.isPlainObject(patch)) return output;
 
-    return Number.isFinite(number)
-      ? number
-      : fallback;
-  },
+      Object.entries(patch).forEach(([key, value]) => {
+        if (
+          this.isPlainObject(output[key]) &&
+          this.isPlainObject(value)
+        ) {
+          output[key] = this.deepMerge(output[key], value);
+        } else {
+          output[key] = this.clone(value);
+        }
+      });
 
-  clamp(value, min = 0, max = 100) {
-    return Math.min(
-      max,
-      Math.max(
-        min,
-        this.toNumber(value, min)
-      )
-    );
-  },
+      return output;
+    },
 
-  uniqueArray(values = []) {
-    return [
-      ...new Set(
-        this.toArray(values)
-          .filter(
-            value =>
-              value !== undefined &&
-              value !== null &&
-              value !== ""
-          )
-          .map(value => String(value))
-      )
-    ];
-  },
+    mergeDefaults(defaults, saved) {
+      if (saved === undefined || saved === null) {
+        return this.clone(defaults);
+      }
 
-  /* =========================================================
-     STORAGE
-  ========================================================= */
+      if (Array.isArray(defaults)) {
+        return Array.isArray(saved)
+          ? this.clone(saved)
+          : this.clone(defaults);
+      }
 
-  read(key, fallback = null) {
-    try {
-      const raw = window.localStorage.getItem(key);
+      if (!this.isPlainObject(defaults)) {
+        return this.clone(saved);
+      }
 
-      if (!raw) {
+      if (!this.isPlainObject(saved)) {
+        return this.clone(defaults);
+      }
+
+      const output = this.clone(defaults);
+
+      Object.entries(saved).forEach(([key, value]) => {
+        if (
+          this.isPlainObject(defaults[key]) &&
+          this.isPlainObject(value)
+        ) {
+          output[key] = this.mergeDefaults(defaults[key], value);
+        } else {
+          output[key] = this.clone(value);
+        }
+      });
+
+      return output;
+    },
+
+    /* -------------------------------------------------------
+       Storage
+    ------------------------------------------------------- */
+
+    read(key, fallback = null) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : this.clone(fallback);
+      } catch (error) {
+        console.warn(`[AIW.Store] Unable to read ${key}:`, error);
         return this.clone(fallback);
       }
+    },
 
-      return JSON.parse(raw);
-    } catch (error) {
-      console.warn(
-        `[AIW.Store] Unable to read ${key}:`,
-        error
-      );
-
-      return this.clone(fallback);
-    }
-  },
-
-  write(key, value) {
-    try {
-      this._writeLock = true;
-
-      window.localStorage.setItem(
-        key,
-        JSON.stringify(value)
-      );
-
-      return true;
-    } catch (error) {
-      console.error(
-        `[AIW.Store] Unable to write ${key}:`,
-        error
-      );
-
-      return false;
-    } finally {
-      this._writeLock = false;
-    }
-  },
-
-  removeStorageKey(key) {
-    try {
-      window.localStorage.removeItem(key);
-      return true;
-    } catch (error) {
-      console.warn(
-        `[AIW.Store] Unable to remove ${key}:`,
-        error
-      );
-
-      return false;
-    }
-  },
-
-  /* =========================================================
-     DEEP MERGE
-  ========================================================= */
-
-  mergeDefaults(defaults, saved) {
-    if (
-      saved === undefined ||
-      saved === null
-    ) {
-      return this.clone(defaults);
-    }
-
-    if (Array.isArray(defaults)) {
-      return Array.isArray(saved)
-        ? this.clone(saved)
-        : this.clone(defaults);
-    }
-
-    if (!this.isPlainObject(defaults)) {
-      return this.clone(saved);
-    }
-
-    if (!this.isPlainObject(saved)) {
-      return this.clone(defaults);
-    }
-
-    const output = this.clone(defaults);
-
-    Object.keys(saved).forEach(key => {
-      const defaultValue = defaults[key];
-      const savedValue = saved[key];
-
-      if (
-        this.isPlainObject(defaultValue) &&
-        this.isPlainObject(savedValue)
-      ) {
-        output[key] = this.mergeDefaults(
-          defaultValue,
-          savedValue
-        );
-
-        return;
+    write(key, value) {
+      try {
+        this._writeLock = true;
+        localStorage.setItem(key, JSON.stringify(value));
+        return true;
+      } catch (error) {
+        console.error(`[AIW.Store] Unable to write ${key}:`, error);
+        return false;
+      } finally {
+        this._writeLock = false;
       }
+    },
 
-      output[key] = this.clone(savedValue);
-    });
-
-    return output;
-  },
-
-  deepMerge(target, patch) {
-    const output = this.isPlainObject(target)
-      ? this.clone(target)
-      : {};
-
-    if (!this.isPlainObject(patch)) {
-      return output;
-    }
-
-    Object.keys(patch).forEach(key => {
-      const patchValue = patch[key];
-      const targetValue = output[key];
-
-      if (
-        this.isPlainObject(targetValue) &&
-        this.isPlainObject(patchValue)
-      ) {
-        output[key] = this.deepMerge(
-          targetValue,
-          patchValue
-        );
-
-        return;
+    removeStorageKey(key) {
+      try {
+        localStorage.removeItem(key);
+        return true;
+      } catch (error) {
+        console.warn(`[AIW.Store] Unable to remove ${key}:`, error);
+        return false;
       }
+    },
 
-      output[key] = this.clone(patchValue);
-    });
+    /* -------------------------------------------------------
+       Path Helpers
+    ------------------------------------------------------- */
 
-    return output;
-  },
+    getByPath(source, path) {
+      if (!path) return source;
 
-  /* =========================================================
-     IDEA DEFAULT MODEL
-  ========================================================= */
+      const parts = Array.isArray(path)
+        ? path
+        : String(path).split(".").filter(Boolean);
 
-  getDefaultProjectBlueprint(idea = {}) {
-    return {
-      title:
-        idea.projectTitle ||
-        idea.title ||
-        idea.name ||
-        "مشروع جديد",
+      return parts.reduce((current, part) => {
+        if (current === undefined || current === null) {
+          return undefined;
+        }
+        return current[part];
+      }, source);
+    },
 
-      titleEn:
-        idea.projectTitleEn ||
-        idea.titleEn ||
-        idea.nameEn ||
-        "",
+    setByPath(source, path, value) {
+      const parts = Array.isArray(path)
+        ? path
+        : String(path).split(".").filter(Boolean);
 
-      description:
-        idea.projectDescription ||
-        idea.solution ||
-        idea.description ||
-        "",
+      if (!parts.length) return source;
 
-      objective:
-        idea.objective ||
-        idea.challenge ||
-        "",
+      let current = source;
 
-      category:
-        idea.category ||
-        idea.portfolio ||
-        "general",
+      parts.forEach((part, index) => {
+        const isLast = index === parts.length - 1;
 
-      department:
-        idea.department ||
-        idea.ownerDepartment ||
-        "",
+        if (isLast) {
+          current[part] = this.clone(value);
+          return;
+        }
 
-      owner:
-        idea.owner ||
-        null,
+        const nextPart = parts[index + 1];
+        const shouldBeArray = /^\d+$/.test(nextPart);
 
-      sponsor:
-        idea.sponsor ||
-        null,
-
-      priority:
-        idea.priority ||
-        "medium",
-
-      cost:
-        idea.cost ||
-        idea.costLevel ||
-        "medium",
-
-      duration:
-        idea.duration ||
-        idea.timeline ||
-        "",
-
-      readiness:
-        this.clamp(
-          idea.readiness ??
-          idea.score ??
-          idea.decisionScore ??
-          0
-        ),
-
-      decisionScore:
-        this.clamp(
-          idea.decisionScore ??
-          idea.score ??
-          0
-        ),
-
-      riskLevel:
-        idea.riskLevel ||
-        idea.risk ||
-        "medium",
-
-      benefits: this.toArray(
-        idea.benefits
-      ),
-
-      expectedOutcomes: this.toArray(
-        idea.expectedOutcomes
-      ),
-
-      kpis: this.toArray(
-        idea.kpis
-      ),
-
-      risks: this.toArray(
-        idea.risks
-      ),
-
-      dependencies: this.toArray(
-        idea.dependencies
-      ),
-
-      milestones: [],
-
-      tasks: [],
-
-      phases: this.clone(
-        AIW.LIFECYCLE.PROJECT_PHASES
-      ).map(phase => ({
-        ...phase,
-        status:
-          phase.id === "discovery"
-            ? "current"
-            : "pending",
-        progress: 0,
-        startedAt: null,
-        completedAt: null
-      })),
-
-      budget: {
-        estimated: null,
-        approved: null,
-        spent: 0,
-        currency: "AED"
-      },
-
-      schedule: {
-        plannedStart: null,
-        plannedEnd: null,
-        actualStart: null,
-        actualEnd: null
-      }
-    };
-  },
-
-  normalizeIdea(item = {}, index = 0) {
-    const currentTime = this.now();
-
-    const rawStatus =
-      item.ideaStatus ||
-      item.lifecycleStatus ||
-      item.status ||
-      AIW.LIFECYCLE.IDEA_STATUS.DRAFT;
-
-    const validStatuses = Object.values(
-      AIW.LIFECYCLE.IDEA_STATUS
-    );
-
-    const status = validStatuses.includes(rawStatus)
-      ? rawStatus
-      : AIW.LIFECYCLE.IDEA_STATUS.DRAFT;
-
-    const projectBlueprint =
-      this.deepMerge(
-        this.getDefaultProjectBlueprint(item),
-        this.isPlainObject(item.projectBlueprint)
-          ? item.projectBlueprint
-          : (
-              this.isPlainObject(item.project)
-                ? item.project
-                : {}
-            )
-      );
-
-    return {
-      id:
-        item.id ||
-        `idea-${index + 1}`,
-
-      title:
-        item.title ||
-        item.name ||
-        "فكرة جديدة",
-
-      titleEn:
-        item.titleEn ||
-        item.nameEn ||
-        "",
-
-      description:
-        item.description ||
-        "",
-
-      challenge:
-        item.challenge ||
-        "",
-
-      solution:
-        item.solution ||
-        "",
-
-      aiRole:
-        item.aiRole ||
-        item.role ||
-        "",
-
-      benefits: this.toArray(
-        item.benefits
-      ),
-
-      category:
-        item.category ||
-        item.portfolio ||
-        "general",
-
-      department:
-        item.department ||
-        item.ownerDepartment ||
-        "",
-
-      priority:
-        item.priority ||
-        "medium",
-
-      cost:
-        item.cost ||
-        item.costLevel ||
-        "medium",
-
-      duration:
-        item.duration ||
-        item.timeline ||
-        "",
-
-      difficulty:
-        item.difficulty ||
-        "medium",
-
-      readiness: this.clamp(
-        item.readiness ??
-        item.score ??
-        item.decisionScore ??
-        0
-      ),
-
-      decisionScore: this.clamp(
-        item.decisionScore ??
-        item.score ??
-        item.readiness ??
-        0
-      ),
-
-      riskLevel:
-        item.riskLevel ||
-        item.risk ||
-        "medium",
-
-      quickWin:
-        Boolean(
-          item.quickWin ||
-          item.isQuickWin ||
-          String(item.badge || "")
-            .toLowerCase()
-            .includes("quick")
-        ),
-
-      status,
-      ideaStatus: status,
-      lifecycleStatus: status,
-
-      approval: {
-        required:
-          item.approval?.required !== false,
-
-        status:
-          item.approval?.status ||
+        if (
+          current[part] === undefined ||
+          current[part] === null ||
           (
-            status === AIW.LIFECYCLE.IDEA_STATUS.APPROVED ||
-            status === AIW.LIFECYCLE.IDEA_STATUS.CONVERTED
-              ? "approved"
-              : status === AIW.LIFECYCLE.IDEA_STATUS.REJECTED
-                ? "rejected"
-                : "not-submitted"
-          ),
-
-        submittedAt:
-          item.approval?.submittedAt ||
-          item.submittedAt ||
-          null,
-
-        submittedBy:
-          item.approval?.submittedBy ||
-          item.submittedBy ||
-          null,
-
-        decidedAt:
-          item.approval?.decidedAt ||
-          item.approvedAt ||
-          item.rejectedAt ||
-          null,
-
-        decidedBy:
-          item.approval?.decidedBy ||
-          item.approvedBy ||
-          item.rejectedBy ||
-          null,
-
-        decision:
-          item.approval?.decision ||
-          null,
-
-        note:
-          item.approval?.note ||
-          item.approvalNote ||
-          ""
-      },
-
-      conversion: {
-        converted:
-          Boolean(
-            item.conversion?.converted ||
-            item.projectId ||
-            status === AIW.LIFECYCLE.IDEA_STATUS.CONVERTED
-          ),
-
-        projectId:
-          item.conversion?.projectId ||
-          item.projectId ||
-          null,
-
-        convertedAt:
-          item.conversion?.convertedAt ||
-          item.convertedAt ||
-          null,
-
-        convertedBy:
-          item.conversion?.convertedBy ||
-          item.convertedBy ||
-          null,
-
-        revertedAt:
-          item.conversion?.revertedAt ||
-          null,
-
-        revertedBy:
-          item.conversion?.revertedBy ||
-          null
-      },
-
-      projectBlueprint,
-
-      lifecycleHistory: this.toArray(
-        item.lifecycleHistory ||
-        item.history
-      ),
-
-      createdAt:
-        item.createdAt ||
-        currentTime,
-
-      updatedAt:
-        item.updatedAt ||
-        currentTime,
-
-      deletedAt:
-        item.deletedAt ?? null,
-
-      ...this.clone(item),
-
-      id:
-        item.id ||
-        `idea-${index + 1}`,
-
-      status,
-      ideaStatus: status,
-      lifecycleStatus: status,
-
-      projectBlueprint,
-
-      approval: {
-        required:
-          item.approval?.required !== false,
-
-        status:
-          item.approval?.status ||
+            shouldBeArray &&
+            !Array.isArray(current[part])
+          ) ||
           (
-            status === AIW.LIFECYCLE.IDEA_STATUS.APPROVED ||
-            status === AIW.LIFECYCLE.IDEA_STATUS.CONVERTED
-              ? "approved"
-              : status === AIW.LIFECYCLE.IDEA_STATUS.REJECTED
-                ? "rejected"
-                : "not-submitted"
-          ),
+            !shouldBeArray &&
+            !this.isPlainObject(current[part])
+          )
+        ) {
+          current[part] = shouldBeArray ? [] : {};
+        }
 
-        submittedAt:
-          item.approval?.submittedAt ||
-          item.submittedAt ||
-          null,
+        current = current[part];
+      });
 
-        submittedBy:
-          item.approval?.submittedBy ||
-          item.submittedBy ||
-          null,
+      return source;
+    },
 
-        decidedAt:
-          item.approval?.decidedAt ||
-          item.approvedAt ||
-          item.rejectedAt ||
-          null,
+    /* -------------------------------------------------------
+       Normalization
+    ------------------------------------------------------- */
 
-        decidedBy:
-          item.approval?.decidedBy ||
-          item.approvedBy ||
-          item.rejectedBy ||
-          null,
+    normalizeIdeaStatus(rawValue) {
+      const raw = this.normalizeText(rawValue);
 
-        decision:
-          item.approval?.decision ||
-          null,
+      const map = {
+        "": AIW.LIFECYCLE.IDEA_STATUS.IDEA,
+        idea: AIW.LIFECYCLE.IDEA_STATUS.IDEA,
+        draft: AIW.LIFECYCLE.IDEA_STATUS.DRAFT,
+        submitted: AIW.LIFECYCLE.IDEA_STATUS.PENDING_APPROVAL,
+        pending: AIW.LIFECYCLE.IDEA_STATUS.PENDING_APPROVAL,
+        "pending-approval": AIW.LIFECYCLE.IDEA_STATUS.PENDING_APPROVAL,
+        approved: AIW.LIFECYCLE.IDEA_STATUS.APPROVED,
+        rejected: AIW.LIFECYCLE.IDEA_STATUS.REJECTED,
+        converted: AIW.LIFECYCLE.IDEA_STATUS.CONVERTED,
+        "converted-to-project": AIW.LIFECYCLE.IDEA_STATUS.CONVERTED,
+        archived: AIW.LIFECYCLE.IDEA_STATUS.ARCHIVED
+      };
 
-        note:
-          item.approval?.note ||
-          item.approvalNote ||
-          ""
-      },
+      return map[raw] || AIW.LIFECYCLE.IDEA_STATUS.IDEA;
+    },
 
-      conversion: {
-        converted:
-          Boolean(
-            item.conversion?.converted ||
-            item.projectId ||
-            status === AIW.LIFECYCLE.IDEA_STATUS.CONVERTED
-          ),
+    normalizeProjectStatus(rawValue) {
+      const raw = this.normalizeText(rawValue);
 
-        projectId:
-          item.conversion?.projectId ||
-          item.projectId ||
-          null,
+      const map = {
+        "": AIW.LIFECYCLE.PROJECT_STATUS.PLANNING,
+        planning: AIW.LIFECYCLE.PROJECT_STATUS.PLANNING,
+        "قيد التخطيط": AIW.LIFECYCLE.PROJECT_STATUS.PLANNING,
+        "قيد الدراسة": AIW.LIFECYCLE.PROJECT_STATUS.PLANNING,
+        "quick win": AIW.LIFECYCLE.PROJECT_STATUS.READY,
+        "quick-win": AIW.LIFECYCLE.PROJECT_STATUS.READY,
+        ready: AIW.LIFECYCLE.PROJECT_STATUS.READY,
+        "in-progress": AIW.LIFECYCLE.PROJECT_STATUS.IN_PROGRESS,
+        active: AIW.LIFECYCLE.PROJECT_STATUS.IN_PROGRESS,
+        "قيد التنفيذ": AIW.LIFECYCLE.PROJECT_STATUS.IN_PROGRESS,
+        pilot: AIW.LIFECYCLE.PROJECT_STATUS.PILOT,
+        production: AIW.LIFECYCLE.PROJECT_STATUS.PRODUCTION,
+        "on-hold": AIW.LIFECYCLE.PROJECT_STATUS.ON_HOLD,
+        completed: AIW.LIFECYCLE.PROJECT_STATUS.COMPLETED,
+        مكتمل: AIW.LIFECYCLE.PROJECT_STATUS.COMPLETED,
+        cancelled: AIW.LIFECYCLE.PROJECT_STATUS.CANCELLED,
+        archived: AIW.LIFECYCLE.PROJECT_STATUS.ARCHIVED
+      };
 
-        convertedAt:
-          item.conversion?.convertedAt ||
-          item.convertedAt ||
-          null,
+      return map[raw] || AIW.LIFECYCLE.PROJECT_STATUS.PLANNING;
+    },
 
-        convertedBy:
-          item.conversion?.convertedBy ||
-          item.convertedBy ||
-          null,
-
-        revertedAt:
-          item.conversion?.revertedAt ||
-          null,
-
-        revertedBy:
-          item.conversion?.revertedBy ||
-          null
-      },
-
-      lifecycleHistory: this.toArray(
-        item.lifecycleHistory ||
-        item.history
-      ),
-
-      createdAt:
-        item.createdAt ||
-        currentTime,
-
-      updatedAt:
-        item.updatedAt ||
-        currentTime,
-
-      deletedAt:
-        item.deletedAt ?? null
-    };
-  },
-
-  /* =========================================================
-     PROJECT DEFAULT MODEL
-  ========================================================= */
-
-  normalizeProject(item = {}, index = 0) {
-    const currentTime = this.now();
-
-    const validStatuses = Object.values(
-      AIW.LIFECYCLE.PROJECT_STATUS
-    );
-
-    const rawStatus =
-      item.projectStatus ||
-      item.status ||
-      AIW.LIFECYCLE.PROJECT_STATUS.PLANNING;
-
-    const status = validStatuses.includes(rawStatus)
-      ? rawStatus
-      : AIW.LIFECYCLE.PROJECT_STATUS.PLANNING;
-
-    const tasks = this.toArray(
-      item.tasks
-    ).map((task, taskIndex) => ({
-      id:
-        task.id ||
-        this.id(`task-${taskIndex + 1}`),
-
-      title:
-        task.title ||
-        task.name ||
-        "مهمة جديدة",
-
-      description:
-        task.description ||
-        "",
-
-      status:
-        task.status ||
-        "pending",
-
-      priority:
-        task.priority ||
-        "medium",
-
-      owner:
-        task.owner ||
-        null,
-
-      weight: Math.max(
-        1,
-        this.toNumber(
-          task.weight,
-          1
-        )
-      ),
-
-      progress: this.clamp(
-        task.progress ??
-        (
-          task.status === "completed"
-            ? 100
-            : 0
-        )
-      ),
-
-      dueDate:
-        task.dueDate ||
-        null,
-
-      completedAt:
-        task.completedAt ||
-        null,
-
-      createdAt:
-        task.createdAt ||
-        currentTime,
-
-      updatedAt:
-        task.updatedAt ||
-        currentTime
-    }));
-
-    const phasesSource =
-      this.toArray(item.phases).length
-        ? this.toArray(item.phases)
-        : AIW.LIFECYCLE.PROJECT_PHASES;
-
-    const phases = phasesSource.map(
-      (phase, phaseIndex) => ({
-        id:
-          phase.id ||
-          AIW.LIFECYCLE.PROJECT_PHASES[phaseIndex]?.id ||
-          `phase-${phaseIndex + 1}`,
-
+    getDefaultProjectBlueprint(idea = {}) {
+      return {
+        icon: idea.icon || "📁",
         title:
-          phase.title ||
-          AIW.LIFECYCLE.PROJECT_PHASES[phaseIndex]?.title ||
-          "مرحلة",
+          idea.projectTitle ||
+          idea.title ||
+          idea.name ||
+          "مشروع جديد",
 
         titleEn:
-          phase.titleEn ||
-          AIW.LIFECYCLE.PROJECT_PHASES[phaseIndex]?.titleEn ||
+          idea.projectTitleEn ||
+          idea.englishTitle ||
+          idea.titleEn ||
+          idea.nameEn ||
           "",
 
-        order:
-          phase.order ||
-          phaseIndex + 1,
+        englishTitle:
+          idea.projectTitleEn ||
+          idea.englishTitle ||
+          idea.titleEn ||
+          "",
 
-        status:
-          phase.status ||
-          (
-            phaseIndex === 0
-              ? "current"
-              : "pending"
-          ),
+        description:
+          idea.projectDescription ||
+          idea.solution ||
+          idea.description ||
+          "",
 
-        progress: this.clamp(
-          phase.progress || 0
+        objective:
+          idea.objective ||
+          idea.challenge ||
+          "",
+
+        category:
+          idea.category ||
+          idea.portfolio ||
+          "general",
+
+        department:
+          idea.department ||
+          idea.ownerDepartment ||
+          "غير مصنف",
+
+        owner: idea.owner || null,
+        sponsor: idea.sponsor || null,
+        priority: idea.priority || "متوسطة",
+        cost: idea.cost || idea.costLevel || "متوسطة",
+        duration: idea.duration || idea.timeline || "غير محددة",
+        readiness: this.clamp(
+          idea.readiness ??
+          idea.decisionScore ??
+          idea.score ??
+          0
         ),
-
-        startedAt:
-          phase.startedAt ||
-          null,
-
-        completedAt:
-          phase.completedAt ||
-          null
-      })
-    );
-
-    const calculatedProgress =
-      tasks.length
-        ? this.calculateTasksProgress(tasks)
-        : this.clamp(
-            item.progress ??
-            item.completion ??
-            0
-          );
-
-    return {
-      id:
-        item.id ||
-        `project-${index + 1}`,
-
-      sourceIdeaId:
-        item.sourceIdeaId ||
-        item.ideaId ||
-        null,
-
-      origin:
-        item.origin ||
-        (
-          item.sourceIdeaId ||
-          item.ideaId
-            ? "idea-conversion"
-            : "manual"
+        decisionScore: this.clamp(
+          idea.decisionScore ??
+          idea.score ??
+          0
         ),
-
-      title:
-        item.title ||
-        item.name ||
-        "مشروع جديد",
-
-      titleEn:
-        item.titleEn ||
-        item.nameEn ||
-        "",
-
-      description:
-        item.description ||
-        "",
-
-      objective:
-        item.objective ||
-        "",
-
-      category:
-        item.category ||
-        item.portfolio ||
-        "general",
-
-      department:
-        item.department ||
-        "",
-
-      owner:
-        item.owner ||
-        null,
-
-      sponsor:
-        item.sponsor ||
-        null,
-
-      priority:
-        item.priority ||
-        "medium",
-
-      cost:
-        item.cost ||
-        item.costLevel ||
-        "medium",
-
-      duration:
-        item.duration ||
-        item.timeline ||
-        "",
-
-      readiness: this.clamp(
-        item.readiness || 0
-      ),
-
-      decisionScore: this.clamp(
-        item.decisionScore || 0
-      ),
-
-      riskLevel:
-        item.riskLevel ||
-        item.risk ||
-        "medium",
-
-      status,
-      projectStatus: status,
-
-      progress: calculatedProgress,
-
-      currentPhase:
-        item.currentPhase ||
-        phases.find(
-          phase =>
-            phase.status === "current"
-        )?.id ||
-        phases[0]?.id ||
-        "discovery",
-
-      benefits: this.toArray(
-        item.benefits
-      ),
-
-      expectedOutcomes: this.toArray(
-        item.expectedOutcomes
-      ),
-
-      kpis: this.toArray(
-        item.kpis
-      ),
-
-      risks: this.toArray(
-        item.risks
-      ),
-
-      dependencies: this.toArray(
-        item.dependencies
-      ),
-
-      milestones: this.toArray(
-        item.milestones
-      ),
-
-      tasks,
-      phases,
-
-      budget: this.deepMerge(
-        {
+        riskLevel: idea.riskLevel || idea.risk || "متوسط",
+        benefits: this.toArray(idea.benefits),
+        expectedOutcomes: this.toArray(idea.expectedOutcomes),
+        kpis: this.toArray(idea.kpis),
+        risks: this.toArray(idea.risks),
+        dependencies: this.toArray(idea.dependencies),
+        milestones: [],
+        tasks: [],
+        phases: this.clone(AIW.LIFECYCLE.PROJECT_PHASES).map(
+          (phase, index) => ({
+            ...phase,
+            status: index === 0 ? "current" : "pending",
+            progress: 0,
+            startedAt: null,
+            completedAt: null
+          })
+        ),
+        budget: {
           estimated: null,
           approved: null,
           spent: 0,
           currency: "AED"
         },
-        this.isPlainObject(item.budget)
-          ? item.budget
-          : {}
-      ),
-
-      schedule: this.deepMerge(
-        {
+        schedule: {
           plannedStart: null,
           plannedEnd: null,
           actualStart: null,
           actualEnd: null
-        },
-        this.isPlainObject(item.schedule)
-          ? item.schedule
-          : {}
-      ),
+        }
+      };
+    },
 
-      approvalSnapshot:
-        this.isPlainObject(
-          item.approvalSnapshot
-        )
-          ? item.approvalSnapshot
-          : {},
-
-      lifecycleHistory: this.toArray(
-        item.lifecycleHistory ||
-        item.history
-      ),
-
-      createdAt:
-        item.createdAt ||
-        currentTime,
-
-      updatedAt:
-        item.updatedAt ||
-        currentTime,
-
-      startedAt:
-        item.startedAt ||
-        null,
-
-      completedAt:
-        item.completedAt ||
-        null,
-
-      archivedAt:
-        item.archivedAt ||
-        null,
-
-      deletedAt:
-        item.deletedAt ?? null,
-
-      ...this.clone(item),
-
-      id:
-        item.id ||
-        `project-${index + 1}`,
-
-      sourceIdeaId:
-        item.sourceIdeaId ||
-        item.ideaId ||
-        null,
-
-      status,
-      projectStatus: status,
-
-      progress: calculatedProgress,
-      tasks,
-      phases,
-
-      currentPhase:
-        item.currentPhase ||
-        phases.find(
-          phase =>
-            phase.status === "current"
-        )?.id ||
-        phases[0]?.id ||
-        "discovery",
-
-      lifecycleHistory: this.toArray(
-        item.lifecycleHistory ||
-        item.history
-      ),
-
-      createdAt:
-        item.createdAt ||
-        currentTime,
-
-      updatedAt:
-        item.updatedAt ||
-        currentTime,
-
-      deletedAt:
-        item.deletedAt ?? null
-    };
-  },
-
-  calculateTasksProgress(tasks = []) {
-    const normalizedTasks =
-      this.toArray(tasks);
-
-    if (!normalizedTasks.length) {
-      return 0;
-    }
-
-    let totalWeight = 0;
-    let weightedProgress = 0;
-
-    normalizedTasks.forEach(task => {
-      const weight = Math.max(
-        1,
-        this.toNumber(
-          task?.weight,
-          1
-        )
+    normalizeIdea(item = {}, index = 0) {
+      const now = this.now();
+      const status = this.normalizeIdeaStatus(
+        item.lifecycleStatus ??
+        item.ideaStatus ??
+        item.status ??
+        item.approval?.status
       );
 
-      const progress = this.clamp(
-        task?.progress ??
+      const approvalStatus =
+        item.approval?.status ||
         (
-          task?.status === "completed"
+          status === AIW.LIFECYCLE.IDEA_STATUS.APPROVED ||
+          status === AIW.LIFECYCLE.IDEA_STATUS.CONVERTED
+            ? "approved"
+            : status === AIW.LIFECYCLE.IDEA_STATUS.REJECTED
+              ? "rejected"
+              : status === AIW.LIFECYCLE.IDEA_STATUS.PENDING_APPROVAL
+                ? "pending"
+                : "not-submitted"
+        );
+
+      const projectBlueprint = this.deepMerge(
+        this.getDefaultProjectBlueprint(item),
+        this.isPlainObject(item.projectBlueprint)
+          ? item.projectBlueprint
+          : this.isPlainObject(item.project)
+            ? item.project
+            : {}
+      );
+
+      const normalized = {
+        ...this.clone(item),
+
+        id: item.id || this.id(`idea-${index + 1}`),
+        icon: item.icon || "💡",
+        title: item.title || item.name || "فكرة جديدة",
+        titleEn: item.titleEn || item.englishTitle || item.nameEn || "",
+        englishTitle: item.englishTitle || item.titleEn || "",
+        description: item.description || "",
+        challenge: item.challenge || "",
+        solution: item.solution || "",
+        aiRole: item.aiRole || item.role || "",
+        benefits: this.toArray(item.benefits),
+        category: item.category || item.portfolio || "general",
+        department: item.department || item.ownerDepartment || "غير مصنف",
+        priority: item.priority || "متوسطة",
+        cost: item.cost || item.costLevel || "متوسطة",
+        costLevel: item.costLevel || item.cost || "متوسطة",
+        duration: item.duration || item.timeline || "غير محددة",
+        difficulty: item.difficulty || item.ease || "متوسطة",
+        ease: item.ease || item.difficulty || "متوسطة",
+        readiness: this.clamp(
+          item.readiness ??
+          item.decisionScore ??
+          item.score ??
+          0
+        ),
+        decisionScore: this.clamp(
+          item.decisionScore ??
+          item.score ??
+          item.readiness ??
+          0
+        ),
+        decisionLevel: item.decisionLevel || "قيد التقييم",
+        riskLevel: item.riskLevel || item.risk || "متوسط",
+        risk: item.risk || item.riskLevel || "متوسط",
+
+        quickWin: Boolean(
+          item.quickWin ||
+          item.isQuickWin ||
+          this.normalizeText(item.badge).includes("quick")
+        ),
+
+        isQuickWin: Boolean(
+          item.quickWin ||
+          item.isQuickWin ||
+          this.normalizeText(item.badge).includes("quick")
+        ),
+
+        status,
+        ideaStatus: status,
+        lifecycleStatus: status,
+
+        approval: {
+          ...(this.isPlainObject(item.approval) ? item.approval : {}),
+          required: item.approval?.required !== false,
+          status: approvalStatus,
+          submittedAt: item.approval?.submittedAt || item.submittedAt || null,
+          submittedBy: item.approval?.submittedBy || item.submittedBy || null,
+          decidedAt:
+            item.approval?.decidedAt ||
+            item.approvedAt ||
+            item.rejectedAt ||
+            null,
+          decidedBy:
+            item.approval?.decidedBy ||
+            item.approvedBy ||
+            item.rejectedBy ||
+            null,
+          decision: item.approval?.decision || null,
+          reason:
+            item.approval?.reason ||
+            item.rejectionReason ||
+            null,
+          note:
+            item.approval?.note ||
+            item.approval?.notes ||
+            item.approvalNote ||
+            ""
+        },
+
+        conversion: {
+          ...(this.isPlainObject(item.conversion) ? item.conversion : {}),
+          converted: Boolean(
+            item.conversion?.converted ||
+            item.convertedToProject ||
+            item.projectId ||
+            status === AIW.LIFECYCLE.IDEA_STATUS.CONVERTED
+          ),
+          projectId:
+            item.conversion?.projectId ||
+            item.projectId ||
+            null,
+          convertedAt:
+            item.conversion?.convertedAt ||
+            item.convertedAt ||
+            null,
+          convertedBy:
+            item.conversion?.convertedBy ||
+            item.convertedBy ||
+            null,
+          revertedAt: item.conversion?.revertedAt || null,
+          revertedBy: item.conversion?.revertedBy || null
+        },
+
+        projectId:
+          item.projectId ||
+          item.conversion?.projectId ||
+          null,
+
+        convertedToProject: Boolean(
+          item.convertedToProject ||
+          item.conversion?.converted ||
+          item.projectId ||
+          status === AIW.LIFECYCLE.IDEA_STATUS.CONVERTED
+        ),
+
+        projectBlueprint,
+        lifecycleHistory: this.toArray(
+          item.lifecycleHistory || item.history
+        ),
+
+        createdAt: item.createdAt || now,
+        updatedAt: item.updatedAt || now,
+        deletedAt: item.deletedAt ?? null
+      };
+
+      return normalized;
+    },
+
+    normalizeTask(task = {}, index = 0) {
+      const now = this.now();
+      const progress = this.clamp(
+        task.progress ??
+        (
+          this.normalizeText(task.status) === "completed"
             ? 100
             : 0
         )
       );
 
-      totalWeight += weight;
-      weightedProgress +=
-        progress * weight;
-    });
+      return {
+        ...this.clone(task),
+        id: task.id || this.id(`task-${index + 1}`),
+        title: task.title || task.name || "مهمة جديدة",
+        description: task.description || "",
+        status: progress >= 100 ? "completed" : task.status || "pending",
+        priority: task.priority || "medium",
+        owner: task.owner || null,
+        weight: Math.max(1, this.toNumber(task.weight, 1)),
+        progress,
+        dueDate: task.dueDate || null,
+        completedAt:
+          progress >= 100
+            ? task.completedAt || now
+            : task.completedAt || null,
+        createdAt: task.createdAt || now,
+        updatedAt: task.updatedAt || now
+      };
+    },
 
-    if (!totalWeight) {
-      return 0;
-    }
-
-    return Math.round(
-      weightedProgress / totalWeight
-    );
-  },
-
-  /* =========================================================
-     DATA NORMALIZATION
-  ========================================================= */
-
-  normalizeData(input) {
-    const data = this.isPlainObject(input)
-      ? this.clone(input)
-      : this.clone(AIW.DEFAULT_DATA);
-
-    data.meta = this.isPlainObject(data.meta)
-      ? data.meta
-      : {};
-
-    data.dashboard = this.isPlainObject(
-      data.dashboard
-    )
-      ? data.dashboard
-      : {};
-
-    data.pipeline = this.isPlainObject(
-      data.pipeline
-    )
-      ? data.pipeline
-      : {};
-
-    const simpleArrayCollections = [
-      "strategy",
-      "flagshipProjects",
-      "departments",
-      "kpis",
-      "maturity",
-      "governance",
-      "reports",
-      "businessCases",
-      "decisionCenter",
-      "risks",
-      "notifications",
-      "recommendations",
-      "diagnostics",
-      "activity"
-    ];
-
-    simpleArrayCollections.forEach(
-      collection => {
-        data[collection] = this.toArray(
-          data[collection]
-        );
-      }
-    );
-
-    data.ideas = this.toArray(
-      data.ideas
-    ).map(
-      (item, index) =>
-        this.normalizeIdea(
-          item,
-          index
-        )
-    );
-
-    data.projects = this.toArray(
-      data.projects
-    ).map(
-      (item, index) =>
-        this.normalizeProject(
-          item,
-          index
-        )
-    );
-
-    data.automation =
-      this.normalizeAutomation(
-        data.automation
+    normalizeProject(item = {}, index = 0) {
+      const now = this.now();
+      const status = this.normalizeProjectStatus(
+        item.projectStatus ?? item.status
       );
 
-    this.repairIdeaProjectLinks(data);
-    this.refreshPipelineStats(data);
+      const tasks = this.toArray(item.tasks).map(
+        (task, taskIndex) => this.normalizeTask(task, taskIndex)
+      );
 
-    return data;
-  },
+      const phasesSource = this.toArray(item.phases).length
+        ? this.toArray(item.phases)
+        : AIW.LIFECYCLE.PROJECT_PHASES;
 
-  normalizeAutomation(value) {
-    if (Array.isArray(value)) {
+      const phases = phasesSource.map((phase, phaseIndex) => ({
+        ...this.clone(phase),
+        id:
+          phase.id ||
+          AIW.LIFECYCLE.PROJECT_PHASES[phaseIndex]?.id ||
+          `phase-${phaseIndex + 1}`,
+        title:
+          phase.title ||
+          AIW.LIFECYCLE.PROJECT_PHASES[phaseIndex]?.title ||
+          "مرحلة",
+        titleEn:
+          phase.titleEn ||
+          AIW.LIFECYCLE.PROJECT_PHASES[phaseIndex]?.titleEn ||
+          "",
+        order: this.toNumber(phase.order, phaseIndex + 1),
+        status: phase.status || (phaseIndex === 0 ? "current" : "pending"),
+        progress: this.clamp(phase.progress ?? 0),
+        startedAt: phase.startedAt || null,
+        completedAt: phase.completedAt || null
+      }));
+
+      const progress = tasks.length
+        ? this.calculateTasksProgress(tasks)
+        : this.clamp(
+            item.progress ??
+            item.completion ??
+            item.readiness ??
+            0
+          );
+
+      const titleEn =
+        item.titleEn ||
+        item.englishTitle ||
+        item.nameEn ||
+        "";
+
       return {
-        workflows: this.clone(value),
-        triggers: [],
-        approvals: [],
-        roadmap: [],
-        settings: {},
-        statistics: {},
-        executionHistory: []
+        ...this.clone(item),
+
+        id: item.id || this.id(`project-${index + 1}`),
+        sourceIdeaId: item.sourceIdeaId || item.ideaId || null,
+        ideaId: item.ideaId || item.sourceIdeaId || null,
+        origin:
+          item.origin ||
+          (
+            item.sourceIdeaId || item.ideaId
+              ? "idea-conversion"
+              : "manual"
+          ),
+
+        icon: item.icon || "📁",
+        title: item.title || item.name || "مشروع جديد",
+        titleEn,
+        englishTitle: item.englishTitle || titleEn,
+        description: item.description || "",
+        objective: item.objective || "",
+        category: item.category || item.portfolio || "general",
+        department: item.department || "غير مصنف",
+        owner: item.owner || null,
+        sponsor: item.sponsor || null,
+        priority: item.priority || "متوسطة",
+        cost: item.cost || item.costLevel || "متوسطة",
+        costLevel: item.costLevel || item.cost || "متوسطة",
+        duration: item.duration || item.timeline || "غير محددة",
+        readiness: this.clamp(item.readiness ?? progress),
+        decisionScore: this.clamp(item.decisionScore ?? 0),
+        riskLevel: item.riskLevel || item.risk || "متوسط",
+
+        status,
+        projectStatus: status,
+        progress,
+
+        currentPhase:
+          item.currentPhase ||
+          phases.find(phase => phase.status === "current")?.id ||
+          phases[0]?.id ||
+          "discovery",
+
+        benefits: this.toArray(item.benefits),
+        expectedOutcomes: this.toArray(item.expectedOutcomes),
+        kpis: this.toArray(item.kpis),
+        risks: this.toArray(item.risks),
+        dependencies: this.toArray(item.dependencies),
+        milestones: this.toArray(item.milestones),
+        tasks,
+        phases,
+
+        budget: this.deepMerge(
+          {
+            estimated: null,
+            approved: null,
+            spent: 0,
+            currency: "AED"
+          },
+          this.isPlainObject(item.budget) ? item.budget : {}
+        ),
+
+        schedule: this.deepMerge(
+          {
+            plannedStart: null,
+            plannedEnd: null,
+            actualStart: null,
+            actualEnd: null
+          },
+          this.isPlainObject(item.schedule) ? item.schedule : {}
+        ),
+
+        approvalSnapshot:
+          this.isPlainObject(item.approvalSnapshot)
+            ? this.clone(item.approvalSnapshot)
+            : {},
+
+        lifecycleHistory: this.toArray(
+          item.lifecycleHistory || item.history
+        ),
+
+        createdAt: item.createdAt || now,
+        updatedAt: item.updatedAt || now,
+        startedAt: item.startedAt || null,
+        completedAt: item.completedAt || null,
+        archivedAt: item.archivedAt || null,
+        deletedAt: item.deletedAt ?? null
       };
-    }
+    },
 
-    const automation =
-      this.isPlainObject(value)
-        ? value
-        : {};
+    normalizeAutomation(value) {
+      const source = Array.isArray(value)
+        ? { workflows: value }
+        : this.isPlainObject(value)
+          ? value
+          : {};
 
-    return {
-      workflows: this.toArray(
-        automation.workflows
-      ),
+      return {
+        workflows: this.toArray(source.workflows),
+        triggers: this.toArray(source.triggers),
+        approvals: this.toArray(source.approvals),
+        roadmap: this.toArray(source.roadmap),
+        settings: this.isPlainObject(source.settings) ? source.settings : {},
+        statistics: this.isPlainObject(source.statistics) ? source.statistics : {},
+        executionHistory: this.toArray(source.executionHistory),
+        meta: this.isPlainObject(source.meta) ? source.meta : {}
+      };
+    },
 
-      triggers: this.toArray(
-        automation.triggers
-      ),
+    normalizeData(input) {
+      const data = this.isPlainObject(input)
+        ? this.clone(input)
+        : this.clone(AIW.DEFAULT_DATA);
 
-      approvals: this.toArray(
-        automation.approvals
-      ),
+      data.meta = this.isPlainObject(data.meta) ? data.meta : {};
+      data.summary = this.isPlainObject(data.summary) ? data.summary : {};
+      data.dashboard = this.isPlainObject(data.dashboard) ? data.dashboard : {};
+      data.pipeline = this.isPlainObject(data.pipeline) ? data.pipeline : {};
 
-      roadmap: this.toArray(
-        automation.roadmap
-      ),
+      const arrays = [
+        "strategy",
+        "flagshipProjects",
+        "departments",
+        "kpis",
+        "maturity",
+        "governance",
+        "reports",
+        "businessCases",
+        "risks",
+        "roadmap",
+        "notifications",
+        "recommendations",
+        "diagnostics",
+        "activity"
+      ];
 
-      settings: this.isPlainObject(
-        automation.settings
-      )
-        ? automation.settings
-        : {},
+      arrays.forEach(key => {
+        data[key] = this.toArray(data[key]);
+      });
 
-      statistics: this.isPlainObject(
-        automation.statistics
-      )
-        ? automation.statistics
-        : {},
+      data.ideas = this.toArray(data.ideas).map(
+        (item, index) => this.normalizeIdea(item, index)
+      );
 
-      executionHistory: this.toArray(
-        automation.executionHistory
-      )
-    };
-  },
+      data.projects = this.toArray(data.projects).map(
+        (item, index) => this.normalizeProject(item, index)
+      );
 
-  repairIdeaProjectLinks(data) {
-    if (!data) {
+      data.kpiCenter = this.deepMerge(
+        AIW.DEFAULT_DATA.kpiCenter,
+        this.isPlainObject(data.kpiCenter) ? data.kpiCenter : {}
+      );
+
+      data.reportsCenter = this.deepMerge(
+        AIW.DEFAULT_DATA.reportsCenter,
+        this.isPlainObject(data.reportsCenter) ? data.reportsCenter : {}
+      );
+
+      data.decisionCenter = this.deepMerge(
+        AIW.DEFAULT_DATA.decisionCenter,
+        this.isPlainObject(data.decisionCenter)
+          ? data.decisionCenter
+          : {}
+      );
+
+      const automationSource =
+        this.isPlainObject(data.automationCenter) &&
+        (
+          this.toArray(data.automationCenter.workflows).length ||
+          this.toArray(data.automationCenter.approvals).length
+        )
+          ? data.automationCenter
+          : data.automation;
+
+      data.automationCenter = this.normalizeAutomation(automationSource);
+      data.automation = this.normalizeAutomation(automationSource);
+
+      this.repairIdeaProjectLinks(data);
+      this.refreshPipelineStats(data);
+      this.syncCompatibilityModels(data);
+
       return data;
-    }
+    },
 
-    data.ideas = this.toArray(
-      data.ideas
-    );
+    syncCompatibilityModels(data = this._state) {
+      if (!data) return;
 
-    data.projects = this.toArray(
-      data.projects
-    );
+      const center = this.normalizeAutomation(
+        data.automationCenter || data.automation
+      );
 
-    const projectsById = new Map();
-    const projectsByIdeaId = new Map();
+      data.automationCenter = this.clone(center);
+      data.automation = this.clone(center);
 
-    data.projects.forEach(project => {
-      if (project?.id) {
-        projectsById.set(
-          String(project.id),
-          project
-        );
-      }
+      data.summary = this.deepMerge(
+        AIW.DEFAULT_DATA.summary,
+        data.summary || {}
+      );
 
-      if (
-        project?.sourceIdeaId &&
-        project?.status !==
-          AIW.LIFECYCLE.PROJECT_STATUS.ARCHIVED &&
-        !project?.deletedAt
-      ) {
-        projectsByIdeaId.set(
-          String(project.sourceIdeaId),
-          project
-        );
-      }
-    });
-
-    data.ideas = data.ideas.map(idea => {
-      if (!idea) {
-        return idea;
-      }
-
-      const linkedByProjectId =
-        idea.conversion?.projectId
-          ? projectsById.get(
-              String(
-                idea.conversion.projectId
-              )
-            )
-          : null;
-
-      const linkedByIdeaId =
-        projectsByIdeaId.get(
-          String(idea.id)
-        );
-
-      const linkedProject =
-        linkedByProjectId ||
-        linkedByIdeaId ||
-        null;
-
-      if (linkedProject) {
-        return {
-          ...idea,
-
-          status:
-            AIW.LIFECYCLE.IDEA_STATUS.CONVERTED,
-
-          ideaStatus:
-            AIW.LIFECYCLE.IDEA_STATUS.CONVERTED,
-
-          lifecycleStatus:
-            AIW.LIFECYCLE.IDEA_STATUS.CONVERTED,
-
-          conversion: {
-            ...idea.conversion,
-            converted: true,
-            projectId:
-              linkedProject.id,
-            convertedAt:
-              idea.conversion?.convertedAt ||
-              linkedProject.createdAt ||
-              this.now()
-          }
-        };
-      }
-
-      if (
-        idea.conversion?.converted &&
-        idea.conversion?.projectId
-      ) {
-        return {
-          ...idea,
-
-          status:
-            idea.approval?.status === "approved"
-              ? AIW.LIFECYCLE.IDEA_STATUS.APPROVED
-              : AIW.LIFECYCLE.IDEA_STATUS.DRAFT,
-
-          ideaStatus:
-            idea.approval?.status === "approved"
-              ? AIW.LIFECYCLE.IDEA_STATUS.APPROVED
-              : AIW.LIFECYCLE.IDEA_STATUS.DRAFT,
-
-          lifecycleStatus:
-            idea.approval?.status === "approved"
-              ? AIW.LIFECYCLE.IDEA_STATUS.APPROVED
-              : AIW.LIFECYCLE.IDEA_STATUS.DRAFT,
-
-          conversion: {
-            ...idea.conversion,
-            converted: false,
-            projectId: null
-          }
-        };
-      }
-
-      return idea;
-    });
-
-    return data;
-  },
-
-  ensureMetadata(data = this._state) {
-    if (!data) {
-      return null;
-    }
-
-    data.meta = this.isPlainObject(data.meta)
-      ? data.meta
-      : {};
-
-    const currentTime = this.now();
-
-    data.meta.app =
-      data.meta.app ||
-      AIW.DEFAULT_DATA.meta.app;
-
-    data.meta.shortName =
-      data.meta.shortName ||
-      AIW.DEFAULT_DATA.meta.shortName;
-
-    data.meta.version =
-      this.version;
-
-    data.meta.schemaVersion =
-      AIW.DEFAULT_DATA.meta.schemaVersion;
-
-    data.meta.environment =
-      data.meta.environment ||
-      AIW.DEFAULT_DATA.meta.environment;
-
-    data.meta.architecture =
-      data.meta.architecture ||
-      AIW.DEFAULT_DATA.meta.architecture;
-
-    data.meta.dataModel =
-      data.meta.dataModel ||
-      AIW.DEFAULT_DATA.meta.dataModel;
-
-    data.meta.synchronization =
-      data.meta.synchronization ||
-      AIW.DEFAULT_DATA.meta.synchronization;
-
-    data.meta.createdAt =
-      data.meta.createdAt ||
-      currentTime;
-
-    data.meta.updatedAt =
-      data.meta.updatedAt ||
-      currentTime;
-
-    data.meta.lastSync =
-      data.meta.lastSync ||
-      currentTime;
-
-    return data.meta;
-  },
-
-  /* =========================================================
-     PIPELINE STATISTICS
-  ========================================================= */
-
-  refreshPipelineStats(data = this._state) {
-    if (!data) {
-      return null;
-    }
-
-    const ideas = this.toArray(
-      data.ideas
-    ).filter(
-      item => !item?.deletedAt
-    );
-
-    const projects = this.toArray(
-      data.projects
-    ).filter(
-      item => !item?.deletedAt
-    );
-
-    const countIdeasByStatus = status =>
-      ideas.filter(
+      data.summary.ideasCount = data.pipeline?.totalIdeas || 0;
+      data.summary.projectsCount = data.pipeline?.totalProjects || 0;
+      data.summary.highPriorityIdeasCount = this.toArray(data.ideas).filter(
         idea =>
-          idea?.ideaStatus === status ||
-          idea?.status === status
+          ["عالية", "عالي", "high", "critical"].includes(
+            this.normalizeText(idea.priority)
+          ) &&
+          !idea.deletedAt
       ).length;
 
-    const activeProjects =
-      projects.filter(
-        project =>
-          ![
-            AIW.LIFECYCLE.PROJECT_STATUS.COMPLETED,
-            AIW.LIFECYCLE.PROJECT_STATUS.CANCELLED,
-            AIW.LIFECYCLE.PROJECT_STATUS.ARCHIVED
-          ].includes(
-            project?.projectStatus ||
-            project?.status
-          )
-      );
+      data.summary.departmentsCount = this.toArray(data.departments).length;
+      data.summary.portfolioHealth =
+        data.summary.portfolioHealth ??
+        data.dashboard?.portfolioHealth ??
+        68;
+      data.summary.systemHealth =
+        data.summary.systemHealth ??
+        data.summary.portfolioHealth;
+      data.summary.maturityScore =
+        data.summary.maturityScore ??
+        data.dashboard?.maturityScore ??
+        34;
+      data.summary.aiReadiness =
+        data.summary.aiReadiness ??
+        data.summary.maturityScore;
+    },
 
-    const completedProjects =
-      projects.filter(
-        project =>
+    ensureMetadata(data = this._state) {
+      if (!data) return null;
+
+      data.meta = this.isPlainObject(data.meta) ? data.meta : {};
+      const now = this.now();
+
+      data.meta = {
+        ...AIW.DEFAULT_DATA.meta,
+        ...data.meta,
+        version: this.version,
+        schemaVersion: "2.3",
+        createdAt: data.meta.createdAt || now,
+        updatedAt: data.meta.updatedAt || now,
+        lastSync: data.meta.lastSync || now
+      };
+
+      return data.meta;
+    },
+
+    repairIdeaProjectLinks(data) {
+      if (!data) return data;
+
+      const projects = this.toArray(data.projects);
+      const projectById = new Map();
+      const projectByIdeaId = new Map();
+
+      projects.forEach(project => {
+        if (project?.id) {
+          projectById.set(String(project.id), project);
+        }
+
+        const active =
+          !project?.deletedAt &&
+          this.normalizeProjectStatus(project?.status) !==
+            AIW.LIFECYCLE.PROJECT_STATUS.ARCHIVED;
+
+        if (active && project?.sourceIdeaId) {
+          projectByIdeaId.set(String(project.sourceIdeaId), project);
+        }
+      });
+
+      data.ideas = this.toArray(data.ideas).map(idea => {
+        const linked =
           (
-            project?.projectStatus ||
-            project?.status
-          ) ===
+            idea?.conversion?.projectId
+              ? projectById.get(String(idea.conversion.projectId))
+              : null
+          ) ||
+          projectByIdeaId.get(String(idea?.id)) ||
+          null;
+
+        if (linked) {
+          return this.normalizeIdea({
+            ...idea,
+            status: AIW.LIFECYCLE.IDEA_STATUS.CONVERTED,
+            ideaStatus: AIW.LIFECYCLE.IDEA_STATUS.CONVERTED,
+            lifecycleStatus: AIW.LIFECYCLE.IDEA_STATUS.CONVERTED,
+            projectId: linked.id,
+            convertedToProject: true,
+            conversion: {
+              ...(idea.conversion || {}),
+              converted: true,
+              projectId: linked.id,
+              convertedAt:
+                idea.conversion?.convertedAt ||
+                linked.createdAt ||
+                this.now()
+            }
+          });
+        }
+
+        if (idea?.conversion?.converted || idea?.projectId) {
+          const nextStatus =
+            idea.approval?.status === "approved"
+              ? AIW.LIFECYCLE.IDEA_STATUS.APPROVED
+              : AIW.LIFECYCLE.IDEA_STATUS.IDEA;
+
+          return this.normalizeIdea({
+            ...idea,
+            status: nextStatus,
+            ideaStatus: nextStatus,
+            lifecycleStatus: nextStatus,
+            projectId: null,
+            convertedToProject: false,
+            conversion: {
+              ...(idea.conversion || {}),
+              converted: false,
+              projectId: null
+            }
+          });
+        }
+
+        return idea;
+      });
+
+      return data;
+    },
+
+    calculateTasksProgress(tasks = []) {
+      const list = this.toArray(tasks);
+      if (!list.length) return 0;
+
+      let totalWeight = 0;
+      let weightedProgress = 0;
+
+      list.forEach(task => {
+        const weight = Math.max(1, this.toNumber(task?.weight, 1));
+        const progress = this.clamp(
+          task?.progress ??
+          (
+            this.normalizeText(task?.status) === "completed"
+              ? 100
+              : 0
+          )
+        );
+
+        totalWeight += weight;
+        weightedProgress += progress * weight;
+      });
+
+      return totalWeight
+        ? Math.round(weightedProgress / totalWeight)
+        : 0;
+    },
+
+    /* -------------------------------------------------------
+       Pipeline
+    ------------------------------------------------------- */
+
+    refreshPipelineStats(data = this._state) {
+      if (!data) return null;
+
+      const ideas = this.toArray(data.ideas).filter(item => !item?.deletedAt);
+      const projects = this.toArray(data.projects).filter(item => !item?.deletedAt);
+
+      const countIdea = status =>
+        ideas.filter(
+          idea => this.normalizeIdeaStatus(
+            idea.lifecycleStatus ?? idea.ideaStatus ?? idea.status
+          ) === status
+        ).length;
+
+      const activeProjects = projects.filter(project => {
+        const status = this.normalizeProjectStatus(
+          project.projectStatus ?? project.status
+        );
+
+        return ![
+          AIW.LIFECYCLE.PROJECT_STATUS.COMPLETED,
+          AIW.LIFECYCLE.PROJECT_STATUS.CANCELLED,
+          AIW.LIFECYCLE.PROJECT_STATUS.ARCHIVED
+        ].includes(status);
+      });
+
+      const completedProjects = projects.filter(
+        project =>
+          this.normalizeProjectStatus(project.projectStatus ?? project.status) ===
           AIW.LIFECYCLE.PROJECT_STATUS.COMPLETED
       );
 
-    const archivedProjects =
-      projects.filter(
+      const archivedProjects = projects.filter(
         project =>
-          (
-            project?.projectStatus ||
-            project?.status
-          ) ===
+          this.normalizeProjectStatus(project.projectStatus ?? project.status) ===
           AIW.LIFECYCLE.PROJECT_STATUS.ARCHIVED
       );
 
-    const totalProgress =
-      projects.reduce(
-        (sum, project) =>
-          sum +
-          this.clamp(
-            project?.progress || 0
-          ),
-        0
-      );
-
-    const convertedIdeas =
-      countIdeasByStatus(
+      const convertedIdeas = countIdea(
         AIW.LIFECYCLE.IDEA_STATUS.CONVERTED
       );
 
-    data.pipeline = {
-      totalIdeas: ideas.length,
+      const pendingIdeas = countIdea(
+        AIW.LIFECYCLE.IDEA_STATUS.PENDING_APPROVAL
+      );
 
-      draftIdeas:
-        countIdeasByStatus(
-          AIW.LIFECYCLE.IDEA_STATUS.DRAFT
-        ),
+      data.pipeline = {
+        totalIdeas: ideas.length,
+        draftIdeas:
+          countIdea(AIW.LIFECYCLE.IDEA_STATUS.DRAFT) +
+          countIdea(AIW.LIFECYCLE.IDEA_STATUS.IDEA),
+        submittedIdeas: countIdea(AIW.LIFECYCLE.IDEA_STATUS.SUBMITTED),
+        pendingIdeas,
+        pendingApproval: pendingIdeas,
+        approvedIdeas: countIdea(AIW.LIFECYCLE.IDEA_STATUS.APPROVED),
+        rejectedIdeas: countIdea(AIW.LIFECYCLE.IDEA_STATUS.REJECTED),
+        convertedIdeas,
+        totalProjects: projects.length,
+        activeProjects: activeProjects.length,
+        completedProjects: completedProjects.length,
+        archivedProjects: archivedProjects.length,
+        conversionRate:
+          ideas.length
+            ? Math.round((convertedIdeas / ideas.length) * 100)
+            : 0,
+        averageProjectProgress:
+          projects.length
+            ? Math.round(
+                projects.reduce(
+                  (sum, project) => sum + this.clamp(project.progress ?? 0),
+                  0
+                ) / projects.length
+              )
+            : 0,
+        updatedAt: this.now()
+      };
 
-      submittedIdeas:
-        countIdeasByStatus(
-          AIW.LIFECYCLE.IDEA_STATUS.SUBMITTED
-        ),
+      return data.pipeline;
+    },
 
-      pendingIdeas:
-        countIdeasByStatus(
-          AIW.LIFECYCLE.IDEA_STATUS.PENDING_APPROVAL
-        ),
+    getPipelineStats() {
+      if (!this._initialized) this.init();
+      this.refreshPipelineStats(this._state);
+      return this.clone(this._state.pipeline);
+    },
 
-      approvedIdeas:
-        countIdeasByStatus(
-          AIW.LIFECYCLE.IDEA_STATUS.APPROVED
-        ),
+    getPortfolioPipeline() {
+      return this.getPipelineStats();
+    },
 
-      rejectedIdeas:
-        countIdeasByStatus(
-          AIW.LIFECYCLE.IDEA_STATUS.REJECTED
-        ),
+    /* -------------------------------------------------------
+       State Access
+    ------------------------------------------------------- */
 
-      convertedIdeas,
+    getState() {
+      if (!this._initialized) this.init();
+      return this.clone(this._state);
+    },
 
-      totalProjects: projects.length,
-      activeProjects: activeProjects.length,
-      completedProjects:
-        completedProjects.length,
-      archivedProjects:
-        archivedProjects.length,
-
-      conversionRate:
-        ideas.length
-          ? Math.round(
-              (
-                convertedIdeas /
-                ideas.length
-              ) * 100
-            )
-          : 0,
-
-      averageProjectProgress:
-        projects.length
-          ? Math.round(
-              totalProgress /
-              projects.length
-            )
-          : 0,
-
-      updatedAt: this.now()
-    };
-
-    return data.pipeline;
-  },
-
-  getPipelineStats() {
-    const state = this.getState();
-
-    this.refreshPipelineStats(state);
-
-    return this.clone(
-      state.pipeline
-    );
-  },
-
-  /* =========================================================
-     STATE ACCESS
-  ========================================================= */
-
-  getState() {
-    if (!this._initialized) {
-      this.init();
-    }
-
-    return this.clone(this._state);
-  },
-
-  getData() {
-    return this.getState();
-  },
-
-  get(path, fallback = undefined) {
-    if (!this._initialized) {
-      this.init();
-    }
-
-    if (!path) {
+    getData() {
       return this.getState();
-    }
+    },
 
-    const value = this.getByPath(
-      this._state,
-      path
-    );
+    get(path, fallback = undefined) {
+      if (!this._initialized) this.init();
+      if (!path) return this.getState();
 
-    return value === undefined
-      ? this.clone(fallback)
-      : this.clone(value);
-  },
+      const value = this.getByPath(this._state, path);
+      return value === undefined
+        ? this.clone(fallback)
+        : this.clone(value);
+    },
 
-  getByPath(source, path) {
-    if (!path) {
-      return source;
-    }
+    has(path) {
+      if (!this._initialized) this.init();
+      return this.getByPath(this._state, path) !== undefined;
+    },
 
-    const parts = Array.isArray(path)
-      ? path
-      : String(path)
-          .split(".")
-          .filter(Boolean);
+    /* -------------------------------------------------------
+       State Writes
+    ------------------------------------------------------- */
 
-    return parts.reduce(
-      (current, key) => {
-        if (
-          current === undefined ||
-          current === null
-        ) {
-          return undefined;
-        }
+    set(path, value, options = {}) {
+      if (!this._initialized) this.init();
 
-        return current[key];
-      },
-      source
-    );
-  },
-
-  setByPath(source, path, value) {
-    const parts = Array.isArray(path)
-      ? path
-      : String(path)
-          .split(".")
-          .filter(Boolean);
-
-    if (!parts.length) {
-      return source;
-    }
-
-    let current = source;
-
-    parts.forEach((part, index) => {
-      const isLast =
-        index === parts.length - 1;
-
-      if (isLast) {
-        current[part] = this.clone(value);
-        return;
+      if (this.isPlainObject(path) && arguments.length === 1) {
+        return this.replaceState(path);
       }
+
+      const next = this.clone(this._state);
+      this.setByPath(next, path, value);
+
+      return this.commit(next, {
+        eventName: options.eventName || options.event || "aiw:dataChanged",
+        activity: options.activity || null,
+        backup: options.backup !== false,
+        notify: options.notify !== false
+      });
+    },
+
+    update(path, value, options = {}) {
+      if (
+        typeof path === "string" &&
+        arguments.length >= 2
+      ) {
+        return this.set(path, value, {
+          ...options,
+          eventName:
+            options.eventName ||
+            options.event ||
+            "aiw:dataUpdated"
+        });
+      }
+
+      if (this.isPlainObject(path)) {
+        return this.updateState(path, value || {});
+      }
+
+      return this.getState();
+    },
+
+    updateState(updater, options = {}) {
+      if (!this._initialized) this.init();
+
+      let next;
+
+      if (typeof updater === "function") {
+        const draft = this.clone(this._state);
+        const result = updater(draft);
+        next =
+          result && typeof result === "object"
+            ? result
+            : draft;
+      } else if (this.isPlainObject(updater)) {
+        next = this.deepMerge(this._state, updater);
+      } else {
+        return this.getState();
+      }
+
+      return this.commit(next, {
+        eventName: options.eventName || options.event || "aiw:dataUpdated",
+        activity: options.activity || null,
+        backup: options.backup !== false,
+        notify: options.notify !== false
+      });
+    },
+
+    patch(pathOrPatch, valueOrOptions = {}, maybeOptions = {}) {
+      if (typeof pathOrPatch === "string") {
+        const current = this.get(pathOrPatch);
+
+        const nextValue =
+          this.isPlainObject(current) &&
+          this.isPlainObject(valueOrOptions)
+            ? this.deepMerge(current, valueOrOptions)
+            : valueOrOptions;
+
+        return this.set(pathOrPatch, nextValue, {
+          ...maybeOptions,
+          eventName:
+            maybeOptions.eventName ||
+            maybeOptions.event ||
+            "aiw:storeUpdated"
+        });
+      }
+
+      return this.updateState(pathOrPatch, {
+        ...(this.isPlainObject(valueOrOptions) ? valueOrOptions : {}),
+        eventName:
+          valueOrOptions.eventName ||
+          valueOrOptions.event ||
+          "aiw:storeUpdated"
+      });
+    },
+
+    replaceState(data, options = {}) {
+      const next = this.normalizeData(
+        this.mergeDefaults(AIW.DEFAULT_DATA, data || {})
+      );
+
+      return this.commit(next, {
+        eventName: options.eventName || options.event || "aiw:dataReplaced",
+        activity: options.activity || null,
+        backup: options.backup !== false,
+        notify: options.notify !== false
+      });
+    },
+
+    saveData(data, eventName = "aiw:dataChanged") {
+      return this.replaceState(data || {}, { eventName });
+    },
+
+    commit(nextState, options = {}) {
+      const normalized = this.normalizeData(
+        this.mergeDefaults(AIW.DEFAULT_DATA, nextState || {})
+      );
+
+      this.ensureMetadata(normalized);
+      this.repairIdeaProjectLinks(normalized);
+      this.refreshPipelineStats(normalized);
+      this.syncCompatibilityModels(normalized);
+
+      const now = this.now();
+      normalized.meta.updatedAt = now;
+      normalized.meta.lastSync = now;
 
       if (
-        !this.isPlainObject(
-          current[part]
-        )
+        options.activity &&
+        this.getSettings().activityLogging
       ) {
-        current[part] = {};
+        this.addActivity(normalized, options.activity);
       }
 
-      current = current[part];
-    });
+      this._state = normalized;
 
-    return source;
-  },
+      this.persistState({
+        emit: false,
+        backup: options.backup !== false,
+        notify: false
+      });
 
-  has(path) {
-    if (!this._initialized) {
-      this.init();
-    }
+      this.syncGlobalDataReference();
 
-    return (
-      this.getByPath(
-        this._state,
-        path
-      ) !== undefined
-    );
-  },
+      const eventName = options.eventName || "aiw:dataChanged";
+      const state = this.getState();
 
-  /* =========================================================
-     STATE WRITES
-  ========================================================= */
+      this.emit(eventName, state);
 
-  set(path, value, options = {}) {
-    if (!this._initialized) {
-      this.init();
-    }
-
-    if (
-      this.isPlainObject(path) &&
-      arguments.length === 1
-    ) {
-      return this.replaceState(path);
-    }
-
-    if (
-      this.isPlainObject(path) &&
-      arguments.length >= 2 &&
-      this.isPlainObject(value)
-    ) {
-      return this.replaceState(
-        path,
-        value
-      );
-    }
-
-    const nextState =
-      this.clone(this._state);
-
-    this.setByPath(
-      nextState,
-      path,
-      value
-    );
-
-    return this.commit(
-      nextState,
-      {
-        eventName:
-          options.eventName ||
-          "aiw:dataChanged",
-
-        activity:
-          options.activity ||
-          null,
-
-        backup:
-          options.backup !== false,
-
-        notify:
-          options.notify !== false
-      }
-    );
-  },
-
-  updateState(updater, options = {}) {
-    if (!this._initialized) {
-      this.init();
-    }
-
-    let nextState;
-
-    if (typeof updater === "function") {
-      const draft =
-        this.clone(this._state);
-
-      const result =
-        updater(draft);
-
-      nextState =
-        result &&
-        typeof result === "object"
-          ? result
-          : draft;
-    } else if (
-      this.isPlainObject(updater)
-    ) {
-      nextState = this.deepMerge(
-        this._state,
-        updater
-      );
-    } else {
-      return this.getState();
-    }
-
-    return this.commit(
-      nextState,
-      {
-        eventName:
-          options.eventName ||
-          "aiw:dataUpdated",
-
-        activity:
-          options.activity ||
-          null,
-
-        backup:
-          options.backup !== false,
-
-        notify:
-          options.notify !== false
-      }
-    );
-  },
-
-  patch(patchData, options = {}) {
-    return this.updateState(
-      patchData,
-      {
-        ...options,
-
-        eventName:
-          options.eventName ||
-          "aiw:storeUpdated"
-      }
-    );
-  },
-
-  replaceState(data, options = {}) {
-    const nextState =
-      this.normalizeData(
-        this.mergeDefaults(
-          AIW.DEFAULT_DATA,
-          data || {}
-        )
-      );
-
-    return this.commit(
-      nextState,
-      {
-        eventName:
-          options.eventName ||
-          "aiw:dataReplaced",
-
-        activity:
-          options.activity ||
-          null,
-
-        backup:
-          options.backup !== false,
-
-        notify:
-          options.notify !== false
-      }
-    );
-  },
-
-  saveData(
-    data,
-    eventName = "aiw:dataChanged"
-  ) {
-    return this.replaceState(
-      data || {},
-      {
-        eventName
-      }
-    );
-  },
-
-  commit(nextState, options = {}) {
-    const normalizedState =
-      this.normalizeData(
-        this.mergeDefaults(
-          AIW.DEFAULT_DATA,
-          nextState || {}
-        )
-      );
-
-    this.ensureMetadata(
-      normalizedState
-    );
-
-    this.refreshPipelineStats(
-      normalizedState
-    );
-
-    const currentTime = this.now();
-
-    normalizedState.meta.updatedAt =
-      currentTime;
-
-    normalizedState.meta.lastSync =
-      currentTime;
-
-    if (
-      options.activity &&
-      this.getSettings()
-        .activityLogging
-    ) {
-      this.addActivity(
-        normalizedState,
-        options.activity
-      );
-    }
-
-    this._state =
-      normalizedState;
-
-    this.persistState({
-      emit: false,
-      backup:
-        options.backup !== false,
-      notify: false
-    });
-
-    this.syncGlobalDataReference();
-
-    const eventName =
-      options.eventName ||
-      "aiw:dataChanged";
-
-    this.emit(
-      eventName,
-      this.getState()
-    );
-
-    if (
-      eventName !==
-      "aiw:dataChanged"
-    ) {
-      this.emit(
-        "aiw:dataChanged",
-        {
+      if (eventName !== "aiw:dataChanged") {
+        this.emit("aiw:dataChanged", {
           sourceEvent: eventName,
-          data: this.getState()
-        }
-      );
-    }
-
-    this.emit(
-      "aiw:storeChanged",
-      {
-        sourceEvent: eventName,
-        data: this.getState()
+          data: state
+        });
       }
-    );
 
-    if (
-      options.notify !== false
-    ) {
+      this.emit("aiw:storeChanged", {
+        sourceEvent: eventName,
+        data: state
+      });
+
+      if (options.notify !== false) {
+        this.notifySubscribers({
+          type: eventName,
+          data: state
+        });
+      }
+
+      return state;
+    },
+
+    persistState(options = {}) {
+      if (!this._state) return false;
+
+      const written = this.write(AIW.KEYS.DATA, this._state);
+
+      if (
+        written &&
+        options.backup !== false &&
+        this.getSettings().autoBackup
+      ) {
+        this.backup(this._state, { emit: false });
+      }
+
+      if (options.emit !== false) {
+        this.emit("aiw:dataPersisted", this.getState());
+      }
+
+      if (options.notify !== false) {
+        this.notifySubscribers({
+          type: "persist",
+          data: this.getState()
+        });
+      }
+
+      return written;
+    },
+
+    syncGlobalDataReference() {
+      if (this._state) {
+        AIW.Data = this.clone(this._state);
+      }
+    },
+
+    /* -------------------------------------------------------
+       Settings
+    ------------------------------------------------------- */
+
+    getSettings() {
+      if (!this._initialized) this.init();
+
+      if (!this._settings) {
+        this._settings = this.mergeDefaults(
+          AIW.DEFAULT_SETTINGS,
+          this.read(AIW.KEYS.SETTINGS, {})
+        );
+      }
+
+      return this.clone(this._settings);
+    },
+
+    saveSettings(settings = {}, eventName = "aiw:settingsChanged") {
+      if (!this._initialized) this.init();
+
+      this._settings = this.mergeDefaults(
+        AIW.DEFAULT_SETTINGS,
+        settings
+      );
+
+      this.persistSettings({
+        emit: false,
+        notify: false
+      });
+
+      this.emit(eventName, this.getSettings());
       this.notifySubscribers({
         type: eventName,
-        data: this.getState()
-      });
-    }
-
-    return this.getState();
-  },
-
-  persistState(options = {}) {
-    if (!this._state) {
-      return false;
-    }
-
-    const written = this.write(
-      AIW.KEYS.DATA,
-      this._state
-    );
-
-    if (
-      written &&
-      options.backup !== false &&
-      this.getSettings().autoBackup
-    ) {
-      this.backup(
-        this._state,
-        {
-          emit: false
-        }
-      );
-    }
-
-    if (
-      options.emit !== false
-    ) {
-      this.emit(
-        "aiw:dataPersisted",
-        this.getState()
-      );
-    }
-
-    if (
-      options.notify !== false
-    ) {
-      this.notifySubscribers({
-        type: "persist",
-        data: this.getState()
-      });
-    }
-
-    return written;
-  },
-
-  syncGlobalDataReference() {
-    if (!this._state) {
-      return;
-    }
-
-    window.AIW.Data =
-      this.clone(this._state);
-  },
-
-  /* =========================================================
-     SETTINGS
-  ========================================================= */
-
-  getSettings() {
-    if (!this._initialized) {
-      this.init();
-    }
-
-    if (!this._settings) {
-      this._settings =
-        this.mergeDefaults(
-          AIW.DEFAULT_SETTINGS,
-          this.read(
-            AIW.KEYS.SETTINGS,
-            null
-          )
-        );
-    }
-
-    return this.clone(
-      this._settings
-    );
-  },
-
-  saveSettings(
-    settings,
-    eventName = "aiw:settingsChanged"
-  ) {
-    if (!this._initialized) {
-      this.init();
-    }
-
-    this._settings =
-      this.mergeDefaults(
-        AIW.DEFAULT_SETTINGS,
-        settings || {}
-      );
-
-    this.persistSettings({
-      emit: false,
-      notify: false
-    });
-
-    this.emit(
-      eventName,
-      this.getSettings()
-    );
-
-    this.notifySubscribers({
-      type: eventName,
-      settings: this.getSettings()
-    });
-
-    return this.getSettings();
-  },
-
-  updateSettings(updates = {}) {
-    const current =
-      this.getSettings();
-
-    const nextSettings =
-      this.deepMerge(
-        current,
-        updates
-      );
-
-    return this.saveSettings(
-      nextSettings,
-      "aiw:settingsUpdated"
-    );
-  },
-
-  setSetting(key, value) {
-    const settings =
-      this.getSettings();
-
-    settings[key] = value;
-
-    return this.saveSettings(
-      settings,
-      "aiw:settingsUpdated"
-    );
-  },
-
-  getSetting(
-    key,
-    fallback = undefined
-  ) {
-    const settings =
-      this.getSettings();
-
-    return settings[key] !== undefined
-      ? this.clone(settings[key])
-      : this.clone(fallback);
-  },
-
-  persistSettings(options = {}) {
-    if (!this._settings) {
-      return false;
-    }
-
-    const written = this.write(
-      AIW.KEYS.SETTINGS,
-      this._settings
-    );
-
-    if (
-      options.emit !== false
-    ) {
-      this.emit(
-        "aiw:settingsPersisted",
-        this.getSettings()
-      );
-    }
-
-    if (
-      options.notify !== false
-    ) {
-      this.notifySubscribers({
-        type: "settingsPersisted",
         settings: this.getSettings()
       });
-    }
 
-    return written;
-  },
+      return this.getSettings();
+    },
 
-  /* =========================================================
-     METADATA
-  ========================================================= */
-
-  getMetadata() {
-    return this.get(
-      "meta",
-      {}
-    );
-  },
-
-  setMetadata(metadata = {}) {
-    const currentMetadata =
-      this.getMetadata();
-
-    const updatedMetadata =
-      this.deepMerge(
-        currentMetadata,
-        metadata
+    updateSettings(updates = {}) {
+      return this.saveSettings(
+        this.deepMerge(this.getSettings(), updates),
+        "aiw:settingsUpdated"
       );
+    },
 
-    return this.set(
-      "meta",
-      updatedMetadata,
-      {
-        eventName:
-          "aiw:metadataChanged",
+    setSetting(key, value) {
+      const settings = this.getSettings();
+      this.setByPath(settings, key, value);
+      return this.saveSettings(settings, "aiw:settingsUpdated");
+    },
 
+    getSetting(key, fallback = undefined) {
+      const value = this.getByPath(this.getSettings(), key);
+      return value === undefined
+        ? this.clone(fallback)
+        : this.clone(value);
+    },
+
+    persistSettings(options = {}) {
+      if (!this._settings) return false;
+
+      const written = this.write(AIW.KEYS.SETTINGS, this._settings);
+
+      if (options.emit !== false) {
+        this.emit("aiw:settingsPersisted", this.getSettings());
+      }
+
+      if (options.notify !== false) {
+        this.notifySubscribers({
+          type: "settingsPersisted",
+          settings: this.getSettings()
+        });
+      }
+
+      return written;
+    },
+
+    /* -------------------------------------------------------
+       Metadata
+    ------------------------------------------------------- */
+
+    getMetadata() {
+      return this.get("meta", {});
+    },
+
+    setMetadata(metadata = {}) {
+      const updated = this.deepMerge(this.getMetadata(), metadata);
+
+      return this.set("meta", updated, {
+        eventName: "aiw:metadataChanged",
         backup: false
-      }
-    );
-  },
+      });
+    },
 
-  updateMetadata(metadata = {}) {
-    return this.setMetadata(
-      metadata
-    );
-  },
+    updateMetadata(metadata = {}) {
+      return this.setMetadata(metadata);
+    },
 
-  touchMetadata(extra = {}) {
-    return this.setMetadata({
-      updatedAt: this.now(),
-      lastSync: this.now(),
-      ...extra
-    });
-  },
+    touchMetadata(extra = {}) {
+      return this.setMetadata({
+        updatedAt: this.now(),
+        lastSync: this.now(),
+        ...extra
+      });
+    },
 
-  /* =========================================================
-     COLLECTION PATH HELPERS
-  ========================================================= */
+    /* -------------------------------------------------------
+       Collection Helpers
+    ------------------------------------------------------- */
 
-  getCollectionPath(collection) {
-    const aliases = {
-      workflows:
-        "automation.workflows",
+    getCollectionPath(collection) {
+      const aliases = {
+        workflows: "automationCenter.workflows",
+        triggers: "automationCenter.triggers",
+        approvals: "automationCenter.approvals",
+        automationRoadmap: "automationCenter.roadmap",
+        executionHistory: "automationCenter.executionHistory"
+      };
 
-      triggers:
-        "automation.triggers",
+      return aliases[collection] || collection;
+    },
 
-      approvals:
-        "automation.approvals",
-
-      automationRoadmap:
-        "automation.roadmap",
-
-      executionHistory:
-        "automation.executionHistory"
-    };
-
-    return (
-      aliases[collection] ||
-      collection
-    );
-  },
-
-  getCollection(collection) {
-    const path =
-      this.getCollectionPath(
-        collection
+    getAllCollection(collection) {
+      return this.toArray(
+        this.get(this.getCollectionPath(collection), [])
       );
+    },
 
-    const items = this.get(
-      path,
-      []
-    );
-
-    return this.toArray(items).filter(
-      item =>
-        !item ||
-        !item.deletedAt
-    );
-  },
-
-  getAllCollection(collection) {
-    const path =
-      this.getCollectionPath(
-        collection
+    getCollection(collection) {
+      return this.getAllCollection(collection).filter(
+        item => !item?.deletedAt
       );
+    },
 
-    return this.toArray(
-      this.get(path, [])
-    );
-  },
+    setCollection(collection, items = [], options = {}) {
+      const path = this.getCollectionPath(collection);
 
-  setCollection(collection, items) {
-    const path =
-      this.getCollectionPath(
-        collection
-      );
-
-    const normalizedItems =
-      Array.isArray(items)
-        ? items
-        : [];
-
-    this.set(
-      path,
-      normalizedItems,
-      {
+      this.set(path, Array.isArray(items) ? items : [], {
         eventName:
+          options.eventName ||
+          options.event ||
           "aiw:collectionChanged",
+        activity:
+          options.activity || {
+            type: "collection-set",
+            collection,
+            title: `تحديث مجموعة ${collection}`
+          }
+      });
 
-        activity: {
-          type: "collection-set",
-          collection,
+      return this.getCollection(collection);
+    },
 
-          title:
-            `تحديث مجموعة ${collection}`
-        }
+    /* -------------------------------------------------------
+       Generic CRUD
+    ------------------------------------------------------- */
+
+    add(collection, item = {}) {
+      const path = this.getCollectionPath(collection);
+      const items = this.getAllCollection(collection);
+      const now = this.now();
+
+      let record = {
+        id: item.id || this.id(collection),
+        title: item.title || item.name || "عنصر جديد",
+        status: item.status || "new",
+        priority: item.priority || "medium",
+        createdAt: item.createdAt || now,
+        updatedAt: now,
+        deletedAt: null,
+        ...this.clone(item)
+      };
+
+      if (collection === "ideas") {
+        record = this.normalizeIdea(record, items.length);
+      } else if (collection === "projects") {
+        record = this.normalizeProject(record, items.length);
       }
-    );
 
-    this.emit(
-      "aiw:collectionChanged",
-      {
-        collection,
+      items.unshift(record);
 
-        items: this.clone(
-          normalizedItems
-        )
-      }
-    );
-
-    return this.getCollection(
-      collection
-    );
-  },
-
-  /* =========================================================
-     CRUD OPERATIONS
-  ========================================================= */
-
-  add(collection, item = {}) {
-    const path =
-      this.getCollectionPath(
-        collection
-      );
-
-    const items =
-      this.getAllCollection(
-        collection
-      );
-
-    const currentTime =
-      this.now();
-
-    let record = {
-      id:
-        item.id ||
-        this.id(collection),
-
-      title:
-        item.title ||
-        item.name ||
-        "عنصر جديد",
-
-      status:
-        item.status ||
-        "new",
-
-      priority:
-        item.priority ||
-        "medium",
-
-      createdAt:
-        item.createdAt ||
-        currentTime,
-
-      updatedAt:
-        currentTime,
-
-      deletedAt: null,
-
-      ...this.clone(item)
-    };
-
-    if (collection === "ideas") {
-      record = this.normalizeIdea(
-        record,
-        items.length
-      );
-    }
-
-    if (collection === "projects") {
-      record = this.normalizeProject(
-        record,
-        items.length
-      );
-    }
-
-    record.id =
-      record.id ||
-      this.id(collection);
-
-    record.createdAt =
-      record.createdAt ||
-      currentTime;
-
-    record.updatedAt =
-      currentTime;
-
-    if (
-      record.deletedAt === undefined
-    ) {
-      record.deletedAt = null;
-    }
-
-    items.unshift(record);
-
-    this.set(
-      path,
-      items,
-      {
-        eventName:
-          "aiw:itemCreated",
-
+      this.set(path, items, {
+        eventName: "aiw:itemCreated",
         activity: {
           type: "create",
           collection,
-
-          title:
-            record.title ||
-            record.name ||
-            "إنشاء عنصر",
-
+          title: record.title || record.name || "إنشاء عنصر",
           refId: record.id
         }
-      }
-    );
+      });
 
-    this.emit(
-      "aiw:itemCreated",
-      {
+      this.emit("aiw:itemCreated", {
         collection,
         item: this.clone(record)
-      }
-    );
+      });
 
-    return this.clone(record);
-  },
+      return this.clone(record);
+    },
 
-  update(
-    collection,
-    id,
-    updates = {}
-  ) {
-    const path =
-      this.getCollectionPath(
-        collection
-      );
+    updateItem(collection, id, updates = {}) {
+      const path = this.getCollectionPath(collection);
+      const items = this.getAllCollection(collection);
+      let updatedItem = null;
 
-    const items =
-      this.getAllCollection(
-        collection
-      );
-
-    let updatedItem = null;
-
-    const updatedItems =
-      items.map((item, index) => {
-        if (
-          String(item?.id) !==
-          String(id)
-        ) {
-          return item;
-        }
+      const nextItems = items.map((item, index) => {
+        if (String(item?.id) !== String(id)) return item;
 
         const merged = {
           ...item,
@@ -2726,2601 +1783,1131 @@ AIW.Store = {
           updatedAt: this.now()
         };
 
-        if (collection === "ideas") {
-          updatedItem =
-            this.normalizeIdea(
-              merged,
-              index
-            );
-        } else if (
-          collection === "projects"
-        ) {
-          updatedItem =
-            this.normalizeProject(
-              merged,
-              index
-            );
-        } else {
-          updatedItem = merged;
-        }
+        updatedItem =
+          collection === "ideas"
+            ? this.normalizeIdea(merged, index)
+            : collection === "projects"
+              ? this.normalizeProject(merged, index)
+              : merged;
 
         return updatedItem;
       });
 
-    if (!updatedItem) {
-      return null;
-    }
+      if (!updatedItem) return null;
 
-    this.set(
-      path,
-      updatedItems,
-      {
-        eventName:
-          "aiw:itemUpdated",
-
+      this.set(path, nextItems, {
+        eventName: "aiw:itemUpdated",
         activity: {
           type: "update",
           collection,
-
-          title:
-            updatedItem.title ||
-            updatedItem.name ||
-            "تحديث عنصر",
-
+          title: updatedItem.title || updatedItem.name || "تحديث عنصر",
           refId: id
         }
-      }
-    );
+      });
 
-    this.emit(
-      "aiw:itemUpdated",
-      {
+      this.emit("aiw:itemUpdated", {
         collection,
-        item: this.clone(
-          updatedItem
-        )
-      }
-    );
+        item: this.clone(updatedItem)
+      });
 
-    return this.clone(
-      updatedItem
-    );
-  },
+      return this.clone(updatedItem);
+    },
 
-  remove(
-    collection,
-    id,
-    hardDelete = false
-  ) {
-    const path =
-      this.getCollectionPath(
-        collection
-      );
+    remove(collection, id, hardDelete = false) {
+      const path = this.getCollectionPath(collection);
+      const items = this.getAllCollection(collection);
+      const existing = items.find(item => String(item?.id) === String(id));
 
-    const items =
-      this.getAllCollection(
-        collection
-      );
+      if (!existing) return false;
 
-    const existingItem =
-      items.find(
-        item =>
-          String(item?.id) ===
-          String(id)
-      );
+      const hard =
+        hardDelete ||
+        !this.getSettings().softDelete;
 
-    if (!existingItem) {
-      return false;
-    }
+      const now = this.now();
 
-    const shouldHardDelete =
-      hardDelete ||
-      !this.getSettings().softDelete;
+      const nextItems = hard
+        ? items.filter(item => String(item?.id) !== String(id))
+        : items.map(item =>
+            String(item?.id) === String(id)
+              ? {
+                  ...item,
+                  deletedAt: now,
+                  updatedAt: now
+                }
+              : item
+          );
 
-    let updatedItems;
-
-    if (shouldHardDelete) {
-      updatedItems =
-        items.filter(
-          item =>
-            String(item?.id) !==
-            String(id)
-        );
-    } else {
-      const currentTime =
-        this.now();
-
-      updatedItems =
-        items.map(item => {
-          if (
-            String(item?.id) !==
-            String(id)
-          ) {
-            return item;
-          }
-
-          return {
-            ...item,
-            deletedAt: currentTime,
-            updatedAt: currentTime
-          };
-        });
-    }
-
-    this.set(
-      path,
-      updatedItems,
-      {
-        eventName:
-          "aiw:itemDeleted",
-
+      this.set(path, nextItems, {
+        eventName: "aiw:itemDeleted",
         activity: {
           type: "delete",
           collection,
-
-          title:
-            existingItem.title ||
-            existingItem.name ||
-            "حذف عنصر",
-
+          title: existing.title || existing.name || "حذف عنصر",
           refId: id,
-
-          hardDelete:
-            shouldHardDelete
+          hardDelete: hard
         }
-      }
-    );
+      });
 
-    this.emit(
-      "aiw:itemDeleted",
-      {
+      this.emit("aiw:itemDeleted", {
         collection,
         id,
+        hardDelete: hard
+      });
 
-        hardDelete:
-          shouldHardDelete
-      }
-    );
+      return true;
+    },
 
-    return true;
-  },
+    restoreItem(collection, id) {
+      const path = this.getCollectionPath(collection);
+      const items = this.getAllCollection(collection);
+      let restored = null;
 
-  restoreItem(collection, id) {
-    const path =
-      this.getCollectionPath(
-        collection
-      );
+      const nextItems = items.map(item => {
+        if (String(item?.id) !== String(id)) return item;
 
-    const items =
-      this.getAllCollection(
-        collection
-      );
-
-    let restoredItem = null;
-
-    const updatedItems =
-      items.map(item => {
-        if (
-          String(item?.id) !==
-          String(id)
-        ) {
-          return item;
-        }
-
-        restoredItem = {
+        restored = {
           ...item,
           deletedAt: null,
           updatedAt: this.now()
         };
 
-        return restoredItem;
+        return restored;
       });
 
-    if (!restoredItem) {
-      return null;
-    }
+      if (!restored) return null;
 
-    this.set(
-      path,
-      updatedItems,
-      {
-        eventName:
-          "aiw:itemRestored",
-
+      this.set(path, nextItems, {
+        eventName: "aiw:itemRestored",
         activity: {
           type: "restore",
           collection,
-
-          title:
-            restoredItem.title ||
-            restoredItem.name ||
-            "استعادة عنصر",
-
+          title: restored.title || restored.name || "استعادة عنصر",
           refId: id
         }
+      });
+
+      return this.clone(restored);
+    },
+
+    find(collection, id) {
+      return (
+        this.getCollection(collection).find(
+          item => String(item?.id) === String(id)
+        ) || null
+      );
+    },
+
+    filter(collection, predicate) {
+      const items = this.getCollection(collection);
+      return typeof predicate === "function"
+        ? items.filter(predicate)
+        : items;
+    },
+
+    count(collection) {
+      return this.getCollection(collection).length;
+    },
+
+    /* -------------------------------------------------------
+       Ideas
+    ------------------------------------------------------- */
+
+    getIdeas(options = {}) {
+      let ideas = this.getCollection("ideas");
+
+      if (options.status && options.status !== "all") {
+        ideas = ideas.filter(
+          idea =>
+            this.normalizeIdeaStatus(
+              idea.lifecycleStatus ?? idea.ideaStatus ?? idea.status
+            ) === this.normalizeIdeaStatus(options.status)
+        );
       }
-    );
 
-    return this.clone(
-      restoredItem
-    );
-  },
+      if (options.converted === true) {
+        ideas = ideas.filter(idea => Boolean(idea.conversion?.converted));
+      }
 
-  clearCollection(
-    collection,
-    hardDelete = false
-  ) {
-    const items =
-      this.getAllCollection(
-        collection
-      );
+      if (options.converted === false) {
+        ideas = ideas.filter(idea => !idea.conversion?.converted);
+      }
 
-    if (hardDelete) {
-      return this.setCollection(
-        collection,
-        []
-      );
-    }
+      return ideas;
+    },
 
-    const currentTime =
-      this.now();
+    getIdea(ideaId) {
+      return this.find("ideas", ideaId);
+    },
 
-    const deletedItems =
-      items.map(item => ({
+    addIdea(item = {}) {
+      return this.createIdea(item);
+    },
+
+    createIdea(item = {}) {
+      const now = this.now();
+
+      const idea = this.normalizeIdea({
         ...item,
-        deletedAt: currentTime,
-        updatedAt: currentTime
-      }));
+        id: item.id || this.id("idea"),
+        status:
+          item.lifecycleStatus ||
+          item.ideaStatus ||
+          item.status ||
+          AIW.LIFECYCLE.IDEA_STATUS.IDEA,
+        createdAt: item.createdAt || now,
+        updatedAt: now
+      });
 
-    return this.setCollection(
-      collection,
-      deletedItems
-    );
-  },
+      return this.add("ideas", idea);
+    },
 
-  find(collection, id) {
-    return (
-      this.getCollection(collection)
-        .find(
-          item =>
-            String(item?.id) ===
-            String(id)
-        ) ||
-      null
-    );
-  },
+    updateIdea(ideaId, updates = {}) {
+      const result = this.updateItem("ideas", ideaId, updates);
 
-  filter(collection, predicate) {
-    const items =
-      this.getCollection(
-        collection
-      );
-
-    return typeof predicate === "function"
-      ? items.filter(predicate)
-      : items;
-  },
-
-  search(
-    collection,
-    query,
-    fields = [
-      "title",
-      "name",
-      "description",
-      "department",
-      "status",
-      "priority"
-    ]
-  ) {
-    const normalizedQuery =
-      this.normalizeText(query);
-
-    if (!normalizedQuery) {
-      return this.getCollection(
-        collection
-      );
-    }
-
-    return this.getCollection(
-      collection
-    ).filter(item =>
-      fields.some(field =>
-        this.normalizeText(
-          item?.[field]
-        ).includes(
-          normalizedQuery
-        )
-      )
-    );
-  },
-
-  sort(
-    collection,
-    field = "createdAt",
-    direction = "desc"
-  ) {
-    const items = [
-      ...this.getCollection(collection)
-    ];
-
-    return items.sort((a, b) => {
-      const aValue =
-        a?.[field] ?? "";
-
-      const bValue =
-        b?.[field] ?? "";
-
-      if (aValue === bValue) {
-        return 0;
+      if (result) {
+        this.emit("aiw:ideaUpdated", {
+          idea: this.clone(result)
+        });
       }
 
-      if (direction === "asc") {
-        return aValue > bValue
-          ? 1
-          : -1;
+      return result;
+    },
+
+    removeIdea(ideaId, hardDelete = false) {
+      const result = this.remove("ideas", ideaId, hardDelete);
+
+      if (result) {
+        this.emit("aiw:ideasUpdated", {
+          ideaId,
+          action: "removed"
+        });
       }
 
-      return aValue < bValue
-        ? 1
-        : -1;
-    });
-  },
+      return result;
+    },
 
-  count(collection) {
-    return this.getCollection(
-      collection
-    ).length;
-  },
+    addIdeaHistory(idea, entry = {}) {
+      const history = this.toArray(idea.lifecycleHistory);
 
-  /* =========================================================
-     IDEA LIFECYCLE
-  ========================================================= */
+      history.unshift({
+        id: entry.id || this.id("idea-history"),
+        action: entry.action || "updated",
+        fromStatus: entry.fromStatus || null,
+        toStatus: entry.toStatus || null,
+        note: entry.note || entry.notes || "",
+        actor: entry.actor || null,
+        createdAt: entry.createdAt || this.now(),
+        ...this.clone(entry)
+      });
 
-  getIdeas(options = {}) {
-    let ideas =
-      this.getCollection("ideas");
+      return history.slice(0, 200);
+    },
 
-    if (
-      options.status &&
-      options.status !== "all"
-    ) {
-      ideas = ideas.filter(
-        idea =>
-          (
-            idea.ideaStatus ||
-            idea.status
-          ) === options.status
-      );
-    }
+    submitIdeaForApproval(ideaId, options = {}, legacyNote = null) {
+      if (!this.isPlainObject(options)) {
+        options = {
+          actor: options || null,
+          notes: legacyNote || ""
+        };
+      }
 
-    if (
-      options.converted === true
-    ) {
-      ideas = ideas.filter(
-        idea =>
-          Boolean(
-            idea.conversion?.converted
-          )
-      );
-    }
+      const idea = this.getIdea(ideaId);
 
-    if (
-      options.converted === false
-    ) {
-      ideas = ideas.filter(
-        idea =>
-          !idea.conversion?.converted
-      );
-    }
+      if (!idea) {
+        return {
+          success: false,
+          reason: "idea-not-found",
+          message: "لم يتم العثور على الفكرة."
+        };
+      }
 
-    return ideas;
-  },
+      if (idea.conversion?.converted) {
+        return {
+          success: false,
+          reason: "already-converted",
+          message: "الفكرة محولة إلى مشروع بالفعل."
+        };
+      }
 
-  getIdea(ideaId) {
-    return this.find(
-      "ideas",
-      ideaId
-    );
-  },
+      const now = this.now();
+      const actor = options.submittedBy || options.actor || null;
+      const note = options.notes ?? options.note ?? "";
 
-  createIdea(item = {}) {
-    const currentTime =
-      this.now();
+      const history = this.addIdeaHistory(idea, {
+        action: "submitted-for-approval",
+        fromStatus: idea.lifecycleStatus,
+        toStatus: AIW.LIFECYCLE.IDEA_STATUS.PENDING_APPROVAL,
+        actor,
+        note
+      });
 
-    const record =
-      this.normalizeIdea(
-        {
-          ...item,
-
-          id:
-            item.id ||
-            this.id("idea"),
-
-          status:
-            item.ideaStatus ||
-            item.status ||
-            AIW.LIFECYCLE.IDEA_STATUS.DRAFT,
-
-          ideaStatus:
-            item.ideaStatus ||
-            item.status ||
-            AIW.LIFECYCLE.IDEA_STATUS.DRAFT,
-
-          createdAt:
-            item.createdAt ||
-            currentTime,
-
-          updatedAt:
-            currentTime
+      const updated = this.updateIdea(ideaId, {
+        status: AIW.LIFECYCLE.IDEA_STATUS.PENDING_APPROVAL,
+        ideaStatus: AIW.LIFECYCLE.IDEA_STATUS.PENDING_APPROVAL,
+        lifecycleStatus: AIW.LIFECYCLE.IDEA_STATUS.PENDING_APPROVAL,
+        approval: {
+          ...(idea.approval || {}),
+          required: true,
+          status: "pending",
+          submittedAt: now,
+          submittedBy: actor,
+          decidedAt: null,
+          decidedBy: null,
+          decision: null,
+          reason: null,
+          note
         },
-        this.count("ideas")
-      );
+        lifecycleHistory: history
+      });
 
-    return this.add(
-      "ideas",
-      record
-    );
-  },
-
-  updateIdea(
-    ideaId,
-    updates = {}
-  ) {
-    return this.update(
-      "ideas",
-      ideaId,
-      updates
-    );
-  },
-
-  addIdeaHistory(
-    idea,
-    entry = {}
-  ) {
-    const history =
-      this.toArray(
-        idea.lifecycleHistory
-      );
-
-    history.unshift({
-      id:
-        entry.id ||
-        this.id("idea-history"),
-
-      action:
-        entry.action ||
-        "updated",
-
-      fromStatus:
-        entry.fromStatus ||
-        null,
-
-      toStatus:
-        entry.toStatus ||
-        null,
-
-      note:
-        entry.note ||
-        "",
-
-      actor:
-        entry.actor ||
-        null,
-
-      createdAt:
-        entry.createdAt ||
-        this.now(),
-
-      ...this.clone(entry)
-    });
-
-    return history.slice(0, 200);
-  },
-
-  setIdeaStatus(
-    ideaId,
-    status,
-    options = {}
-  ) {
-    const validStatuses =
-      Object.values(
-        AIW.LIFECYCLE.IDEA_STATUS
-      );
-
-    if (
-      !validStatuses.includes(status)
-    ) {
-      return {
-        success: false,
-        reason: "invalid-status",
-        message:
-          "حالة الفكرة غير صحيحة."
-      };
-    }
-
-    const idea =
-      this.getIdea(ideaId);
-
-    if (!idea) {
-      return {
-        success: false,
-        reason: "idea-not-found",
-        message:
-          "لم يتم العثور على الفكرة."
-      };
-    }
-
-    const previousStatus =
-      idea.ideaStatus ||
-      idea.status;
-
-    const history =
-      this.addIdeaHistory(
-        idea,
-        {
-          action:
-            options.action ||
-            "status-changed",
-
-          fromStatus:
-            previousStatus,
-
-          toStatus:
-            status,
-
-          note:
-            options.note ||
-            "",
-
-          actor:
-            options.actor ||
-            null
-        }
-      );
-
-    const updated =
-      this.updateIdea(
+      this.addApprovalRecord({
         ideaId,
-        {
-          status,
-          ideaStatus: status,
-          lifecycleStatus: status,
-          lifecycleHistory: history
-        }
-      );
+        type: "idea-approval",
+        status: "pending",
+        title: updated?.title || idea.title,
+        submittedAt: now,
+        submittedBy: actor,
+        note
+      });
 
-    this.emit(
-      "aiw:ideaStatusChanged",
-      {
-        idea: this.clone(updated),
-        fromStatus:
-          previousStatus,
-        toStatus: status
-      }
-    );
+      this.recordExecution({
+        entityType: "idea",
+        entityId: ideaId,
+        action: "submitted-for-approval",
+        status: "pending",
+        actor
+      });
 
-    return {
-      success: true,
-      idea: updated
-    };
-  },
-
-  submitIdeaForApproval(
-    ideaId,
-    options = {}
-  ) {
-    const idea =
-      this.getIdea(ideaId);
-
-    if (!idea) {
-      return {
-        success: false,
-        reason: "idea-not-found",
-        message:
-          "لم يتم العثور على الفكرة."
-      };
-    }
-
-    if (
-      idea.conversion?.converted
-    ) {
-      return {
-        success: false,
-        reason:
-          "already-converted",
-
-        message:
-          "الفكرة محولة إلى مشروع بالفعل."
-      };
-    }
-
-    const currentTime =
-      this.now();
-
-    const history =
-      this.addIdeaHistory(
-        idea,
-        {
-          action:
-            "submitted-for-approval",
-
-          fromStatus:
-            idea.ideaStatus,
-
-          toStatus:
-            AIW.LIFECYCLE.IDEA_STATUS.PENDING_APPROVAL,
-
-          actor:
-            options.submittedBy ||
-            options.actor ||
-            null,
-
-          note:
-            options.note ||
-            ""
-        }
-      );
-
-    const updated =
-      this.updateIdea(
-        ideaId,
-        {
-          status:
-            AIW.LIFECYCLE.IDEA_STATUS.PENDING_APPROVAL,
-
-          ideaStatus:
-            AIW.LIFECYCLE.IDEA_STATUS.PENDING_APPROVAL,
-
-          lifecycleStatus:
-            AIW.LIFECYCLE.IDEA_STATUS.PENDING_APPROVAL,
-
-          approval: {
-            ...idea.approval,
-            required: true,
-            status: "pending",
-            submittedAt:
-              currentTime,
-            submittedBy:
-              options.submittedBy ||
-              options.actor ||
-              null,
-            decidedAt: null,
-            decidedBy: null,
-            decision: null,
-            note:
-              options.note ||
-              ""
-          },
-
-          lifecycleHistory:
-            history
-        }
-      );
-
-    this.addApprovalRecord({
-      ideaId,
-      type: "idea-approval",
-      status: "pending",
-
-      title:
-        updated?.title ||
-        idea.title,
-
-      submittedAt:
-        currentTime,
-
-      submittedBy:
-        options.submittedBy ||
-        options.actor ||
-        null,
-
-      note:
-        options.note ||
-        ""
-    });
-
-    this.recordExecution({
-      entityType: "idea",
-      entityId: ideaId,
-      action:
-        "submitted-for-approval",
-      status: "pending",
-      actor:
-        options.submittedBy ||
-        options.actor ||
-        null
-    });
-
-    this.emit(
-      "aiw:ideaSubmitted",
-      {
+      this.emit("aiw:ideaSubmittedForApproval", {
         idea: this.clone(updated)
+      });
+
+      this.emit("aiw:ideaSubmitted", {
+        idea: this.clone(updated)
+      });
+
+      return { success: true, idea: updated };
+    },
+
+    approveIdea(ideaId, options = {}, legacyNote = null) {
+      if (!this.isPlainObject(options)) {
+        options = {
+          actor: options || null,
+          notes: legacyNote || ""
+        };
       }
-    );
 
-    return {
-      success: true,
-      idea: updated
-    };
-  },
+      const idea = this.getIdea(ideaId);
 
-  approveIdea(
-    ideaId,
-    options = {}
-  ) {
-    const idea =
-      this.getIdea(ideaId);
+      if (!idea) {
+        return {
+          success: false,
+          reason: "idea-not-found",
+          message: "لم يتم العثور على الفكرة."
+        };
+      }
 
-    if (!idea) {
-      return {
-        success: false,
-        reason: "idea-not-found",
-        message:
-          "لم يتم العثور على الفكرة."
-      };
-    }
+      if (idea.conversion?.converted) {
+        return {
+          success: false,
+          reason: "already-converted",
+          message: "الفكرة محولة إلى مشروع بالفعل."
+        };
+      }
 
-    if (
-      idea.conversion?.converted
-    ) {
-      return {
-        success: false,
-        reason:
-          "already-converted",
+      const now = this.now();
+      const actor = options.approvedBy || options.actor || null;
+      const note = options.notes ?? options.note ?? "";
 
-        message:
-          "الفكرة محولة إلى مشروع بالفعل."
-      };
-    }
+      const history = this.addIdeaHistory(idea, {
+        action: "approved",
+        fromStatus: idea.lifecycleStatus,
+        toStatus: AIW.LIFECYCLE.IDEA_STATUS.APPROVED,
+        actor,
+        note
+      });
 
-    const currentTime =
-      this.now();
+      const updated = this.updateIdea(ideaId, {
+        status: AIW.LIFECYCLE.IDEA_STATUS.APPROVED,
+        ideaStatus: AIW.LIFECYCLE.IDEA_STATUS.APPROVED,
+        lifecycleStatus: AIW.LIFECYCLE.IDEA_STATUS.APPROVED,
+        approval: {
+          ...(idea.approval || {}),
+          required: true,
+          status: "approved",
+          decidedAt: now,
+          decidedBy: actor,
+          decision: "approved",
+          reason: null,
+          note
+        },
+        lifecycleHistory: history
+      });
 
-    const history =
-      this.addIdeaHistory(
-        idea,
-        {
-          action: "approved",
-
-          fromStatus:
-            idea.ideaStatus,
-
-          toStatus:
-            AIW.LIFECYCLE.IDEA_STATUS.APPROVED,
-
-          actor:
-            options.approvedBy ||
-            options.actor ||
-            null,
-
-          note:
-            options.note ||
-            ""
-        }
-      );
-
-    const updated =
-      this.updateIdea(
-        ideaId,
-        {
-          status:
-            AIW.LIFECYCLE.IDEA_STATUS.APPROVED,
-
-          ideaStatus:
-            AIW.LIFECYCLE.IDEA_STATUS.APPROVED,
-
-          lifecycleStatus:
-            AIW.LIFECYCLE.IDEA_STATUS.APPROVED,
-
-          approval: {
-            ...idea.approval,
-            required: true,
-            status: "approved",
-            decidedAt:
-              currentTime,
-            decidedBy:
-              options.approvedBy ||
-              options.actor ||
-              null,
-            decision: "approved",
-            note:
-              options.note ||
-              idea.approval?.note ||
-              ""
-          },
-
-          lifecycleHistory:
-            history
-        }
-      );
-
-    this.resolveApprovalRecord(
-      ideaId,
-      {
+      this.resolveApprovalRecord(ideaId, {
         status: "approved",
+        decidedAt: now,
+        decidedBy: actor,
+        note
+      });
 
-        decidedAt:
-          currentTime,
+      this.recordExecution({
+        entityType: "idea",
+        entityId: ideaId,
+        action: "approved",
+        status: "approved",
+        actor
+      });
 
-        decidedBy:
-          options.approvedBy ||
-          options.actor ||
-          null,
-
-        note:
-          options.note ||
-          ""
-      }
-    );
-
-    this.recordExecution({
-      entityType: "idea",
-      entityId: ideaId,
-      action: "approved",
-      status: "approved",
-      actor:
-        options.approvedBy ||
-        options.actor ||
-        null
-    });
-
-    this.emit(
-      "aiw:ideaApproved",
-      {
+      this.emit("aiw:ideaApproved", {
         idea: this.clone(updated)
-      }
-    );
+      });
 
-    if (
-      options.convertToProject === true
-    ) {
-      return this.convertIdeaToProject(
-        ideaId,
-        {
+      if (options.convertToProject === true) {
+        return this.convertIdeaToProject(ideaId, {
           ...options,
-          approvedBy:
-            options.approvedBy ||
-            options.actor ||
-            null
-        }
-      );
-    }
+          actor,
+          notes: note
+        });
+      }
 
-    return {
-      success: true,
-      idea: updated
-    };
-  },
+      return { success: true, idea: updated };
+    },
 
-  rejectIdea(
-    ideaId,
-    options = {}
-  ) {
-    const idea =
-      this.getIdea(ideaId);
+    rejectIdea(ideaId, options = {}, legacyReason = null) {
+      if (!this.isPlainObject(options)) {
+        options = {
+          actor: options || null,
+          reason: legacyReason || ""
+        };
+      }
 
-    if (!idea) {
-      return {
-        success: false,
-        reason: "idea-not-found",
-        message:
-          "لم يتم العثور على الفكرة."
-      };
-    }
+      const idea = this.getIdea(ideaId);
 
-    if (
-      idea.conversion?.converted
-    ) {
-      return {
-        success: false,
-        reason:
-          "already-converted",
+      if (!idea) {
+        return {
+          success: false,
+          reason: "idea-not-found",
+          message: "لم يتم العثور على الفكرة."
+        };
+      }
 
-        message:
-          "لا يمكن رفض فكرة محولة إلى مشروع."
-      };
-    }
+      if (idea.conversion?.converted) {
+        return {
+          success: false,
+          reason: "already-converted",
+          message: "لا يمكن رفض فكرة محولة إلى مشروع."
+        };
+      }
 
-    const currentTime =
-      this.now();
+      const now = this.now();
+      const actor = options.rejectedBy || options.actor || null;
+      const note = options.reason ?? options.notes ?? options.note ?? "";
 
-    const history =
-      this.addIdeaHistory(
-        idea,
-        {
-          action: "rejected",
+      const history = this.addIdeaHistory(idea, {
+        action: "rejected",
+        fromStatus: idea.lifecycleStatus,
+        toStatus: AIW.LIFECYCLE.IDEA_STATUS.REJECTED,
+        actor,
+        note
+      });
 
-          fromStatus:
-            idea.ideaStatus,
+      const updated = this.updateIdea(ideaId, {
+        status: AIW.LIFECYCLE.IDEA_STATUS.REJECTED,
+        ideaStatus: AIW.LIFECYCLE.IDEA_STATUS.REJECTED,
+        lifecycleStatus: AIW.LIFECYCLE.IDEA_STATUS.REJECTED,
+        approval: {
+          ...(idea.approval || {}),
+          required: true,
+          status: "rejected",
+          decidedAt: now,
+          decidedBy: actor,
+          decision: "rejected",
+          reason: note || null,
+          note
+        },
+        lifecycleHistory: history
+      });
 
-          toStatus:
-            AIW.LIFECYCLE.IDEA_STATUS.REJECTED,
-
-          actor:
-            options.rejectedBy ||
-            options.actor ||
-            null,
-
-          note:
-            options.note ||
-            ""
-        }
-      );
-
-    const updated =
-      this.updateIdea(
-        ideaId,
-        {
-          status:
-            AIW.LIFECYCLE.IDEA_STATUS.REJECTED,
-
-          ideaStatus:
-            AIW.LIFECYCLE.IDEA_STATUS.REJECTED,
-
-          lifecycleStatus:
-            AIW.LIFECYCLE.IDEA_STATUS.REJECTED,
-
-          approval: {
-            ...idea.approval,
-            required: true,
-            status: "rejected",
-            decidedAt:
-              currentTime,
-            decidedBy:
-              options.rejectedBy ||
-              options.actor ||
-              null,
-            decision: "rejected",
-            note:
-              options.note ||
-              ""
-          },
-
-          lifecycleHistory:
-            history
-        }
-      );
-
-    this.resolveApprovalRecord(
-      ideaId,
-      {
+      this.resolveApprovalRecord(ideaId, {
         status: "rejected",
+        decidedAt: now,
+        decidedBy: actor,
+        note
+      });
 
-        decidedAt:
-          currentTime,
+      this.recordExecution({
+        entityType: "idea",
+        entityId: ideaId,
+        action: "rejected",
+        status: "rejected",
+        actor
+      });
 
-        decidedBy:
-          options.rejectedBy ||
-          options.actor ||
-          null,
-
-        note:
-          options.note ||
-          ""
-      }
-    );
-
-    this.recordExecution({
-      entityType: "idea",
-      entityId: ideaId,
-      action: "rejected",
-      status: "rejected",
-      actor:
-        options.rejectedBy ||
-        options.actor ||
-        null
-    });
-
-    this.emit(
-      "aiw:ideaRejected",
-      {
+      this.emit("aiw:ideaRejected", {
         idea: this.clone(updated)
+      });
+
+      return { success: true, idea: updated };
+    },
+
+    reopenIdea(ideaId, options = {}, legacyNote = null) {
+      if (!this.isPlainObject(options)) {
+        options = {
+          actor: options || null,
+          notes: legacyNote || ""
+        };
       }
-    );
 
-    return {
-      success: true,
-      idea: updated
-    };
-  },
+      const idea = this.getIdea(ideaId);
 
-  getEligibleIdeasForProject() {
-    return this.getIdeas({
-      converted: false
-    }).filter(idea => {
-      const status =
-        idea.ideaStatus ||
-        idea.status;
+      if (!idea) {
+        return {
+          success: false,
+          reason: "idea-not-found",
+          message: "لم يتم العثور على الفكرة."
+        };
+      }
 
-      return [
-        AIW.LIFECYCLE.IDEA_STATUS.APPROVED
-      ].includes(status);
-    });
-  },
+      if (idea.conversion?.converted) {
+        return {
+          success: false,
+          reason: "already-converted",
+          message: "لا يمكن إعادة فتح فكرة مرتبطة بمشروع نشط."
+        };
+      }
 
-  /* =========================================================
-     IDEA TO PROJECT CONVERSION
-  ========================================================= */
+      const actor = options.actor || null;
+      const note = options.notes ?? options.note ?? "";
 
-  getProjectByIdeaId(ideaId) {
-    return (
-      this.getCollection("projects")
-        .find(
+      const history = this.addIdeaHistory(idea, {
+        action: "reopened",
+        fromStatus: idea.lifecycleStatus,
+        toStatus: AIW.LIFECYCLE.IDEA_STATUS.IDEA,
+        actor,
+        note
+      });
+
+      const updated = this.updateIdea(ideaId, {
+        status: AIW.LIFECYCLE.IDEA_STATUS.IDEA,
+        ideaStatus: AIW.LIFECYCLE.IDEA_STATUS.IDEA,
+        lifecycleStatus: AIW.LIFECYCLE.IDEA_STATUS.IDEA,
+        approval: {
+          ...(idea.approval || {}),
+          status: "not-submitted",
+          decision: null,
+          reason: null,
+          decidedAt: null,
+          decidedBy: null,
+          note
+        },
+        lifecycleHistory: history
+      });
+
+      this.recordExecution({
+        entityType: "idea",
+        entityId: ideaId,
+        action: "reopened",
+        status: "idea",
+        actor
+      });
+
+      this.emit("aiw:ideaReopened", {
+        idea: this.clone(updated)
+      });
+
+      return { success: true, idea: updated };
+    },
+
+    /* -------------------------------------------------------
+       Conversion
+    ------------------------------------------------------- */
+
+    getProjectByIdeaId(ideaId) {
+      return (
+        this.getCollection("projects").find(
           project =>
-            String(
-              project?.sourceIdeaId
-            ) ===
+            String(project?.sourceIdeaId ?? project?.ideaId ?? "") ===
             String(ideaId)
-        ) ||
-      null
-    );
-  },
-
-  convertIdeaToProject(
-    ideaId,
-    options = {}
-  ) {
-    const idea =
-      this.getIdea(ideaId);
-
-    if (!idea) {
-      return {
-        success: false,
-        reason: "idea-not-found",
-        message:
-          "لم يتم العثور على الفكرة."
-      };
-    }
-
-    const existingProject =
-      this.getProjectByIdeaId(
-        ideaId
+        ) || null
       );
+    },
 
-    if (
-      idea.conversion?.converted ||
-      existingProject
-    ) {
-      return {
-        success: false,
-        reason:
-          "already-converted",
+    createProjectFromIdea(ideaId, options = {}) {
+      return this.convertIdeaToProject(ideaId, options);
+    },
 
-        message:
-          "تم تحويل هذه الفكرة إلى مشروع مسبقاً.",
+    approveAndCreateProject(ideaId, options = {}) {
+      const existing = this.getProjectByIdeaId(ideaId);
 
-        project:
-          existingProject ||
-          (
-            idea.conversion?.projectId
-              ? this.find(
-                  "projects",
-                  idea.conversion
-                    .projectId
-                )
-              : null
-          )
-      };
-    }
+      if (existing) {
+        return {
+          success: false,
+          reason: "already-converted",
+          message: "تم تحويل هذه الفكرة إلى مشروع مسبقاً.",
+          project: existing
+        };
+      }
 
-    const workflowSettings =
-      this.getSettings()
-        .ideaProjectWorkflow || {};
+      const idea = this.getIdea(ideaId);
 
-    const requireApproval =
-      options.requireApproval !== undefined
-        ? Boolean(
-            options.requireApproval
-          )
-        : workflowSettings
-            .requireApproval !== false;
+      if (!idea) {
+        return {
+          success: false,
+          reason: "idea-not-found",
+          message: "لم يتم العثور على الفكرة."
+        };
+      }
 
-    const isApproved =
-      idea.approval?.status ===
-        "approved" ||
-      idea.ideaStatus ===
-        AIW.LIFECYCLE.IDEA_STATUS.APPROVED;
+      let approvedIdea = idea;
 
-    if (
-      requireApproval &&
-      !isApproved &&
-      options.force !== true
-    ) {
-      return {
-        success: false,
-        reason:
-          "approval-required",
+      if (
+        this.normalizeIdeaStatus(idea.lifecycleStatus) !==
+        AIW.LIFECYCLE.IDEA_STATUS.APPROVED
+      ) {
+        const approval = this.approveIdea(ideaId, {
+          actor: options.approvedBy || options.actor || null,
+          notes:
+            options.approvalNotes ??
+            options.notes ??
+            ""
+        });
 
-        message:
-          "يجب اعتماد الفكرة قبل تحويلها إلى مشروع.",
+        if (!approval.success) return approval;
+        approvedIdea = approval.idea;
+      }
 
-        idea
-      };
-    }
+      return this.convertIdeaToProject(approvedIdea.id, {
+        ...options,
+        requireApproval: true,
+        actor: options.convertedBy || options.actor || null,
+        notes: options.notes ?? options.approvalNotes ?? "",
+        projectData: options.projectData || options.project || {}
+      });
+    },
 
-    const currentTime =
-      this.now();
+    convertIdeaToProject(ideaId, options = {}) {
+      const idea = this.getIdea(ideaId);
 
-    const blueprint =
-      this.deepMerge(
-        this.getDefaultProjectBlueprint(
+      if (!idea) {
+        return {
+          success: false,
+          reason: "idea-not-found",
+          message: "لم يتم العثور على الفكرة."
+        };
+      }
+
+      const existing = this.getProjectByIdeaId(ideaId);
+
+      if (idea.conversion?.converted || existing) {
+        return {
+          success: false,
+          reason: "already-converted",
+          message: "تم تحويل هذه الفكرة إلى مشروع مسبقاً.",
+          project:
+            existing ||
+            (
+              idea.conversion?.projectId
+                ? this.getProject(idea.conversion.projectId)
+                : null
+            )
+        };
+      }
+
+      const workflow = this.getSettings().ideaProjectWorkflow || {};
+
+      const requireApproval =
+        options.requireApproval !== undefined
+          ? Boolean(options.requireApproval)
+          : workflow.requireApproval !== false;
+
+      const isApproved =
+        idea.approval?.status === "approved" ||
+        this.normalizeIdeaStatus(idea.lifecycleStatus) ===
+          AIW.LIFECYCLE.IDEA_STATUS.APPROVED;
+
+      if (requireApproval && !isApproved && options.force !== true) {
+        return {
+          success: false,
+          reason: "approval-required",
+          message: "يجب اعتماد الفكرة قبل تحويلها إلى مشروع.",
           idea
-        ),
+        };
+      }
+
+      const now = this.now();
+      const actor = options.convertedBy || options.actor || null;
+      const note = options.notes ?? options.note ?? "";
+
+      const blueprint = this.deepMerge(
+        this.getDefaultProjectBlueprint(idea),
         idea.projectBlueprint || {}
       );
 
-    const projectId =
-      options.projectId ||
-      this.id("project");
+      const projectData =
+        options.projectData ||
+        options.project ||
+        {};
 
-    const project =
-      this.normalizeProject(
-        {
-          ...blueprint,
-          ...this.clone(
-            options.projectData || {}
-          ),
+      const projectId = options.projectId || this.id("project");
 
-          id: projectId,
+      const project = this.normalizeProject({
+        ...blueprint,
+        ...this.clone(projectData),
 
-          sourceIdeaId:
-            idea.id,
-
-          origin:
-            "idea-conversion",
-
-          title:
-            options.title ||
-            blueprint.title ||
-            idea.title,
-
-          titleEn:
-            options.titleEn ||
-            blueprint.titleEn ||
-            idea.titleEn ||
-            "",
-
-          status:
-            AIW.LIFECYCLE.PROJECT_STATUS.PLANNING,
-
-          projectStatus:
-            AIW.LIFECYCLE.PROJECT_STATUS.PLANNING,
-
-          progress: 0,
-
-          currentPhase:
-            "discovery",
-
-          approvalSnapshot:
-            this.clone(
-              idea.approval || {}
-            ),
-
-          lifecycleHistory: [
-            {
-              id:
-                this.id(
-                  "project-history"
-                ),
-
-              action:
-                "project-created",
-
-              fromStatus:
-                null,
-
-              toStatus:
-                AIW.LIFECYCLE.PROJECT_STATUS.PLANNING,
-
-              sourceIdeaId:
-                idea.id,
-
-              actor:
-                options.convertedBy ||
-                options.actor ||
-                null,
-
-              note:
-                options.note ||
-                "",
-
-              createdAt:
-                currentTime
-            }
-          ],
-
-          createdAt:
-            currentTime,
-
-          updatedAt:
-            currentTime,
-
-          deletedAt: null
-        },
-        this.count("projects")
-      );
-
-    const state =
-      this.getState();
-
-    state.projects =
-      this.toArray(
-        state.projects
-      );
-
-    state.ideas =
-      this.toArray(
-        state.ideas
-      );
-
-    state.projects.unshift(
-      project
-    );
-
-    state.ideas =
-      state.ideas.map(
-        currentIdea => {
-          if (
-            String(
-              currentIdea?.id
-            ) !==
-            String(ideaId)
-          ) {
-            return currentIdea;
-          }
-
-          const history =
-            this.addIdeaHistory(
-              currentIdea,
-              {
-                action:
-                  "converted-to-project",
-
-                fromStatus:
-                  currentIdea.ideaStatus,
-
-                toStatus:
-                  AIW.LIFECYCLE.IDEA_STATUS.CONVERTED,
-
-                projectId,
-
-                actor:
-                  options.convertedBy ||
-                  options.actor ||
-                  null,
-
-                note:
-                  options.note ||
-                  ""
-              }
-            );
-
-          return this.normalizeIdea({
-            ...currentIdea,
-
-            status:
-              AIW.LIFECYCLE.IDEA_STATUS.CONVERTED,
-
-            ideaStatus:
-              AIW.LIFECYCLE.IDEA_STATUS.CONVERTED,
-
-            lifecycleStatus:
-              AIW.LIFECYCLE.IDEA_STATUS.CONVERTED,
-
-            conversion: {
-              ...currentIdea.conversion,
-              converted: true,
-              projectId,
-              convertedAt:
-                currentTime,
-              convertedBy:
-                options.convertedBy ||
-                options.actor ||
-                null,
-              revertedAt: null,
-              revertedBy: null
-            },
-
-            lifecycleHistory:
-              history,
-
-            updatedAt:
-              currentTime
-          });
-        }
-      );
-
-    this.addActivity(
-      state,
-      {
-        type:
-          "idea-to-project",
-
-        collection:
-          "projects",
+        id: projectId,
+        sourceIdeaId: idea.id,
+        ideaId: idea.id,
+        origin: "idea-conversion",
 
         title:
-          `تحويل الفكرة إلى مشروع: ${project.title}`,
+          options.title ||
+          projectData.title ||
+          blueprint.title ||
+          idea.title,
 
-        refId:
-          project.id,
+        titleEn:
+          options.titleEn ||
+          projectData.titleEn ||
+          projectData.englishTitle ||
+          blueprint.titleEn ||
+          idea.titleEn ||
+          "",
 
-        sourceIdeaId:
-          idea.id
-      }
-    );
+        englishTitle:
+          options.titleEn ||
+          projectData.englishTitle ||
+          projectData.titleEn ||
+          blueprint.englishTitle ||
+          idea.englishTitle ||
+          "",
 
-    state.automation =
-      this.normalizeAutomation(
-        state.automation
+        status: AIW.LIFECYCLE.PROJECT_STATUS.PLANNING,
+        projectStatus: AIW.LIFECYCLE.PROJECT_STATUS.PLANNING,
+        progress: 0,
+        currentPhase: "discovery",
+        approvalSnapshot: this.clone(idea.approval || {}),
+
+        lifecycleHistory: [
+          {
+            id: this.id("project-history"),
+            action: "project-created",
+            fromStatus: null,
+            toStatus: AIW.LIFECYCLE.PROJECT_STATUS.PLANNING,
+            sourceIdeaId: idea.id,
+            actor,
+            note,
+            createdAt: now
+          }
+        ],
+
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null
+      });
+
+      const state = this.getState();
+      state.projects.unshift(project);
+
+      state.ideas = state.ideas.map(currentIdea => {
+        if (String(currentIdea?.id) !== String(ideaId)) {
+          return currentIdea;
+        }
+
+        const history = this.addIdeaHistory(currentIdea, {
+          action: "converted-to-project",
+          fromStatus: currentIdea.lifecycleStatus,
+          toStatus: AIW.LIFECYCLE.IDEA_STATUS.CONVERTED,
+          projectId,
+          actor,
+          note
+        });
+
+        return this.normalizeIdea({
+          ...currentIdea,
+          status: AIW.LIFECYCLE.IDEA_STATUS.CONVERTED,
+          ideaStatus: AIW.LIFECYCLE.IDEA_STATUS.CONVERTED,
+          lifecycleStatus: AIW.LIFECYCLE.IDEA_STATUS.CONVERTED,
+          projectId,
+          convertedToProject: true,
+          conversion: {
+            ...(currentIdea.conversion || {}),
+            converted: true,
+            projectId,
+            convertedAt: now,
+            convertedBy: actor,
+            revertedAt: null,
+            revertedBy: null
+          },
+          lifecycleHistory: history,
+          updatedAt: now
+        });
+      });
+
+      this.addActivity(state, {
+        type: "idea-to-project",
+        collection: "projects",
+        title: `تحويل الفكرة إلى مشروع: ${project.title}`,
+        refId: project.id,
+        sourceIdeaId: idea.id
+      });
+
+      state.automationCenter = this.normalizeAutomation(
+        state.automationCenter
       );
 
-    state.automation.executionHistory.unshift({
-      id:
-        this.id(
-          "execution"
-        ),
+      state.automationCenter.executionHistory.unshift({
+        id: this.id("execution"),
+        entityType: "project",
+        entityId: project.id,
+        projectId: project.id,
+        sourceIdeaId: idea.id,
+        action: "project-created",
+        status: AIW.LIFECYCLE.PROJECT_STATUS.PLANNING,
+        actor,
+        createdAt: now
+      });
 
-      entityType:
-        "project",
+      state.automation = this.clone(state.automationCenter);
 
-      entityId:
-        project.id,
-
-      sourceIdeaId:
-        idea.id,
-
-      action:
-        "project-created",
-
-      status:
-        AIW.LIFECYCLE.PROJECT_STATUS.PLANNING,
-
-      actor:
-        options.convertedBy ||
-        options.actor ||
-        null,
-
-      createdAt:
-        currentTime
-    });
-
-    this.commit(
-      state,
-      {
-        eventName:
-          "aiw:ideaConvertedToProject",
-
+      this.commit(state, {
+        eventName: "aiw:ideaConvertedToProject",
         backup: true
-      }
-    );
+      });
 
-    const createdProject =
-      this.find(
-        "projects",
-        projectId
-      );
+      const createdProject = this.getProject(projectId);
+      const convertedIdea = this.getIdea(ideaId);
 
-    const convertedIdea =
-      this.find(
-        "ideas",
-        ideaId
-      );
+      this.emit("aiw:projectCreatedFromIdea", {
+        idea: this.clone(convertedIdea),
+        project: this.clone(createdProject)
+      });
 
-    this.emit(
-      "aiw:projectCreatedFromIdea",
-      {
-        idea:
-          this.clone(
-            convertedIdea
-          ),
+      this.emit("aiw:projectsUpdated", {
+        project: this.clone(createdProject),
+        action: "created-from-idea"
+      });
 
-        project:
-          this.clone(
-            createdProject
-          )
-      }
-    );
-
-    return {
-      success: true,
-      idea: convertedIdea,
-      project: createdProject
-    };
-  },
-
-  revertProjectToIdea(
-    projectId,
-    options = {}
-  ) {
-    const project =
-      this.find(
-        "projects",
-        projectId
-      );
-
-    if (!project) {
       return {
-        success: false,
-        reason:
-          "project-not-found",
-
-        message:
-          "لم يتم العثور على المشروع."
+        success: true,
+        idea: convertedIdea,
+        project: createdProject
       };
-    }
+    },
 
-    if (!project.sourceIdeaId) {
-      return {
-        success: false,
-        reason:
-          "project-has-no-source-idea",
+    /* -------------------------------------------------------
+       Projects
+    ------------------------------------------------------- */
 
-        message:
-          "هذا المشروع غير مرتبط بفكرة أصلية."
-      };
-    }
+    getProjects(options = {}) {
+      let projects = this.getCollection("projects");
 
-    const idea =
-      this.getIdea(
-        project.sourceIdeaId
-      );
-
-    if (!idea) {
-      return {
-        success: false,
-        reason:
-          "source-idea-not-found",
-
-        message:
-          "لم يتم العثور على الفكرة الأصلية."
-      };
-    }
-
-    const currentTime =
-      this.now();
-
-    const state =
-      this.getState();
-
-    state.projects =
-      state.projects.map(
-        currentProject => {
-          if (
-            String(
-              currentProject?.id
-            ) !==
-            String(projectId)
-          ) {
-            return currentProject;
-          }
-
-          const history =
-            this.toArray(
-              currentProject.lifecycleHistory
-            );
-
-          history.unshift({
-            id:
-              this.id(
-                "project-history"
-              ),
-
-            action:
-              "reverted-to-idea",
-
-            fromStatus:
-              currentProject.projectStatus,
-
-            toStatus:
-              AIW.LIFECYCLE.PROJECT_STATUS.ARCHIVED,
-
-            actor:
-              options.revertedBy ||
-              options.actor ||
-              null,
-
-            note:
-              options.note ||
-              "",
-
-            createdAt:
-              currentTime
-          });
-
-          return {
-            ...currentProject,
-
-            status:
-              AIW.LIFECYCLE.PROJECT_STATUS.ARCHIVED,
-
-            projectStatus:
-              AIW.LIFECYCLE.PROJECT_STATUS.ARCHIVED,
-
-            archivedAt:
-              currentTime,
-
-            lifecycleHistory:
-              history,
-
-            updatedAt:
-              currentTime
-          };
-        }
-      );
-
-    state.ideas =
-      state.ideas.map(
-        currentIdea => {
-          if (
-            String(
-              currentIdea?.id
-            ) !==
-            String(idea.id)
-          ) {
-            return currentIdea;
-          }
-
-          const nextStatus =
-            currentIdea.approval
-              ?.status === "approved"
-              ? AIW.LIFECYCLE.IDEA_STATUS.APPROVED
-              : AIW.LIFECYCLE.IDEA_STATUS.DRAFT;
-
-          const history =
-            this.addIdeaHistory(
-              currentIdea,
-              {
-                action:
-                  "project-reverted",
-
-                fromStatus:
-                  AIW.LIFECYCLE.IDEA_STATUS.CONVERTED,
-
-                toStatus:
-                  nextStatus,
-
-                projectId,
-
-                actor:
-                  options.revertedBy ||
-                  options.actor ||
-                  null,
-
-                note:
-                  options.note ||
-                  ""
-              }
-            );
-
-          return this.normalizeIdea({
-            ...currentIdea,
-
-            status:
-              nextStatus,
-
-            ideaStatus:
-              nextStatus,
-
-            lifecycleStatus:
-              nextStatus,
-
-            conversion: {
-              ...currentIdea.conversion,
-              converted: false,
-              projectId: null,
-              revertedAt:
-                currentTime,
-              revertedBy:
-                options.revertedBy ||
-                options.actor ||
-                null
-            },
-
-            lifecycleHistory:
-              history,
-
-            updatedAt:
-              currentTime
-          });
-        }
-      );
-
-    this.addActivity(
-      state,
-      {
-        type:
-          "project-reverted",
-
-        collection:
-          "projects",
-
-        title:
-          `إعادة المشروع إلى فكرة: ${project.title}`,
-
-        refId:
-          project.id,
-
-        sourceIdeaId:
-          idea.id
-      }
-    );
-
-    this.commit(
-      state,
-      {
-        eventName:
-          "aiw:projectRevertedToIdea",
-
-        backup: true
-      }
-    );
-
-    return {
-      success: true,
-
-      idea:
-        this.getIdea(
-          idea.id
-        ),
-
-      project:
-        this.find(
-          "projects",
-          projectId
-        )
-    };
-  },
-
-  /* =========================================================
-     PROJECT MANAGEMENT
-  ========================================================= */
-
-  getProjects(options = {}) {
-    let projects =
-      this.getCollection(
-        "projects"
-      );
-
-    if (
-      options.includeArchived !== true
-    ) {
-      projects =
-        projects.filter(
+      if (options.includeArchived !== true) {
+        projects = projects.filter(
           project =>
-            (
-              project.projectStatus ||
-              project.status
-            ) !==
-            AIW.LIFECYCLE.PROJECT_STATUS.ARCHIVED
+            this.normalizeProjectStatus(
+              project.projectStatus ?? project.status
+            ) !== AIW.LIFECYCLE.PROJECT_STATUS.ARCHIVED
         );
-    }
+      }
 
-    if (
-      options.status &&
-      options.status !== "all"
-    ) {
-      projects =
-        projects.filter(
+      if (options.status && options.status !== "all") {
+        projects = projects.filter(
           project =>
-            (
-              project.projectStatus ||
-              project.status
-            ) ===
-            options.status
+            this.normalizeProjectStatus(
+              project.projectStatus ?? project.status
+            ) === this.normalizeProjectStatus(options.status)
         );
-    }
+      }
 
-    if (options.sourceIdeaId) {
-      projects =
-        projects.filter(
+      if (options.sourceIdeaId) {
+        projects = projects.filter(
           project =>
-            String(
-              project.sourceIdeaId
-            ) ===
-            String(
-              options.sourceIdeaId
-            )
+            String(project.sourceIdeaId) ===
+            String(options.sourceIdeaId)
         );
-    }
+      }
 
-    return projects;
-  },
+      return projects;
+    },
 
-  getProject(projectId) {
-    return this.find(
-      "projects",
-      projectId
-    );
-  },
+    getProject(projectId) {
+      return this.find("projects", projectId);
+    },
 
-  createManualProject(
-    item = {}
-  ) {
-    const project =
-      this.normalizeProject(
-        {
-          ...item,
+    addProject(item = {}) {
+      return this.createManualProject(item);
+    },
 
-          id:
-            item.id ||
-            this.id("project"),
+    createManualProject(item = {}) {
+      const project = this.normalizeProject({
+        ...item,
+        id: item.id || this.id("project"),
+        sourceIdeaId: item.sourceIdeaId || null,
+        origin: item.origin || "manual",
+        status:
+          item.projectStatus ||
+          item.status ||
+          AIW.LIFECYCLE.PROJECT_STATUS.PLANNING,
+        projectStatus:
+          item.projectStatus ||
+          item.status ||
+          AIW.LIFECYCLE.PROJECT_STATUS.PLANNING,
+        progress: item.progress ?? 0
+      });
 
-          sourceIdeaId:
-            null,
+      return this.add("projects", project);
+    },
 
-          origin: "manual",
+    updateProject(projectId, updates = {}) {
+      const project = this.getProject(projectId);
+      if (!project) return null;
 
-          status:
-            item.status ||
-            AIW.LIFECYCLE.PROJECT_STATUS.PLANNING,
+      const merged = {
+        ...project,
+        ...this.clone(updates)
+      };
 
-          projectStatus:
-            item.projectStatus ||
-            item.status ||
-            AIW.LIFECYCLE.PROJECT_STATUS.PLANNING,
-
-          progress:
-            item.progress ||
-            0
-        },
-        this.count("projects")
-      );
-
-    return this.add(
-      "projects",
-      project
-    );
-  },
-
-  updateProject(
-    projectId,
-    updates = {}
-  ) {
-    const project =
-      this.getProject(projectId);
-
-    if (!project) {
-      return null;
-    }
-
-    const merged = {
-      ...project,
-      ...this.clone(updates)
-    };
-
-    if (
-      updates.tasks ||
-      merged.tasks
-    ) {
-      merged.tasks =
-        this.toArray(
-          merged.tasks
+      if (merged.tasks) {
+        merged.tasks = this.toArray(merged.tasks).map(
+          (task, index) => this.normalizeTask(task, index)
         );
 
-      const workflow =
-        this.getSettings()
-          .ideaProjectWorkflow || {};
-
-      if (
-        workflow
-          .calculateProgressFromTasks !== false &&
-        merged.tasks.length
-      ) {
-        merged.progress =
-          this.calculateTasksProgress(
-            merged.tasks
-          );
-      }
-    }
-
-    if (
-      merged.progress >= 100 &&
-      (
-        merged.projectStatus ||
-        merged.status
-      ) !==
-        AIW.LIFECYCLE.PROJECT_STATUS.COMPLETED
-    ) {
-      merged.progress = 100;
-    }
-
-    return this.update(
-      "projects",
-      projectId,
-      merged
-    );
-  },
-
-  addProjectHistory(
-    project,
-    entry = {}
-  ) {
-    const history =
-      this.toArray(
-        project.lifecycleHistory
-      );
-
-    history.unshift({
-      id:
-        entry.id ||
-        this.id(
-          "project-history"
-        ),
-
-      action:
-        entry.action ||
-        "updated",
-
-      fromStatus:
-        entry.fromStatus ||
-        null,
-
-      toStatus:
-        entry.toStatus ||
-        null,
-
-      note:
-        entry.note ||
-        "",
-
-      actor:
-        entry.actor ||
-        null,
-
-      createdAt:
-        entry.createdAt ||
-        this.now(),
-
-      ...this.clone(entry)
-    });
-
-    return history.slice(0, 300);
-  },
-
-  setProjectStatus(
-    projectId,
-    status,
-    options = {}
-  ) {
-    const validStatuses =
-      Object.values(
-        AIW.LIFECYCLE.PROJECT_STATUS
-      );
-
-    if (
-      !validStatuses.includes(status)
-    ) {
-      return {
-        success: false,
-        reason:
-          "invalid-status",
-
-        message:
-          "حالة المشروع غير صحيحة."
-      };
-    }
-
-    const project =
-      this.getProject(projectId);
-
-    if (!project) {
-      return {
-        success: false,
-        reason:
-          "project-not-found",
-
-        message:
-          "لم يتم العثور على المشروع."
-      };
-    }
-
-    const previousStatus =
-      project.projectStatus ||
-      project.status;
-
-    const currentTime =
-      this.now();
-
-    const history =
-      this.addProjectHistory(
-        project,
-        {
-          action:
-            options.action ||
-            "status-changed",
-
-          fromStatus:
-            previousStatus,
-
-          toStatus:
-            status,
-
-          note:
-            options.note ||
-            "",
-
-          actor:
-            options.actor ||
-            null
-        }
-      );
-
-    const updates = {
-      status,
-      projectStatus: status,
-      lifecycleHistory: history
-    };
-
-    if (
-      status ===
-      AIW.LIFECYCLE.PROJECT_STATUS.IN_PROGRESS &&
-      !project.startedAt
-    ) {
-      updates.startedAt =
-        currentTime;
-
-      updates.schedule = {
-        ...project.schedule,
-
-        actualStart:
-          project.schedule
-            ?.actualStart ||
-          currentTime
-      };
-    }
-
-    if (
-      status ===
-      AIW.LIFECYCLE.PROJECT_STATUS.COMPLETED
-    ) {
-      updates.progress = 100;
-      updates.completedAt =
-        currentTime;
-
-      updates.schedule = {
-        ...project.schedule,
-        actualEnd:
-          currentTime
-      };
-    }
-
-    if (
-      status ===
-      AIW.LIFECYCLE.PROJECT_STATUS.ARCHIVED
-    ) {
-      updates.archivedAt =
-        currentTime;
-    }
-
-    const updated =
-      this.updateProject(
-        projectId,
-        updates
-      );
-
-    this.recordExecution({
-      entityType: "project",
-      entityId: projectId,
-
-      sourceIdeaId:
-        project.sourceIdeaId ||
-        null,
-
-      action:
-        options.action ||
-        "status-changed",
-
-      fromStatus:
-        previousStatus,
-
-      status,
-
-      actor:
-        options.actor ||
-        null
-    });
-
-    this.emit(
-      "aiw:projectStatusChanged",
-      {
-        project:
-          this.clone(updated),
-
-        fromStatus:
-          previousStatus,
-
-        toStatus:
-          status
-      }
-    );
-
-    return {
-      success: true,
-      project: updated
-    };
-  },
-
-  setProjectPhase(
-    projectId,
-    phaseId,
-    options = {}
-  ) {
-    const project =
-      this.getProject(projectId);
-
-    if (!project) {
-      return {
-        success: false,
-        reason:
-          "project-not-found",
-
-        message:
-          "لم يتم العثور على المشروع."
-      };
-    }
-
-    const phases =
-      this.toArray(
-        project.phases
-      );
-
-    const targetIndex =
-      phases.findIndex(
-        phase =>
-          String(phase?.id) ===
-          String(phaseId)
-      );
-
-    if (targetIndex < 0) {
-      return {
-        success: false,
-        reason:
-          "phase-not-found",
-
-        message:
-          "لم يتم العثور على المرحلة."
-      };
-    }
-
-    const currentTime =
-      this.now();
-
-    const updatedPhases =
-      phases.map(
-        (phase, index) => {
-          if (index < targetIndex) {
-            return {
-              ...phase,
-              status: "completed",
-              progress: 100,
-
-              completedAt:
-                phase.completedAt ||
-                currentTime
-            };
-          }
-
-          if (index === targetIndex) {
-            return {
-              ...phase,
-              status: "current",
-
-              startedAt:
-                phase.startedAt ||
-                currentTime,
-
-              completedAt: null
-            };
-          }
-
-          return {
-            ...phase,
-            status: "pending",
-            progress:
-              phase.status ===
-                "completed"
-                ? phase.progress
-                : 0,
-            completedAt: null
-          };
-        }
-      );
-
-    const history =
-      this.addProjectHistory(
-        project,
-        {
-          action:
-            "phase-changed",
-
-          phaseId,
-
-          fromPhase:
-            project.currentPhase,
-
-          toPhase:
-            phaseId,
-
-          actor:
-            options.actor ||
-            null,
-
-          note:
-            options.note ||
-            ""
-        }
-      );
-
-    const updated =
-      this.updateProject(
-        projectId,
-        {
-          currentPhase:
-            phaseId,
-
-          phases:
-            updatedPhases,
-
-          lifecycleHistory:
-            history
-        }
-      );
-
-    this.emit(
-      "aiw:projectPhaseChanged",
-      {
-        project:
-          this.clone(updated),
-
-        phaseId
-      }
-    );
-
-    return {
-      success: true,
-      project: updated
-    };
-  },
-
-  addProjectTask(
-    projectId,
-    task = {}
-  ) {
-    const project =
-      this.getProject(projectId);
-
-    if (!project) {
-      return {
-        success: false,
-        reason:
-          "project-not-found",
-
-        message:
-          "لم يتم العثور على المشروع."
-      };
-    }
-
-    const currentTime =
-      this.now();
-
-    const taskRecord = {
-      id:
-        task.id ||
-        this.id("task"),
-
-      title:
-        task.title ||
-        task.name ||
-        "مهمة جديدة",
-
-      description:
-        task.description ||
-        "",
-
-      status:
-        task.status ||
-        "pending",
-
-      priority:
-        task.priority ||
-        "medium",
-
-      owner:
-        task.owner ||
-        null,
-
-      weight: Math.max(
-        1,
-        this.toNumber(
-          task.weight,
-          1
-        )
-      ),
-
-      progress: this.clamp(
-        task.progress ??
-        (
-          task.status === "completed"
-            ? 100
-            : 0
-        )
-      ),
-
-      dueDate:
-        task.dueDate ||
-        null,
-
-      completedAt:
-        task.completedAt ||
-        null,
-
-      createdAt:
-        currentTime,
-
-      updatedAt:
-        currentTime
-    };
-
-    const tasks = [
-      ...this.toArray(
-        project.tasks
-      ),
-      taskRecord
-    ];
-
-    const progress =
-      this.calculateTasksProgress(
-        tasks
-      );
-
-    const updated =
-      this.updateProject(
-        projectId,
-        {
-          tasks,
-          progress
-        }
-      );
-
-    this.emit(
-      "aiw:projectTaskCreated",
-      {
-        project:
-          this.clone(updated),
-
-        task:
-          this.clone(taskRecord)
-      }
-    );
-
-    return {
-      success: true,
-      project: updated,
-      task: taskRecord
-    };
-  },
-
-  updateProjectTask(
-    projectId,
-    taskId,
-    updates = {}
-  ) {
-    const project =
-      this.getProject(projectId);
-
-    if (!project) {
-      return {
-        success: false,
-        reason:
-          "project-not-found",
-
-        message:
-          "لم يتم العثور على المشروع."
-      };
-    }
-
-    let updatedTask = null;
-
-    const tasks =
-      this.toArray(
-        project.tasks
-      ).map(task => {
         if (
-          String(task?.id) !==
-          String(taskId)
+          this.getSettings().ideaProjectWorkflow
+            ?.calculateProgressFromTasks !== false &&
+          merged.tasks.length
         ) {
-          return task;
+          merged.progress = this.calculateTasksProgress(merged.tasks);
         }
+      }
 
-        updatedTask = {
-          ...task,
-          ...this.clone(updates),
-          id: task.id,
-          updatedAt: this.now()
+      const result = this.updateItem("projects", projectId, merged);
+
+      if (result) {
+        this.emit("aiw:projectUpdated", {
+          project: this.clone(result)
+        });
+
+        this.emit("aiw:projectsUpdated", {
+          project: this.clone(result),
+          action: "updated"
+        });
+      }
+
+      return result;
+    },
+
+    removeProject(projectId, hardDelete = false) {
+      const result = this.remove("projects", projectId, hardDelete);
+
+      if (result) {
+        this.emit("aiw:projectsUpdated", {
+          projectId,
+          action: "removed"
+        });
+      }
+
+      return result;
+    },
+
+    addProjectTask(projectId, task = {}) {
+      const project = this.getProject(projectId);
+
+      if (!project) {
+        return {
+          success: false,
+          reason: "project-not-found",
+          message: "لم يتم العثور على المشروع."
         };
+      }
 
-        if (
-          updatedTask.status ===
-          "completed"
-        ) {
-          updatedTask.progress = 100;
+      const taskRecord = this.normalizeTask(
+        {
+          ...task,
+          id: task.id || this.id("task")
+        },
+        project.tasks?.length || 0
+      );
 
-          updatedTask.completedAt =
-            updatedTask.completedAt ||
-            this.now();
-        }
+      const tasks = [
+        ...this.toArray(project.tasks),
+        taskRecord
+      ];
 
-        if (
-          updatedTask.progress >= 100
-        ) {
-          updatedTask.progress = 100;
-          updatedTask.status =
-            "completed";
+      const updated = this.updateProject(projectId, {
+        tasks,
+        progress: this.calculateTasksProgress(tasks)
+      });
 
-          updatedTask.completedAt =
-            updatedTask.completedAt ||
-            this.now();
-        }
+      this.emit("aiw:projectTaskCreated", {
+        project: this.clone(updated),
+        task: this.clone(taskRecord)
+      });
+
+      return {
+        success: true,
+        project: updated,
+        task: taskRecord
+      };
+    },
+
+    updateProjectTask(projectId, taskId, updates = {}) {
+      const project = this.getProject(projectId);
+
+      if (!project) {
+        return {
+          success: false,
+          reason: "project-not-found",
+          message: "لم يتم العثور على المشروع."
+        };
+      }
+
+      let updatedTask = null;
+
+      const tasks = this.toArray(project.tasks).map((task, index) => {
+        if (String(task?.id) !== String(taskId)) return task;
+
+        updatedTask = this.normalizeTask(
+          {
+            ...task,
+            ...this.clone(updates),
+            id: task.id,
+            updatedAt: this.now()
+          },
+          index
+        );
 
         return updatedTask;
       });
 
-    if (!updatedTask) {
-      return {
-        success: false,
-        reason:
-          "task-not-found",
-
-        message:
-          "لم يتم العثور على المهمة."
-      };
-    }
-
-    const progress =
-      this.calculateTasksProgress(
-        tasks
-      );
-
-    const updatedProject =
-      this.updateProject(
-        projectId,
-        {
-          tasks,
-          progress
-        }
-      );
-
-    this.emit(
-      "aiw:projectTaskUpdated",
-      {
-        project:
-          this.clone(
-            updatedProject
-          ),
-
-        task:
-          this.clone(
-            updatedTask
-          )
+      if (!updatedTask) {
+        return {
+          success: false,
+          reason: "task-not-found",
+          message: "لم يتم العثور على المهمة."
+        };
       }
-    );
 
-    return {
-      success: true,
-      project: updatedProject,
-      task: updatedTask
-    };
-  },
+      const updatedProject = this.updateProject(projectId, {
+        tasks,
+        progress: this.calculateTasksProgress(tasks)
+      });
 
-  removeProjectTask(
-    projectId,
-    taskId
-  ) {
-    const project =
-      this.getProject(projectId);
+      this.emit("aiw:projectTaskUpdated", {
+        project: this.clone(updatedProject),
+        task: this.clone(updatedTask)
+      });
 
-    if (!project) {
       return {
-        success: false,
-        reason:
-          "project-not-found",
-
-        message:
-          "لم يتم العثور على المشروع."
+        success: true,
+        project: updatedProject,
+        task: updatedTask
       };
-    }
+    },
 
-    const originalTasks =
-      this.toArray(
-        project.tasks
+    removeProjectTask(projectId, taskId) {
+      const project = this.getProject(projectId);
+
+      if (!project) {
+        return {
+          success: false,
+          reason: "project-not-found",
+          message: "لم يتم العثور على المشروع."
+        };
+      }
+
+      const original = this.toArray(project.tasks);
+      const tasks = original.filter(
+        task => String(task?.id) !== String(taskId)
       );
 
-    const tasks =
-      originalTasks.filter(
-        task =>
-          String(task?.id) !==
-          String(taskId)
-      );
+      if (tasks.length === original.length) {
+        return {
+          success: false,
+          reason: "task-not-found",
+          message: "لم يتم العثور على المهمة."
+        };
+      }
 
-    if (
-      tasks.length ===
-      originalTasks.length
-    ) {
-      return {
-        success: false,
-        reason:
-          "task-not-found",
+      const updatedProject = this.updateProject(projectId, {
+        tasks,
+        progress: this.calculateTasksProgress(tasks)
+      });
 
-        message:
-          "لم يتم العثور على المهمة."
-      };
-    }
-
-    const progress =
-      this.calculateTasksProgress(
-        tasks
-      );
-
-    const updatedProject =
-      this.updateProject(
-        projectId,
-        {
-          tasks,
-          progress
-        }
-      );
-
-    this.emit(
-      "aiw:projectTaskDeleted",
-      {
-        project:
-          this.clone(
-            updatedProject
-          ),
-
+      this.emit("aiw:projectTaskDeleted", {
+        project: this.clone(updatedProject),
         taskId
-      }
-    );
+      });
 
-    return {
-      success: true,
-      project: updatedProject
-    };
-  },
-
-  /* =========================================================
-     APPROVALS
-  ========================================================= */
-
-  addApprovalRecord(
-    approval = {}
-  ) {
-    const approvals =
-      this.getAllCollection(
-        "approvals"
-      );
-
-    const existingIndex =
-      approvals.findIndex(
-        item =>
-          String(
-            item?.ideaId
-          ) ===
-          String(
-            approval.ideaId
-          ) &&
-          item?.status ===
-            "pending"
-      );
-
-    const record = {
-      id:
-        approval.id ||
-        this.id("approval"),
-
-      type:
-        approval.type ||
-        "idea-approval",
-
-      ideaId:
-        approval.ideaId ||
-        null,
-
-      projectId:
-        approval.projectId ||
-        null,
-
-      title:
-        approval.title ||
-        "طلب اعتماد",
-
-      status:
-        approval.status ||
-        "pending",
-
-      submittedAt:
-        approval.submittedAt ||
-        this.now(),
-
-      submittedBy:
-        approval.submittedBy ||
-        null,
-
-      decidedAt:
-        approval.decidedAt ||
-        null,
-
-      decidedBy:
-        approval.decidedBy ||
-        null,
-
-      note:
-        approval.note ||
-        "",
-
-      createdAt:
-        approval.createdAt ||
-        this.now(),
-
-      updatedAt:
-        this.now()
-    };
-
-    if (existingIndex >= 0) {
-      approvals[existingIndex] = {
-        ...approvals[existingIndex],
-        ...record,
-        id:
-          approvals[existingIndex].id
+      return {
+        success: true,
+        project: updatedProject
       };
-    } else {
-      approvals.unshift(record);
-    }
+    },
 
-    this.set(
-      "automation.approvals",
-      approvals,
-      {
-        eventName:
-          "aiw:approvalCreated",
+    /* -------------------------------------------------------
+       Approval Queue
+    ------------------------------------------------------- */
 
-        activity: {
-          type:
-            "approval-created",
+    addApprovalRecord(approval = {}) {
+      const approvals = this.getAllCollection("approvals");
 
-          collection:
-            "approvals",
-
-          title:
-            record.title,
-
-          refId:
-            record.id
-        }
-      }
-    );
-
-    return this.clone(record);
-  },
-
-  resolveApprovalRecord(
-    ideaId,
-    decision = {}
-  ) {
-    const approvals =
-      this.getAllCollection(
-        "approvals"
+      const existingIndex = approvals.findIndex(
+        item =>
+          String(item?.ideaId) === String(approval.ideaId) &&
+          item?.status === "pending"
       );
 
-    let resolved = null;
+      const record = {
+        id: approval.id || this.id("approval"),
+        type: approval.type || "idea-approval",
+        ideaId: approval.ideaId || null,
+        projectId: approval.projectId || null,
+        title: approval.title || "طلب اعتماد",
+        owner: approval.owner || "الإدارة",
+        risk: approval.risk || "متوسط",
+        status: approval.status || "pending",
+        submittedAt: approval.submittedAt || this.now(),
+        submittedBy: approval.submittedBy || null,
+        decidedAt: approval.decidedAt || null,
+        decidedBy: approval.decidedBy || null,
+        note: approval.note || approval.notes || "",
+        createdAt: approval.createdAt || this.now(),
+        updatedAt: this.now()
+      };
 
-    const updatedApprovals =
-      approvals.map(item => {
+      if (existingIndex >= 0) {
+        approvals[existingIndex] = {
+          ...approvals[existingIndex],
+          ...record,
+          id: approvals[existingIndex].id
+        };
+      } else {
+        approvals.unshift(record);
+      }
+
+      this.set("automationCenter.approvals", approvals, {
+        eventName: "aiw:approvalCreated",
+        activity: {
+          type: "approval-created",
+          collection: "approvals",
+          title: record.title,
+          refId: record.id
+        }
+      });
+
+      return this.clone(record);
+    },
+
+    resolveApprovalRecord(ideaId, decision = {}) {
+      const approvals = this.getAllCollection("approvals");
+      let resolved = null;
+
+      const next = approvals.map(item => {
         if (
-          String(item?.ideaId) !==
-          String(ideaId) ||
+          String(item?.ideaId) !== String(ideaId) ||
           item?.status !== "pending"
         ) {
           return item;
@@ -5328,801 +2915,415 @@ AIW.Store = {
 
         resolved = {
           ...item,
-          status:
-            decision.status ||
-            "approved",
-
-          decidedAt:
-            decision.decidedAt ||
-            this.now(),
-
-          decidedBy:
-            decision.decidedBy ||
-            null,
-
-          note:
-            decision.note ??
-            item.note ??
-            "",
-
-          updatedAt:
-            this.now()
+          status: decision.status || "approved",
+          decidedAt: decision.decidedAt || this.now(),
+          decidedBy: decision.decidedBy || null,
+          note: decision.note ?? item.note ?? "",
+          updatedAt: this.now()
         };
 
         return resolved;
       });
 
-    if (!resolved) {
-      return null;
-    }
+      if (!resolved) return null;
 
-    this.set(
-      "automation.approvals",
-      updatedApprovals,
-      {
-        eventName:
-          "aiw:approvalResolved",
-
+      this.set("automationCenter.approvals", next, {
+        eventName: "aiw:approvalResolved",
         activity: {
-          type:
-            "approval-resolved",
-
-          collection:
-            "approvals",
-
-          title:
-            resolved.title ||
-            "اعتماد فكرة",
-
-          refId:
-            resolved.id
+          type: "approval-resolved",
+          collection: "approvals",
+          title: resolved.title || "اعتماد فكرة",
+          refId: resolved.id
         }
-      }
-    );
-
-    return this.clone(resolved);
-  },
-
-  /* =========================================================
-     AUTOMATION EXECUTION HISTORY
-  ========================================================= */
-
-  recordExecution(entry = {}) {
-    const history =
-      this.getAllCollection(
-        "executionHistory"
-      );
-
-    const record = {
-      id:
-        entry.id ||
-        this.id("execution"),
-
-      workflowId:
-        entry.workflowId ||
-        null,
-
-      entityType:
-        entry.entityType ||
-        "system",
-
-      entityId:
-        entry.entityId ||
-        null,
-
-      sourceIdeaId:
-        entry.sourceIdeaId ||
-        null,
-
-      projectId:
-        entry.projectId ||
-        (
-          entry.entityType ===
-            "project"
-            ? entry.entityId
-            : null
-        ),
-
-      action:
-        entry.action ||
-        "executed",
-
-      fromStatus:
-        entry.fromStatus ||
-        null,
-
-      status:
-        entry.status ||
-        "completed",
-
-      actor:
-        entry.actor ||
-        null,
-
-      details:
-        entry.details ||
-        {},
-
-      createdAt:
-        entry.createdAt ||
-        this.now()
-    };
-
-    history.unshift(record);
-
-    const limitedHistory =
-      history.slice(0, 500);
-
-    this.set(
-      "automation.executionHistory",
-      limitedHistory,
-      {
-        eventName:
-          "aiw:executionRecorded",
-
-        backup: false,
-
-        notify: true
-      }
-    );
-
-    return this.clone(record);
-  },
-
-  /* =========================================================
-     ACTIVITY LOG
-  ========================================================= */
-
-  addActivity(data, activity = {}) {
-    if (!data) {
-      return null;
-    }
-
-    data.activity =
-      Array.isArray(data.activity)
-        ? data.activity
-        : [];
-
-    const activityRecord = {
-      id:
-        activity.id ||
-        this.id("activity"),
-
-      type:
-        activity.type ||
-        "system",
-
-      title:
-        activity.title ||
-        "تحديث في المنصة",
-
-      createdAt:
-        activity.createdAt ||
-        this.now(),
-
-      ...this.clone(activity)
-    };
-
-    data.activity.unshift(
-      activityRecord
-    );
-
-    data.activity =
-      data.activity.slice(0, 200);
-
-    return activityRecord;
-  },
-
-  logActivity(activity = {}) {
-    const nextState =
-      this.getState();
-
-    const record =
-      this.addActivity(
-        nextState,
-        activity
-      );
-
-    this.commit(
-      nextState,
-      {
-        eventName:
-          "aiw:activityAdded",
-
-        backup: false
-      }
-    );
-
-    return this.clone(record);
-  },
-
-  getActivity(limit = 20) {
-    const safeLimit =
-      Math.max(
-        0,
-        Number(limit) || 20
-      );
-
-    return this.getCollection(
-      "activity"
-    ).slice(
-      0,
-      safeLimit
-    );
-  },
-
-  /* =========================================================
-     STATISTICS
-  ========================================================= */
-
-  stats() {
-    const collectionNames = [
-      "strategy",
-      "projects",
-      "flagshipProjects",
-      "ideas",
-      "departments",
-      "kpis",
-      "maturity",
-      "governance",
-      "reports",
-      "businessCases",
-      "decisionCenter",
-      "risks",
-      "workflows",
-      "triggers",
-      "approvals",
-      "executionHistory"
-    ];
-
-    const output = {
-      totalRecords: 0,
-      activeRecords: 0,
-      deletedRecords: 0,
-      collections: {},
-      pipeline:
-        this.getPipelineStats(),
-      generatedAt:
-        this.now()
-    };
-
-    collectionNames.forEach(
-      collection => {
-        const allItems =
-          this.getAllCollection(
-            collection
-          );
-
-        const activeCount =
-          allItems.filter(
-            item =>
-              !item?.deletedAt
-          ).length;
-
-        const deletedCount =
-          allItems.filter(
-            item =>
-              Boolean(
-                item?.deletedAt
-              )
-          ).length;
-
-        output.collections[
-          collection
-        ] = {
-          total:
-            allItems.length,
-
-          active:
-            activeCount,
-
-          deleted:
-            deletedCount
-        };
-
-        output.totalRecords +=
-          allItems.length;
-
-        output.activeRecords +=
-          activeCount;
-
-        output.deletedRecords +=
-          deletedCount;
-      }
-    );
-
-    return output;
-  },
-
-  /* =========================================================
-     BACKUP AND RESTORE
-  ========================================================= */
-
-  backup(data = null, options = {}) {
-    const sourceData =
-      data ||
-      this.getState();
-
-    const payload = {
-      backedUpAt:
-        this.now(),
-
-      version:
-        this.version,
-
-      schemaVersion:
-        sourceData?.meta
-          ?.schemaVersion ||
-        AIW.DEFAULT_DATA.meta
-          .schemaVersion,
-
-      data:
-        this.clone(
-          sourceData
-        ),
-
-      settings:
-        this.getSettings()
-    };
-
-    const written =
-      this.write(
-        AIW.KEYS.BACKUP,
-        payload
-      );
-
-    if (
-      written &&
-      this._state
-    ) {
-      this._state.meta.lastBackupAt =
-        payload.backedUpAt;
-
-      this.write(
-        AIW.KEYS.DATA,
-        this._state
-      );
-
-      this.syncGlobalDataReference();
-    }
-
-    if (
-      written &&
-      options.emit !== false
-    ) {
-      this.emit(
-        "aiw:backupCreated",
-        this.clone(payload)
-      );
-    }
-
-    return written
-      ? this.clone(payload)
-      : null;
-  },
-
-  getBackup() {
-    return this.read(
-      AIW.KEYS.BACKUP,
-      null
-    );
-  },
-
-  restoreBackup() {
-    const backup =
-      this.getBackup();
-
-    if (
-      !backup ||
-      !backup.data
-    ) {
-      return null;
-    }
-
-    const restoredData =
-      this.normalizeData(
-        this.mergeDefaults(
-          AIW.DEFAULT_DATA,
-          backup.data
-        )
-      );
-
-    this.ensureMetadata(
-      restoredData
-    );
-
-    restoredData.meta.lastRestoredAt =
-      this.now();
-
-    const result =
-      this.commit(
-        restoredData,
+      });
+
+      return this.clone(resolved);
+    },
+
+    /* -------------------------------------------------------
+       Execution History
+    ------------------------------------------------------- */
+
+    recordExecution(entry = {}) {
+      const history = this.getAllCollection("executionHistory");
+
+      const record = {
+        id: entry.id || this.id("execution"),
+        workflowId: entry.workflowId || null,
+        entityType: entry.entityType || "system",
+        entityId: entry.entityId || null,
+        sourceIdeaId: entry.sourceIdeaId || null,
+        projectId:
+          entry.projectId ||
+          (
+            entry.entityType === "project"
+              ? entry.entityId
+              : null
+          ),
+        action: entry.action || "executed",
+        fromStatus: entry.fromStatus || null,
+        status: entry.status || "completed",
+        actor: entry.actor || null,
+        details: entry.details || {},
+        createdAt: entry.createdAt || this.now()
+      };
+
+      history.unshift(record);
+
+      this.set(
+        "automationCenter.executionHistory",
+        history.slice(0, 500),
         {
-          eventName:
-            "aiw:dataRestored",
-
+          eventName: "aiw:executionRecorded",
           backup: false
         }
       );
 
-    if (backup.settings) {
-      this.saveSettings(
-        backup.settings,
-        "aiw:settingsRestored"
+      return this.clone(record);
+    },
+
+    /* -------------------------------------------------------
+       Activity
+    ------------------------------------------------------- */
+
+    addActivity(data, activity = {}) {
+      if (!data) return null;
+
+      data.activity = Array.isArray(data.activity)
+        ? data.activity
+        : [];
+
+      const record = {
+        id: activity.id || this.id("activity"),
+        type: activity.type || "system",
+        title: activity.title || "تحديث في المنصة",
+        createdAt: activity.createdAt || this.now(),
+        ...this.clone(activity)
+      };
+
+      data.activity.unshift(record);
+      data.activity = data.activity.slice(0, 200);
+
+      return record;
+    },
+
+    logActivity(activity = {}) {
+      const next = this.getState();
+      const record = this.addActivity(next, activity);
+
+      this.commit(next, {
+        eventName: "aiw:activityAdded",
+        backup: false
+      });
+
+      return this.clone(record);
+    },
+
+    getActivity(limit = 20) {
+      return this.getCollection("activity").slice(
+        0,
+        Math.max(0, this.toNumber(limit, 20))
       );
-    }
+    },
 
-    return result;
-  },
+    /* -------------------------------------------------------
+       Statistics
+    ------------------------------------------------------- */
 
-  /* =========================================================
-     IMPORT AND EXPORT
-  ========================================================= */
+    stats() {
+      const names = [
+        "strategy",
+        "projects",
+        "flagshipProjects",
+        "ideas",
+        "departments",
+        "kpis",
+        "maturity",
+        "governance",
+        "reports",
+        "businessCases",
+        "risks",
+        "workflows",
+        "triggers",
+        "approvals",
+        "executionHistory"
+      ];
 
-  exportData() {
-    return {
-      exportedAt:
-        this.now(),
+      const output = {
+        totalRecords: 0,
+        activeRecords: 0,
+        deletedRecords: 0,
+        collections: {},
+        pipeline: this.getPipelineStats(),
+        generatedAt: this.now()
+      };
 
-      app:
-        this.getMetadata().app ||
-        AIW.DEFAULT_DATA.meta.app,
+      names.forEach(name => {
+        const all = this.getAllCollection(name);
+        const active = all.filter(item => !item?.deletedAt).length;
+        const deleted = all.filter(item => Boolean(item?.deletedAt)).length;
 
-      version:
-        this.version,
+        output.collections[name] = {
+          total: all.length,
+          active,
+          deleted
+        };
 
-      schemaVersion:
-        this.getMetadata()
-          .schemaVersion,
+        output.totalRecords += all.length;
+        output.activeRecords += active;
+        output.deletedRecords += deleted;
+      });
 
-      data:
-        this.getState(),
+      return output;
+    },
 
-      settings:
-        this.getSettings()
-    };
-  },
+    /* -------------------------------------------------------
+       Backup / Restore / Import
+    ------------------------------------------------------- */
 
-  importData(payload, options = {}) {
-    if (
-      !payload ||
-      typeof payload !== "object"
-    ) {
-      return false;
-    }
+    backup(data = null, options = {}) {
+      const source = data || this.getState();
 
-    let imported = false;
+      const payload = {
+        backedUpAt: this.now(),
+        version: this.version,
+        schemaVersion:
+          source?.meta?.schemaVersion ||
+          AIW.DEFAULT_DATA.meta.schemaVersion,
+        data: this.clone(source),
+        settings: this.getSettings()
+      };
 
-    if (payload.data) {
-      const importedData =
-        this.normalizeData(
-          this.mergeDefaults(
-            AIW.DEFAULT_DATA,
-            payload.data
-          )
+      const written = this.write(AIW.KEYS.BACKUP, payload);
+
+      if (written && this._state) {
+        this._state.meta.lastBackupAt = payload.backedUpAt;
+        this.write(AIW.KEYS.DATA, this._state);
+        this.syncGlobalDataReference();
+      }
+
+      if (written && options.emit !== false) {
+        this.emit("aiw:backupCreated", this.clone(payload));
+      }
+
+      return written ? this.clone(payload) : null;
+    },
+
+    getBackup() {
+      return this.read(AIW.KEYS.BACKUP, null);
+    },
+
+    restoreBackup() {
+      const backup = this.getBackup();
+
+      if (!backup?.data) return null;
+
+      const restored = this.normalizeData(
+        this.mergeDefaults(AIW.DEFAULT_DATA, backup.data)
+      );
+
+      this.ensureMetadata(restored);
+      restored.meta.lastRestoredAt = this.now();
+
+      const result = this.commit(restored, {
+        eventName: "aiw:dataRestored",
+        backup: false
+      });
+
+      if (backup.settings) {
+        this.saveSettings(
+          backup.settings,
+          "aiw:settingsRestored"
+        );
+      }
+
+      return result;
+    },
+
+    exportData() {
+      return {
+        exportedAt: this.now(),
+        app:
+          this.getMetadata().app ||
+          AIW.DEFAULT_DATA.meta.app,
+        version: this.version,
+        schemaVersion: this.getMetadata().schemaVersion,
+        data: this.getState(),
+        settings: this.getSettings()
+      };
+    },
+
+    importData(payload, options = {}) {
+      if (!payload || typeof payload !== "object") {
+        return false;
+      }
+
+      let imported = false;
+
+      if (payload.data) {
+        const data = this.normalizeData(
+          this.mergeDefaults(AIW.DEFAULT_DATA, payload.data)
         );
 
-      this.ensureMetadata(
-        importedData
-      );
+        this.ensureMetadata(data);
+        data.meta.lastImportedAt = this.now();
 
-      importedData.meta.lastImportedAt =
-        this.now();
+        this.commit(data, {
+          eventName: "aiw:dataImported",
+          backup: options.backup !== false
+        });
 
-      this.commit(
-        importedData,
-        {
-          eventName:
-            "aiw:dataImported",
+        imported = true;
+      }
 
-          backup:
-            options.backup !== false
-        }
-      );
+      if (payload.settings) {
+        this.saveSettings(
+          payload.settings,
+          "aiw:settingsImported"
+        );
 
-      imported = true;
-    }
+        imported = true;
+      }
 
-    if (payload.settings) {
-      this.saveSettings(
-        payload.settings,
-        "aiw:settingsImported"
-      );
+      return imported;
+    },
 
-      imported = true;
-    }
+    reset(options = {}) {
+      if (options.backupBeforeReset !== false) {
+        this.backup(this.getState());
+      }
 
-    return imported;
-  },
+      const fresh = this.clone(AIW.DEFAULT_DATA);
+      const now = this.now();
 
-  /* =========================================================
-     RESET
-  ========================================================= */
+      fresh.meta.createdAt = now;
+      fresh.meta.updatedAt = now;
+      fresh.meta.lastSync = now;
 
-  reset(options = {}) {
-    if (
-      options.backupBeforeReset !==
-      false
-    ) {
-      this.backup(
-        this.getState()
-      );
-    }
-
-    const fresh =
-      this.clone(
-        AIW.DEFAULT_DATA
-      );
-
-    const currentTime =
-      this.now();
-
-    fresh.meta.createdAt =
-      currentTime;
-
-    fresh.meta.updatedAt =
-      currentTime;
-
-    fresh.meta.lastSync =
-      currentTime;
-
-    return this.commit(
-      fresh,
-      {
-        eventName:
-          "aiw:dataReset",
-
+      return this.commit(fresh, {
+        eventName: "aiw:dataReset",
         backup: false
+      });
+    },
+
+    resetSettings() {
+      this._settings = this.clone(AIW.DEFAULT_SETTINGS);
+
+      this.persistSettings({
+        emit: false,
+        notify: false
+      });
+
+      this.emit("aiw:settingsReset", this.getSettings());
+
+      this.notifySubscribers({
+        type: "aiw:settingsReset",
+        settings: this.getSettings()
+      });
+
+      return this.getSettings();
+    },
+
+    clearAll(options = {}) {
+      if (options.keepBackup !== true) {
+        this.removeStorageKey(AIW.KEYS.BACKUP);
       }
-    );
-  },
 
-  resetSettings() {
-    this._settings =
-      this.clone(
-        AIW.DEFAULT_SETTINGS
-      );
+      this.removeStorageKey(AIW.KEYS.DATA);
+      this.removeStorageKey(AIW.KEYS.SETTINGS);
 
-    this.persistSettings({
-      emit: false,
-      notify: false
-    });
+      this._state = null;
+      this._settings = null;
+      this._initialized = false;
 
-    this.emit(
-      "aiw:settingsReset",
-      this.getSettings()
-    );
+      return this.init();
+    },
 
-    this.notifySubscribers({
-      type:
-        "aiw:settingsReset",
+    /* -------------------------------------------------------
+       Subscriptions / Events
+    ------------------------------------------------------- */
 
-      settings:
-        this.getSettings()
-    });
+    subscribe(callback) {
+      if (typeof callback !== "function") {
+        return () => {};
+      }
 
-    return this.getSettings();
-  },
+      this._subscribers.add(callback);
 
-  clearAll(options = {}) {
-    if (
-      options.keepBackup !== true
-    ) {
-      this.removeStorageKey(
-        AIW.KEYS.BACKUP
-      );
-    }
+      return () => {
+        this._subscribers.delete(callback);
+      };
+    },
 
-    this.removeStorageKey(
-      AIW.KEYS.DATA
-    );
+    onChange(callback) {
+      return this.subscribe(callback);
+    },
 
-    this.removeStorageKey(
-      AIW.KEYS.SETTINGS
-    );
+    notifySubscribers(change = {}) {
+      const payload = {
+        timestamp: this.now(),
+        ...change
+      };
 
-    this._state = null;
-    this._settings = null;
-    this._initialized = false;
-
-    return this.init();
-  },
-
-  /* =========================================================
-     SUBSCRIPTIONS
-  ========================================================= */
-
-  subscribe(callback) {
-    if (
-      typeof callback !==
-      "function"
-    ) {
-      return () => {};
-    }
-
-    this._subscribers.add(
-      callback
-    );
-
-    return () => {
-      this._subscribers.delete(
-        callback
-      );
-    };
-  },
-
-  onChange(callback) {
-    return this.subscribe(
-      callback
-    );
-  },
-
-  on(eventName, callback) {
-    if (
-      !eventName ||
-      typeof callback !==
-        "function"
-    ) {
-      return () => {};
-    }
-
-    const handler = event => {
-      callback(
-        event.detail,
-        event
-      );
-    };
-
-    window.addEventListener(
-      eventName,
-      handler
-    );
-
-    return () => {
-      window.removeEventListener(
-        eventName,
-        handler
-      );
-    };
-  },
-
-  off(eventName, callback) {
-    if (
-      !eventName ||
-      typeof callback !==
-        "function"
-    ) {
-      return;
-    }
-
-    window.removeEventListener(
-      eventName,
-      callback
-    );
-  },
-
-  notifySubscribers(change = {}) {
-    const payload = {
-      timestamp:
-        this.now(),
-
-      ...change
-    };
-
-    this._subscribers.forEach(
-      callback => {
+      this._subscribers.forEach(callback => {
         try {
-          callback(
-            this.clone(payload),
-            this.getState()
-          );
+          callback(this.clone(payload), this.getState());
         } catch (error) {
-          console.error(
-            "[AIW.Store] Subscriber failed:",
-            error
-          );
+          console.error("[AIW.Store] Subscriber failed:", error);
         }
+      });
+    },
+
+    emit(name, detail) {
+      if (!name) return;
+
+      try {
+        window.dispatchEvent(
+          new CustomEvent(name, {
+            detail: this.clone(detail)
+          })
+        );
+      } catch (error) {
+        console.warn(`[AIW.Store] Event ${name} failed:`, error);
       }
-    );
-  },
+    },
 
-  /* =========================================================
-     EVENTS
-  ========================================================= */
+    /* -------------------------------------------------------
+       Cross-tab Synchronization
+    ------------------------------------------------------- */
 
-  emit(name, detail) {
-    if (!name) {
-      return;
-    }
+    attachStorageListener() {
+      if (this._storageListenerAttached) return;
 
-    try {
-      window.dispatchEvent(
-        new CustomEvent(
-          name,
-          {
-            detail:
-              this.clone(detail)
-          }
-        )
-      );
-    } catch (error) {
-      console.warn(
-        `[AIW.Store] Event ${name} failed:`,
-        error
-      );
-    }
-  },
+      this._storageListenerAttached = true;
 
-  /* =========================================================
-     CROSS-TAB SYNCHRONIZATION
-  ========================================================= */
+      window.addEventListener("storage", event => {
+        if (this._writeLock) return;
 
-  attachStorageListener() {
-    if (
-      this._storageListenerAttached
-    ) {
-      return;
-    }
-
-    this._storageListenerAttached =
-      true;
-
-    window.addEventListener(
-      "storage",
-      event => {
-        if (this._writeLock) {
-          return;
-        }
-
-        if (
-          event.key ===
-            AIW.KEYS.DATA &&
-          event.newValue
-        ) {
+        if (event.key === AIW.KEYS.DATA && event.newValue) {
           try {
-            const externalData =
-              JSON.parse(
-                event.newValue
-              );
+            const external = JSON.parse(event.newValue);
 
-            this._state =
-              this.normalizeData(
-                this.mergeDefaults(
-                  AIW.DEFAULT_DATA,
-                  externalData
-                )
-              );
-
-            this.ensureMetadata(
-              this._state
+            this._state = this.normalizeData(
+              this.mergeDefaults(AIW.DEFAULT_DATA, external)
             );
 
-            this.refreshPipelineStats(
-              this._state
-            );
-
+            this.ensureMetadata(this._state);
+            this.repairIdeaProjectLinks(this._state);
+            this.refreshPipelineStats(this._state);
+            this.syncCompatibilityModels(this._state);
             this.syncGlobalDataReference();
 
             const payload = {
               source: "storage",
-              data:
-                this.getState()
+              data: this.getState()
             };
 
-            this.emit(
-              "aiw:crossTabSync",
-              payload
-            );
-
-            this.emit(
-              "aiw:dataChanged",
-              payload
-            );
+            this.emit("aiw:crossTabSync", payload);
+            this.emit("aiw:dataChanged", payload);
 
             this.notifySubscribers({
-              type:
-                "aiw:crossTabSync",
-
+              type: "aiw:crossTabSync",
               ...payload
             });
           } catch (error) {
@@ -6133,31 +3334,18 @@ AIW.Store = {
           }
         }
 
-        if (
-          event.key ===
-            AIW.KEYS.SETTINGS &&
-          event.newValue
-        ) {
+        if (event.key === AIW.KEYS.SETTINGS && event.newValue) {
           try {
-            this._settings =
-              this.mergeDefaults(
-                AIW.DEFAULT_SETTINGS,
-                JSON.parse(
-                  event.newValue
-                )
-              );
-
-            this.emit(
-              "aiw:settingsChanged",
-              this.getSettings()
+            this._settings = this.mergeDefaults(
+              AIW.DEFAULT_SETTINGS,
+              JSON.parse(event.newValue)
             );
 
-            this.notifySubscribers({
-              type:
-                "aiw:settingsChanged",
+            this.emit("aiw:settingsChanged", this.getSettings());
 
-              settings:
-                this.getSettings()
+            this.notifySubscribers({
+              type: "aiw:settingsChanged",
+              settings: this.getSettings()
             });
           } catch (error) {
             console.warn(
@@ -6166,13 +3354,12 @@ AIW.Store = {
             );
           }
         }
-      }
-    );
-  }
-};
+      });
+    }
+  };
 
-/* =========================================================
-   STORE BOOTSTRAP
-========================================================= */
+  AIW.Store = Store;
+  AIW.Store.init();
 
-AIW.Store.init();
+  console.info(`[AIW.Store] Store V${AIW.Store.version} initialized`);
+})();
