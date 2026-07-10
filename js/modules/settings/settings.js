@@ -1,6 +1,6 @@
 /* =========================================================
-   AI Work - More Center V1.1
-   Practical Tools + Platform Status
+   AI Work - More Center V1.2
+   Practical Tools Center
 ========================================================= */
 
 window.AIW = window.AIW || {};
@@ -80,7 +80,6 @@ AIW.Modules.settings = {
             "🛡️ Governance"
           ]
         }) : this.fallbackHero()}
-        
 
         <div class="module-grid">
           ${this.kpi("إصدار النظام", config.app?.version || "3.0.9", "Version")}
@@ -89,40 +88,6 @@ AIW.Modules.settings = {
           ${this.kpi("الوحدات", Object.keys(window.AIW?.Modules || {}).length, "Modules")}
           ${this.kpi("اللغة", "AR", "Default")}
           ${this.kpi("الوضع", "Light", "Theme")}
-        </div>
-
-        <div class="module-wide-grid">
-          <div class="module-panel">
-            ${this.sectionTitle("Platform Status", "حالة المنصة بعد تحويلها إلى نطاق الأنظمة البيومترية والبوابات الذكية.")}
-            <div class="settings-summary-card">
-              <strong>المنصة جاهزة لمرحلة التحليلات التشغيلية</strong>
-              <p>
-                تم تجهيز الأساس لربط الأفكار والمشاريع بمؤشرات فعلية،
-                Decision Score، تنبيهات، ولوحات Power BI Style خاصة بجودة التسجيلات،
-                الصلاحيات، البوابات الذكية، والأمن الرقمي.
-              </p>
-
-              <div class="settings-summary-strip">
-                <div><span>Scope</span><b>Biometric</b></div>
-                <div><span>AI</span><b>Enabled</b></div>
-                <div><span>Alerts</span><b>Ready</b></div>
-                <div><span>Dir</span><b>${config.app?.direction || "rtl"}</b></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="module-panel">
-            ${this.sectionTitle("Next Step", "الخطوة العملية التالية.")}
-            <div class="settings-admin-card">
-              <strong>اختبار الصفحات ثم بناء Operations Dashboard</strong>
-              <p>
-                بعد تنظيف النصوص، الخطوة التالية هي تجربة الموقع كاملاً،
-                ثم إضافة لوحة تشغيلية تعرض التسجيلات، التنبيهات، الصلاحيات،
-                وحالة البوابات بشكل تنفيذي.
-              </p>
-              <button class="module-btn secondary" onclick="AIW.App.go('dashboard')">العودة للرئيسية</button>
-            </div>
-          </div>
         </div>
 
         <div class="module-panel">
@@ -158,7 +123,9 @@ AIW.Modules.settings = {
                     <strong>${e.name}</strong>
                     <span>${e.desc}</span>
                   </div>
-                  <em class="${e.ready ? "green" : "orange"}">${e.ready ? "Ready" : "Check"}</em>
+                  <em class="${e.ready ? "green" : "orange"}">
+                    ${e.ready ? "Ready" : "Check"}
+                  </em>
                 </div>
               `).join("")}
             </div>
@@ -170,7 +137,9 @@ AIW.Modules.settings = {
               ${this.diagnostics().map(d => `
                 <div>
                   <strong>${d.name}</strong>
-                  <span class="aiw-status ${d.ok ? "green" : "orange"}">${d.ok ? "OK" : "Check"}</span>
+                  <span class="aiw-status ${d.ok ? "green" : "orange"}">
+                    ${d.ok ? "OK" : "Check"}
+                  </span>
                 </div>
               `).join("")}
             </div>
@@ -182,8 +151,16 @@ AIW.Modules.settings = {
             ${this.sectionTitle("Backup & Export", "تصدير نسخة من بيانات المنصة.")}
             <div class="settings-action-card">
               <strong>تصدير بيانات AI Work</strong>
-              <p>ينشئ ملف JSON يحتوي على بيانات المنصة الحالية للاحتفاظ أو المراجعة.</p>
-              <button class="module-btn" onclick="AIW.Modules.settings.exportData()">تصدير البيانات</button>
+              <p>
+                ينشئ ملف JSON يحتوي على بيانات المنصة الحالية
+                للاحتفاظ أو المراجعة.
+              </p>
+              <button
+                class="module-btn"
+                onclick="AIW.Modules.settings.exportData()"
+              >
+                تصدير البيانات
+              </button>
             </div>
           </div>
 
@@ -205,25 +182,83 @@ AIW.Modules.settings = {
 
   engineStatus() {
     return [
-      { icon: "🧩", name: "Widgets Engine", desc: "Reusable UI components.", ready: !!window.AIW?.Widgets },
-      { icon: "📊", name: "Charts Engine", desc: "Chart.js wrapper.", ready: !!window.AIW?.Charts },
-      { icon: "📈", name: "Analytics Engine", desc: "Scores and executive analytics.", ready: !!window.AIW?.Analytics },
-      { icon: "👁️", name: "Biometric Analytics", desc: "Decision Score, alerts, and AI opportunity scoring.", ready: !!window.AIW?.BiometricAnalytics },
-      { icon: "🤖", name: "AI Engine", desc: "Executive intelligence layer.", ready: !!window.AIW?.AI },
-      { icon: "🧭", name: "Decision Engine", desc: "Decision support system.", ready: !!window.AIW?.Decision },
-      { icon: "💡", name: "Recommendation Engine", desc: "Executive recommendations.", ready: !!window.AIW?.Recommendation },
-      { icon: "🔐", name: "Permissions Engine", desc: "Roles and access control.", ready: !!window.AIW?.Permissions }
+      {
+        icon: "🧩",
+        name: "Widgets Engine",
+        desc: "Reusable UI components.",
+        ready: !!window.AIW?.Widgets
+      },
+      {
+        icon: "📊",
+        name: "Charts Engine",
+        desc: "Chart.js wrapper.",
+        ready: !!window.AIW?.Charts
+      },
+      {
+        icon: "📈",
+        name: "Analytics Engine",
+        desc: "Scores and executive analytics.",
+        ready: !!window.AIW?.Analytics
+      },
+      {
+        icon: "👁️",
+        name: "Biometric Analytics",
+        desc: "Decision Score, alerts, and AI opportunity scoring.",
+        ready: !!window.AIW?.BiometricAnalytics
+      },
+      {
+        icon: "🤖",
+        name: "AI Engine",
+        desc: "Executive intelligence layer.",
+        ready: !!window.AIW?.AI
+      },
+      {
+        icon: "🧭",
+        name: "Decision Engine",
+        desc: "Decision support system.",
+        ready: !!window.AIW?.Decision
+      },
+      {
+        icon: "💡",
+        name: "Recommendation Engine",
+        desc: "Executive recommendations.",
+        ready: !!window.AIW?.Recommendation
+      },
+      {
+        icon: "🔐",
+        name: "Permissions Engine",
+        desc: "Roles and access control.",
+        ready: !!window.AIW?.Permissions
+      }
     ];
   },
 
   diagnostics() {
     return [
-      { name: "Config Loaded", ok: !!(window.AIW?.Config || window.ATC_CONFIG) },
-      { name: "Data Layer Loaded", ok: !!window.AIW?.Data },
-      { name: "Biometric Analytics Loaded", ok: !!window.AIW?.BiometricAnalytics },
-      { name: "Modules Loaded", ok: !!window.AIW?.Modules },
-      { name: "Charts Library", ok: typeof Chart !== "undefined" },
-      { name: "App Core", ok: !!window.AIW?.App }
+      {
+        name: "Config Loaded",
+        ok: !!(window.AIW?.Config || window.ATC_CONFIG)
+      },
+      {
+        name: "Data Layer Loaded",
+        ok: !!window.AIW?.Data
+      },
+      {
+        name: "Biometric Analytics Loaded",
+        ok: !!window.AIW?.BiometricAnalytics
+      },
+      {
+        name: "Modules Loaded",
+        ok: !!window.AIW?.Modules
+      },
+      {
+        name: "Charts Library",
+        ok: typeof Chart !== "undefined"
+      },
+      {
+        name: "App Core",
+        ok: !!window.AIW?.App
+      }
     ];
   },
 
@@ -235,15 +270,21 @@ AIW.Modules.settings = {
           data: window.AIW?.Data || {}
         };
 
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-      type: "application/json"
-    });
+    const blob = new Blob(
+      [JSON.stringify(payload, null, 2)],
+      {
+        type: "application/json"
+      }
+    );
 
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
 
     a.href = url;
-    a.download = `ai-work-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `ai-work-backup-${new Date()
+      .toISOString()
+      .slice(0, 10)}.json`;
+
     a.click();
 
     URL.revokeObjectURL(url);
@@ -255,7 +296,11 @@ AIW.Modules.settings = {
 
   kpi(label, value, note) {
     if (window.AIW?.Widgets?.kpi) {
-      return AIW.Widgets.kpi({ label, value, note });
+      return AIW.Widgets.kpi({
+        label,
+        value,
+        note
+      });
     }
 
     return `
