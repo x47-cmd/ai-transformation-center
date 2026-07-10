@@ -1,7 +1,13 @@
 /* =========================================================
-   AI Work - Ideas Module V3.2
+   AI Work - Ideas Module V3.3
    Biometric AI Opportunity Center
-   Update: Removed Search & Filters + Static Portfolio Map
+
+   Updates:
+   - Central AIW.Store integration
+   - Automatic cross-page synchronization
+   - Persistent idea management methods
+   - Dynamic portfolio calculations
+   - No UI design changes
 ========================================================= */
 
 window.AIW = window.AIW || {};
@@ -12,23 +18,154 @@ AIW.Modules.ideas = {
   title: "الأفكار",
   icon: "💡",
 
+  _container: null,
+  _syncBound: false,
+  _unsubscribeStore: null,
+
+  /* =======================================================
+     Central Data Reader
+  ======================================================= */
+
   getData() {
-    return window.AIW?.Data || {};
+    try {
+      if (
+        window.AIW?.Store &&
+        typeof window.AIW.Store.getState === "function"
+      ) {
+        const storeData = window.AIW.Store.getState();
+
+        if (
+          storeData &&
+          typeof storeData === "object"
+        ) {
+          return storeData;
+        }
+      }
+
+      if (
+        window.AIW?.Store &&
+        typeof window.AIW.Store.getData === "function"
+      ) {
+        const storeData = window.AIW.Store.getData();
+
+        if (
+          storeData &&
+          typeof storeData === "object"
+        ) {
+          return storeData;
+        }
+      }
+
+      return window.AIW?.Data || {};
+    } catch (error) {
+      console.warn(
+        "AI Work Ideas: Unable to read shared data.",
+        error
+      );
+
+      return window.AIW?.Data || {};
+    }
   },
+
+  /* =======================================================
+     Ideas Reader
+  ======================================================= */
 
   getIdeas() {
-    const ideas = this.getData().ideas || [];
+    const data = this.getData();
 
-    if (window.AIW?.BiometricAnalytics?.enrichIdeas) {
-      return AIW.BiometricAnalytics.enrichIdeas();
+    const storedIdeas = Array.isArray(data.ideas)
+      ? data.ideas
+      : [];
+
+    try {
+      if (
+        window.AIW?.BiometricAnalytics &&
+        typeof window.AIW.BiometricAnalytics.enrichIdeas ===
+          "function"
+      ) {
+        const enrichedIdeas =
+          window.AIW.BiometricAnalytics.enrichIdeas(
+            storedIdeas
+          );
+
+        if (Array.isArray(enrichedIdeas)) {
+          return enrichedIdeas;
+        }
+      }
+    } catch (error) {
+      console.warn(
+        "AI Work Ideas: Idea enrichment failed.",
+        error
+      );
     }
 
-    return ideas;
+    return storedIdeas;
   },
 
-  groupByDepartment(ideas) {
+  /* =======================================================
+     Idea Management
+
+     These methods are ready for future forms/buttons.
+     All changes are saved and reflected on the dashboard.
+  ======================================================= */
+
+  addIdea(idea = {}) {
+    if (
+      window.AIW?.Store &&
+      typeof window.AIW.Store.addIdea === "function"
+    ) {
+      return window.AIW.Store.addIdea(idea);
+    }
+
+    console.warn(
+      "AI Work Ideas: AIW.Store.addIdea is unavailable."
+    );
+
+    return false;
+  },
+
+  updateIdea(id, changes = {}) {
+    if (
+      window.AIW?.Store &&
+      typeof window.AIW.Store.updateIdea === "function"
+    ) {
+      return window.AIW.Store.updateIdea(
+        id,
+        changes
+      );
+    }
+
+    console.warn(
+      "AI Work Ideas: AIW.Store.updateIdea is unavailable."
+    );
+
+    return false;
+  },
+
+  removeIdea(id) {
+    if (
+      window.AIW?.Store &&
+      typeof window.AIW.Store.removeIdea === "function"
+    ) {
+      return window.AIW.Store.removeIdea(id);
+    }
+
+    console.warn(
+      "AI Work Ideas: AIW.Store.removeIdea is unavailable."
+    );
+
+    return false;
+  },
+
+  /* =======================================================
+     Grouping and Classification
+  ======================================================= */
+
+  groupByDepartment(ideas = []) {
     return ideas.reduce((groups, idea) => {
-      const department = idea.department || "غير مصنف";
+      const department =
+        idea?.department || "غير مصنف";
 
       if (!groups[department]) {
         groups[department] = [];
@@ -41,79 +178,267 @@ AIW.Modules.ideas = {
   },
 
   badgeClass(value) {
-    if (value === "عالية") return "high";
-    if (value === "متوسطة") return "medium";
-    if (value === "منخفضة") return "low";
+    const normalizedValue = String(
+      value || ""
+    ).trim();
+
+    if (
+      normalizedValue === "عالية" ||
+      normalizedValue === "عالي"
+    ) {
+      return "high";
+    }
+
+    if (normalizedValue === "متوسطة") {
+      return "medium";
+    }
+
+    if (
+      normalizedValue === "منخفضة" ||
+      normalizedValue === "منخفض"
+    ) {
+      return "low";
+    }
 
     return "";
   },
 
-  getDepartmentCount(departmentName, ideas) {
-    return ideas.filter(idea => idea.department === departmentName).length;
+  isHighPriority(idea) {
+    const priority = String(
+      idea?.priority || ""
+    )
+      .trim()
+      .toLowerCase();
+
+    return (
+      priority === "عالية" ||
+      priority === "عالي" ||
+      priority === "high" ||
+      priority === "high priority" ||
+      priority === "critical"
+    );
   },
 
-  renderIdeaCard(idea) {
-    const isQuickWin =
-      idea.quickWin ||
-      (idea.ease === "سهلة" && idea.cost === "منخفضة");
+  isMediumPriority(idea) {
+    const priority = String(
+      idea?.priority || ""
+    )
+      .trim()
+      .toLowerCase();
 
-    const decisionScore = Number(idea.decisionScore || 0);
-    const decisionLevel = idea.decisionLevel || "قيد التقييم";
-    const riskLevel = idea.riskLevel || "متوسط";
+    return (
+      priority === "متوسطة" ||
+      priority === "متوسط" ||
+      priority === "medium"
+    );
+  },
+
+  isLowPriority(idea) {
+    const priority = String(
+      idea?.priority || ""
+    )
+      .trim()
+      .toLowerCase();
+
+    return (
+      priority === "منخفضة" ||
+      priority === "منخفض" ||
+      priority === "low"
+    );
+  },
+
+  isQuickWin(idea) {
+    if (idea?.quickWin === true) {
+      return true;
+    }
+
+    const ease = String(
+      idea?.ease || ""
+    )
+      .trim()
+      .toLowerCase();
+
+    const cost = String(
+      idea?.cost || ""
+    )
+      .trim()
+      .toLowerCase();
+
+    const easyValues = [
+      "سهلة",
+      "سهل",
+      "easy"
+    ];
+
+    const lowCostValues = [
+      "منخفضة",
+      "منخفض",
+      "low"
+    ];
+
+    return (
+      easyValues.includes(ease) &&
+      lowCostValues.includes(cost)
+    );
+  },
+
+  getDepartmentCount(
+    departmentName,
+    ideas = []
+  ) {
+    return ideas.filter(
+      (idea) =>
+        idea?.department === departmentName
+    ).length;
+  },
+
+  /* =======================================================
+     Idea Card
+  ======================================================= */
+
+  renderIdeaCard(idea) {
+    const isQuickWin = this.isQuickWin(idea);
+
+    const decisionScore =
+      this.normalizePercent(
+        idea?.decisionScore,
+        0
+      );
+
+    const decisionLevel =
+      idea?.decisionLevel || "قيد التقييم";
+
+    const riskLevel =
+      idea?.riskLevel || "متوسط";
+
+    const ideaId =
+      idea?.id ?? "—";
 
     return `
-      <article class="idea-card">
+      <article
+        class="idea-card"
+        data-idea-id="${this.escapeAttribute(ideaId)}"
+      >
         <div class="idea-card-head">
           <div>
-            <span class="idea-dept">${idea.department || "غير مصنف"}</span>
-            <h3>${idea.id}. ${idea.title}</h3>
+            <span class="idea-dept">
+              ${this.escapeHtml(
+                idea?.department || "غير مصنف"
+              )}
+            </span>
+
+            <h3>
+              ${this.escapeHtml(ideaId)}.
+              ${this.escapeHtml(
+                idea?.title || "فكرة غير مسماة"
+              )}
+            </h3>
           </div>
 
           <div class="idea-badges">
             ${
               isQuickWin
-                ? `<span class="idea-quickwin">Quick Win</span>`
+                ? `
+                  <span class="idea-quickwin">
+                    Quick Win
+                  </span>
+                `
                 : ""
             }
 
-            <span class="idea-priority ${this.badgeClass(idea.priority)}">
-              ${idea.priority || "قيد التقييم"}
+            <span
+              class="idea-priority ${this.badgeClass(
+                idea?.priority
+              )}"
+            >
+              ${this.escapeHtml(
+                idea?.priority || "قيد التقييم"
+              )}
             </span>
           </div>
         </div>
 
         <div class="idea-meta">
-          <span>⏱️ ${idea.duration || "غير محددة"}</span>
-          <span>💰 ${idea.cost || "غير محددة"}</span>
-          <span>⚙️ ${idea.ease || "غير محددة"}</span>
-          <span>📊 ${decisionScore}%</span>
-          <span>🛡️ ${riskLevel}</span>
+          <span>
+            ⏱️
+            ${this.escapeHtml(
+              idea?.duration || "غير محددة"
+            )}
+          </span>
+
+          <span>
+            💰
+            ${this.escapeHtml(
+              idea?.cost || "غير محددة"
+            )}
+          </span>
+
+          <span>
+            ⚙️
+            ${this.escapeHtml(
+              idea?.ease || "غير محددة"
+            )}
+          </span>
+
+          <span>
+            📊 ${decisionScore}%
+          </span>
+
+          <span>
+            🛡️
+            ${this.escapeHtml(riskLevel)}
+          </span>
         </div>
 
         <div class="idea-detail">
           <strong>التحدي</strong>
-          <p>${idea.challenge || "لا توجد تفاصيل متاحة."}</p>
+
+          <p>
+            ${this.escapeHtml(
+              idea?.challenge ||
+                "لا توجد تفاصيل متاحة."
+            )}
+          </p>
         </div>
 
         <div class="idea-detail">
           <strong>الحل المقترح</strong>
-          <p>${idea.solution || "لا توجد تفاصيل متاحة."}</p>
+
+          <p>
+            ${this.escapeHtml(
+              idea?.solution ||
+                "لا توجد تفاصيل متاحة."
+            )}
+          </p>
         </div>
 
         <div class="idea-detail">
           <strong>دور الذكاء الاصطناعي</strong>
-          <p>${idea.aiRole || "لا توجد تفاصيل متاحة."}</p>
+
+          <p>
+            ${this.escapeHtml(
+              idea?.aiRole ||
+                "لا توجد تفاصيل متاحة."
+            )}
+          </p>
         </div>
 
         <div class="idea-detail">
           <strong>الفوائد المتوقعة</strong>
-          <p>${idea.benefits || "لا توجد تفاصيل متاحة."}</p>
+
+          <p>
+            ${this.escapeHtml(
+              idea?.benefits ||
+                "لا توجد تفاصيل متاحة."
+            )}
+          </p>
         </div>
 
         <div class="idea-detail">
           <strong>قرار مبدئي</strong>
+
           <p>
-            ${decisionLevel}
+            ${this.escapeHtml(decisionLevel)}
             ·
             Decision Score ${decisionScore}%
           </p>
@@ -122,14 +447,32 @@ AIW.Modules.ideas = {
     `;
   },
 
-  renderDepartmentSection(department, ideas) {
+  /* =======================================================
+     Department Section
+  ======================================================= */
+
+  renderDepartmentSection(
+    department,
+    ideas = []
+  ) {
     return `
-      <section class="module-panel idea-department-section">
+      <section
+        class="module-panel idea-department-section"
+      >
         <div class="idea-section-head">
           <div>
-            <span class="module-kicker light">Solution Portfolio</span>
-            <h2>${department}</h2>
-            <p>${ideas.length} فرص قابلة للدراسة والتطوير</p>
+            <span class="module-kicker light">
+              Solution Portfolio
+            </span>
+
+            <h2>
+              ${this.escapeHtml(department)}
+            </h2>
+
+            <p>
+              ${ideas.length}
+              فرص قابلة للدراسة والتطوير
+            </p>
           </div>
 
           <span class="idea-section-count">
@@ -139,31 +482,52 @@ AIW.Modules.ideas = {
 
         <div class="idea-list">
           ${ideas
-            .map(idea => this.renderIdeaCard(idea))
+            .map((idea) =>
+              this.renderIdeaCard(idea)
+            )
             .join("")}
         </div>
       </section>
     `;
   },
 
-  renderPortfolioMap(departments, ideas) {
+  /* =======================================================
+     Portfolio Map
+  ======================================================= */
+
+  renderPortfolioMap(
+    departments = [],
+    ideas = []
+  ) {
     return `
       <div class="department-grid">
         ${departments
-          .map(department => {
-            const count = this.getDepartmentCount(
-              department.name,
-              ideas
-            );
+          .map((department) => {
+            const count =
+              this.getDepartmentCount(
+                department?.name,
+                ideas
+              );
+
+            const maturity =
+              this.normalizePercent(
+                department?.maturity,
+                0
+              );
 
             return `
               <div class="department-chip">
-                <strong>${department.name}</strong>
+                <strong>
+                  ${this.escapeHtml(
+                    department?.name ||
+                      "محفظة غير مسماة"
+                  )}
+                </strong>
 
                 <span>
                   ${count} فرص
                   ·
-                  جاهزية ${department.maturity || 0}%
+                  جاهزية ${maturity}%
                 </span>
               </div>
             `;
@@ -173,64 +537,94 @@ AIW.Modules.ideas = {
     `;
   },
 
+  /* =======================================================
+     Main Render
+  ======================================================= */
+
   render(container) {
     if (!container) return;
 
+    this._container = container;
+
     const data = this.getData();
     const ideas = this.getIdeas();
-    const departments = data.departments || [];
-    const groupedIdeas = this.groupByDepartment(ideas);
+
+    const departments = Array.isArray(
+      data.departments
+    )
+      ? data.departments
+      : [];
+
+    const groupedIdeas =
+      this.groupByDepartment(ideas);
 
     const highCount = ideas.filter(
-      idea => idea.priority === "عالية"
+      (idea) => this.isHighPriority(idea)
     ).length;
 
     const mediumCount = ideas.filter(
-      idea => idea.priority === "متوسطة"
+      (idea) => this.isMediumPriority(idea)
     ).length;
 
     const lowCount = ideas.filter(
-      idea => idea.priority === "منخفضة"
+      (idea) => this.isLowPriority(idea)
     ).length;
 
     const quickWins = ideas.filter(
-      idea =>
-        idea.quickWin ||
-        (idea.ease === "سهلة" && idea.cost === "منخفضة")
+      (idea) => this.isQuickWin(idea)
     ).length;
 
-    const targetIdeas = Number(
-      data.summary?.targetIdeas || 100
+    const targetIdeas = Math.max(
+      1,
+      this.toSafeNumber(
+        data.summary?.targetIdeas,
+        100
+      )
     );
 
-    const progress = targetIdeas
-      ? Math.min(
-          100,
-          Math.round((ideas.length / targetIdeas) * 100)
+    const progress = Math.min(
+      100,
+      Math.max(
+        0,
+        Math.round(
+          (ideas.length / targetIdeas) * 100
         )
-      : 0;
+      )
+    );
 
     const avgDecision = ideas.length
       ? Math.round(
           ideas.reduce(
             (total, idea) =>
-              total + Number(idea.decisionScore || 0),
+              total +
+              this.toSafeNumber(
+                idea?.decisionScore,
+                0
+              ),
             0
           ) / ideas.length
         )
       : 0;
 
-    const departmentOrder = departments.map(
-      department => department.name
-    );
+    const departmentOrder =
+      departments
+        .map(
+          (department) =>
+            department?.name
+        )
+        .filter(Boolean);
 
     const orderedDepartments = [
       ...departmentOrder.filter(
-        department => groupedIdeas[department]
+        (department) =>
+          groupedIdeas[department]
       ),
 
       ...Object.keys(groupedIdeas).filter(
-        department => !departmentOrder.includes(department)
+        (department) =>
+          !departmentOrder.includes(
+            department
+          )
       )
     ];
 
@@ -242,7 +636,9 @@ AIW.Modules.ideas = {
             Biometric AI Opportunity Center
           </span>
 
-          <h1>مركز فرص الذكاء الاصطناعي</h1>
+          <h1>
+            مركز فرص الذكاء الاصطناعي
+          </h1>
 
           <p>
             دليل تنفيذي للحلول الذكية المرتبطة بجودة التسجيلات البيومترية،
@@ -252,23 +648,33 @@ AIW.Modules.ideas = {
 
           <div class="aiw-chip-row">
             <span class="aiw-chip">
-              👁️ ${ideas.length}/${targetIdeas} فرصة
+              👁️
+              ${ideas.length}/${targetIdeas}
+              فرصة
             </span>
 
             <span class="aiw-chip">
-              🛂 ${departments.length} محافظ
+              🛂
+              ${departments.length}
+              محافظ
             </span>
 
             <span class="aiw-chip">
-              🚀 ${quickWins} Quick Wins
+              🚀
+              ${quickWins}
+              Quick Wins
             </span>
 
             <span class="aiw-chip">
-              📊 ${avgDecision}% Decision Score
+              📊
+              ${avgDecision}%
+              Decision Score
             </span>
 
             <span class="aiw-chip">
-              🎯 ${progress}% من الهدف
+              🎯
+              ${progress}%
+              من الهدف
             </span>
           </div>
         </div>
@@ -306,14 +712,20 @@ AIW.Modules.ideas = {
 
           <div class="module-card">
             <span>المحافظ التشغيلية</span>
-            <strong>${departments.length}</strong>
+            <strong>
+              ${departments.length}
+            </strong>
             <small>Solution Portfolios</small>
           </div>
         </div>
 
         <div class="module-panel">
-          <div class="module-section-title compact">
-            <h2>خريطة المحافظ التشغيلية</h2>
+          <div
+            class="module-section-title compact"
+          >
+            <h2>
+              خريطة المحافظ التشغيلية
+            </h2>
 
             <p>
               تصنيف الفرص حسب نطاق العمل: الأنظمة البيومترية،
@@ -322,7 +734,10 @@ AIW.Modules.ideas = {
             </p>
           </div>
 
-          ${this.renderPortfolioMap(departments, ideas)}
+          ${this.renderPortfolioMap(
+            departments,
+            ideas
+          )}
         </div>
 
         <div class="module-section-title">
@@ -337,10 +752,12 @@ AIW.Modules.ideas = {
         ${
           orderedDepartments.length
             ? orderedDepartments
-                .map(department =>
+                .map((department) =>
                   this.renderDepartmentSection(
                     department,
-                    groupedIdeas[department]
+                    groupedIdeas[
+                      department
+                    ] || []
                   )
                 )
                 .join("")
@@ -353,5 +770,115 @@ AIW.Modules.ideas = {
 
       </section>
     `;
+
+    this.bindAutomaticSync();
+  },
+
+  /* =======================================================
+     Automatic Synchronization
+  ======================================================= */
+
+  bindAutomaticSync() {
+    if (this._syncBound) return;
+
+    this._syncBound = true;
+
+    const refreshIdeas = () => {
+      if (
+        !this._container ||
+        !this._container.isConnected
+      ) {
+        return;
+      }
+
+      this.render(this._container);
+    };
+
+    const events = [
+      "aiw:dataChanged",
+      "aiw:dataUpdated",
+      "aiw:dataImported",
+      "aiw:dataRestored",
+      "aiw:dataReset",
+      "aiw:storeChanged",
+      "aiw:ideasChanged",
+      "aiw:ideasUpdated"
+    ];
+
+    events.forEach((eventName) => {
+      window.addEventListener(
+        eventName,
+        refreshIdeas
+      );
+    });
+
+    if (
+      window.AIW?.Store &&
+      typeof window.AIW.Store.subscribe ===
+        "function"
+    ) {
+      this._unsubscribeStore =
+        window.AIW.Store.subscribe(
+          refreshIdeas
+        );
+    }
+
+    window.addEventListener(
+      "storage",
+      (event) => {
+        const supportedKeys = [
+          "aiwDataV1",
+          "aiwData",
+          "AIW_DATA"
+        ];
+
+        if (
+          !event.key ||
+          supportedKeys.includes(event.key)
+        ) {
+          refreshIdeas();
+        }
+      }
+    );
+  },
+
+  /* =======================================================
+     Utilities
+  ======================================================= */
+
+  toSafeNumber(value, fallback = 0) {
+    const parsedValue = Number(value);
+
+    return Number.isFinite(parsedValue)
+      ? parsedValue
+      : fallback;
+  },
+
+  normalizePercent(value, fallback = 0) {
+    return Math.min(
+      100,
+      Math.max(
+        0,
+        Math.round(
+          this.toSafeNumber(
+            value,
+            fallback
+          )
+        )
+      )
+    );
+  },
+
+  escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  },
+
+  escapeAttribute(value) {
+    return this.escapeHtml(value);
   }
 };
