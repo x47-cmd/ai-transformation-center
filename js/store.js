@@ -102,13 +102,14 @@ AIW.DEFAULT_DATA = {
   risks: [],
 
   automation: {
-    workflows: [],
-    triggers: [],
-    approvals: [],
-    roadmap: [],
-    settings: {},
-    statistics: {}
-  },
+  workflows: [],
+  triggers: [],
+  approvals: [],
+  roadmap: [],
+  settings: {},
+  statistics: {},
+  executionHistory: []
+},
 
   notifications: [],
   recommendations: [],
@@ -464,44 +465,48 @@ AIW.Store = {
 
   normalizeAutomation(value) {
     if (Array.isArray(value)) {
-      return {
-        workflows: this.clone(value),
-        triggers: [],
-        approvals: [],
-        roadmap: [],
-        settings: {},
-        statistics: {}
-      };
-    }
+  return {
+    workflows: this.clone(value),
+    triggers: [],
+    approvals: [],
+    roadmap: [],
+    settings: {},
+    statistics: {},
+    executionHistory: []
+  };
+}
 
     const automation = this.isPlainObject(value)
       ? value
       : {};
 
-    return {
-      workflows: this.toArray(
-        automation.workflows
-      ),
-      triggers: this.toArray(
-        automation.triggers
-      ),
-      approvals: this.toArray(
-        automation.approvals
-      ),
-      roadmap: this.toArray(
-        automation.roadmap
-      ),
-      settings: this.isPlainObject(
-        automation.settings
-      )
-        ? automation.settings
-        : {},
-      statistics: this.isPlainObject(
-        automation.statistics
-      )
-        ? automation.statistics
-        : {}
-    };
+return {
+  workflows: this.toArray(
+    automation.workflows
+  ),
+  triggers: this.toArray(
+    automation.triggers
+  ),
+  approvals: this.toArray(
+    automation.approvals
+  ),
+  roadmap: this.toArray(
+    automation.roadmap
+  ),
+  settings: this.isPlainObject(
+    automation.settings
+  )
+    ? automation.settings
+    : {},
+  statistics: this.isPlainObject(
+    automation.statistics
+  )
+    ? automation.statistics
+    : {},
+  executionHistory: this.toArray(
+    automation.executionHistory
+  )
+};
   },
 
   ensureMetadata(data = this._state) {
