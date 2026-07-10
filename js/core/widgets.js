@@ -268,7 +268,7 @@ AIW.Widgets = {
       credit.className = "aiw-global-credit";
 
       credit.innerHTML = `
-        <span>Designed &amp; Developed by:</span>
+        <span dir="ltr">Designed &amp; Developed by</span>
         <strong>يوسف الحوسني</strong>
       `;
 
