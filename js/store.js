@@ -1958,17 +1958,15 @@ if (
       currentTime;
 
     const result =
-      this.commit(
-        fresh,
-        {
-          eventName:
-            "aiw:dataReset",
+  this.commit(
+    fresh,
+    {
+      eventName:
+        "aiw:dataReset",
 
-          backup:
-            options.backupBeforeReset !==
-            false
-        }
-      );
+      backup: false
+    }
+  );
 
     return result;
   },
