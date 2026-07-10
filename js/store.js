@@ -1924,6 +1924,14 @@ return {
      RESET
   ========================================================= */
 
+if (
+  options.backupBeforeReset !== false
+) {
+  this.backup(
+    this.getState()
+  );
+}
+
   reset(options = {}) {
     const fresh =
       this.clone(
