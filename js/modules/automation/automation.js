@@ -1,6 +1,7 @@
 /* =========================================================
-   AI Work - Automation Center V1.0 Ultimate
+   AI Work - Biometric Operations Automation Center V2.0
    Workflow + Triggers + Approvals + Monitoring
+   Enterprise Biometric Intelligence Platform
 ========================================================= */
 
 window.AIW = window.AIW || {};
@@ -13,76 +14,215 @@ AIW.Modules.automation = {
 
   workflows: [
     {
-      icon: "💡",
-      title: "تقييم فكرة ذكاء اصطناعي",
-      trigger: "عند إضافة فكرة جديدة",
-      steps: ["استقبال الفكرة", "تقييم الأولوية", "تقييم المخاطر", "تحديد المالك", "رفع القرار"],
-      owner: "فريق المبادرة",
+      icon: "🪪",
+      title: "معالجة حالة تسجيل بيومتري",
+      trigger: "عند إنشاء حالة تسجيل جديدة",
+      steps: [
+        "استقبال الحالة",
+        "فحص اكتمال البيانات",
+        "تقييم جودة العينة",
+        "تحديد سبب التعثر",
+        "إحالة الحالة للمعالجة"
+      ],
+      owner: "فريق العمليات البيومترية",
       status: "نشط",
-      automation: 72
+      automation: 82
     },
     {
-      icon: "📁",
-      title: "اعتماد مشروع جديد",
-      trigger: "عند تحويل فكرة إلى مشروع",
-      steps: ["دراسة الجدوى", "مراجعة الحوكمة", "اعتماد الميزانية", "تحديد KPI", "بدء التنفيذ"],
-      owner: "اللجنة التوجيهية",
+      icon: "🔍",
+      title: "مراجعة فشل المطابقة",
+      trigger: "عند انخفاض نتيجة المطابقة عن الحد المعتمد",
+      steps: [
+        "تسجيل حالة الفشل",
+        "تحليل درجة الثقة",
+        "مقارنة العينات",
+        "تحديد سبب الفشل",
+        "رفع التوصية للمراجع"
+      ],
+      owner: "فريق المطابقة والتحقق",
+      status: "نشط",
+      automation: 76
+    },
+    {
+      icon: "📉",
+      title: "معالجة انخفاض جودة العينة",
+      trigger: "عند تجاوز نسبة العينات منخفضة الجودة الحد التشغيلي",
+      steps: [
+        "قراءة مؤشر الجودة",
+        "تحديد الجهاز أو الموقع",
+        "تحليل نمط التكرار",
+        "إرسال تنبيه تشغيلي",
+        "متابعة الإجراء التصحيحي"
+      ],
+      owner: "فريق جودة البيانات البيومترية",
+      status: "نشط",
+      automation: 74
+    },
+    {
+      icon: "🛡️",
+      title: "مراجعة مخاطر البيانات البيومترية",
+      trigger: "قبل استخدام بيانات حساسة أو إطلاق تحسين جديد",
+      steps: [
+        "تصنيف البيانات",
+        "تقييم الخصوصية",
+        "مراجعة الصلاحيات",
+        "تقييم الأمن",
+        "اعتماد الاستخدام"
+      ],
+      owner: "حوكمة البيانات والخصوصية",
+      status: "قيد التفعيل",
+      automation: 66
+    },
+    {
+      icon: "🧠",
+      title: "اعتماد تحسين خوارزمية المطابقة",
+      trigger: "عند اقتراح تعديل الخوارزمية أو Threshold",
+      steps: [
+        "تسجيل طلب التغيير",
+        "تحليل الأثر",
+        "اختبار النتائج",
+        "مراجعة الحوكمة",
+        "اعتماد النشر"
+      ],
+      owner: "لجنة الأنظمة البيومترية",
       status: "قيد التفعيل",
       automation: 58
     },
     {
-      icon: "🛡️",
-      title: "مراجعة مخاطر الذكاء الاصطناعي",
-      trigger: "قبل إطلاق PoC",
-      steps: ["تصنيف البيانات", "تقييم الخصوصية", "تقييم الأمن", "مراجعة التحيز", "اعتماد Sandbox"],
-      owner: "حوكمة الذكاء الاصطناعي",
+      icon: "📡",
+      title: "مراقبة صحة الأنظمة البيومترية",
+      trigger: "عند تغير حالة النظام أو التكامل",
+      steps: [
+        "قراءة حالة الأنظمة",
+        "تحديد مصدر الخلل",
+        "تصنيف شدة التأثير",
+        "إشعار فريق الدعم",
+        "تحديث سجل الحالة"
+      ],
+      owner: "فريق المنصة والتكامل",
       status: "نشط",
-      automation: 64
+      automation: 86
+    },
+    {
+      icon: "🚨",
+      title: "تصعيد الحالات عالية الخطورة",
+      trigger: "عند تسجيل حالة بيومترية عالية الخطورة",
+      steps: [
+        "تحديد الحالة",
+        "تقييم الأثر",
+        "إشعار مالك الحالة",
+        "تصعيد للجنة المختصة",
+        "متابعة الإغلاق"
+      ],
+      owner: "مالك المخاطر البيومترية",
+      status: "نشط",
+      automation: 84
     },
     {
       icon: "📊",
-      title: "إصدار تقرير تنفيذي",
-      trigger: "نهاية كل ربع سنة",
-      steps: ["جمع المؤشرات", "تحليل الأداء", "توليد التوصيات", "مراجعة الإدارة", "إصدار التقرير"],
-      owner: "مكتب البرنامج",
+      title: "إصدار تقرير العمليات البيومترية",
+      trigger: "نهاية كل فترة تشغيلية",
+      steps: [
+        "جمع المؤشرات",
+        "تحليل حالات الفشل",
+        "تحليل جودة العينات",
+        "توليد التوصيات",
+        "إصدار التقرير التنفيذي"
+      ],
+      owner: "مكتب الذكاء البيومتري",
       status: "مخطط",
-      automation: 46
-    },
-    {
-      icon: "📈",
-      title: "تحديث مؤشرات الأداء",
-      trigger: "عند تحديث بيانات المشروع",
-      steps: ["قراءة البيانات", "حساب KPI", "تحديث Dashboard", "إرسال تنبيه", "حفظ السجل"],
-      owner: "KPI Owner",
-      status: "قيد التفعيل",
-      automation: 62
-    },
-    {
-      icon: "🔔",
-      title: "تنبيه المخاطر العالية",
-      trigger: "عند تسجيل خطر عالي",
-      steps: ["تحديد الخطر", "تقييم الأثر", "إشعار المالك", "تصعيد للجنة", "متابعة الإغلاق"],
-      owner: "Risk Owner",
-      status: "نشط",
-      automation: 78
+      automation: 48
     }
   ],
 
   triggers: [
-    ["DATA_CHANGED", "عند تغيير البيانات", "تحديث المؤشرات والتقارير تلقائياً"],
-    ["IDEA_CREATED", "عند إضافة فكرة", "تشغيل تقييم الفكرة"],
-    ["PROJECT_APPROVED", "عند اعتماد مشروع", "إنشاء KPI وخطة متابعة"],
-    ["RISK_HIGH", "عند وجود خطر عالي", "تصعيد تلقائي للمالك واللجنة"],
-    ["QUARTER_END", "نهاية الربع", "إصدار تقرير تنفيذي"],
-    ["MATURITY_UPDATED", "تحديث النضج", "تحديث لوحة النضج والتوصيات"]
+    [
+      "BIOMETRIC_CASE_CREATED",
+      "إنشاء حالة بيومترية",
+      "تشغيل Workflow فحص ومعالجة الحالة الجديدة"
+    ],
+    [
+      "MATCH_FAILURE_DETECTED",
+      "اكتشاف فشل مطابقة",
+      "تحليل درجة الثقة وإحالة الحالة للمراجعة"
+    ],
+    [
+      "QUALITY_THRESHOLD_BREACHED",
+      "انخفاض جودة العينة",
+      "تحديد مصدر المشكلة وإرسال تنبيه تشغيلي"
+    ],
+    [
+      "SYSTEM_HEALTH_CHANGED",
+      "تغير صحة النظام",
+      "تحديث مؤشرات صحة الأنظمة وفتح حالة دعم"
+    ],
+    [
+      "HIGH_RISK_CASE",
+      "حالة عالية الخطورة",
+      "تصعيد تلقائي لمالك الخطر واللجنة المختصة"
+    ],
+    [
+      "PRIVACY_REVIEW_REQUIRED",
+      "طلب مراجعة خصوصية",
+      "بدء مراجعة استخدام البيانات والصلاحيات"
+    ],
+    [
+      "ALGORITHM_CHANGE_REQUESTED",
+      "طلب تغيير خوارزمية",
+      "تشغيل مسار الاختبار والمراجعة والاعتماد"
+    ],
+    [
+      "BIOMETRIC_DATA_CHANGED",
+      "تحديث بيانات العمليات",
+      "تحديث المؤشرات والتقارير التنفيذية تلقائياً"
+    ]
   ],
 
   approvals: [
-    ["فكرة جديدة", "فريق المبادرة", "قيد المراجعة", "متوسط"],
-    ["مشروع Quick Win", "مدير البرنامج", "جاهز للاعتماد", "منخفض"],
-    ["مشروع استراتيجي", "اللجنة التوجيهية", "يتطلب قرار", "عالٍ"],
-    ["استخدام بيانات حساسة", "فريق الخصوصية", "يتطلب مراجعة", "عالٍ"],
-    ["إطلاق PoC", "حوكمة الذكاء الاصطناعي", "قيد التقييم", "متوسط"]
+    [
+      "حالة تسجيل بيومتري استثنائية",
+      "مشرف العمليات البيومترية",
+      "قيد المراجعة",
+      "متوسط"
+    ],
+    [
+      "نتيجة مطابقة منخفضة الثقة",
+      "فريق المطابقة والتحقق",
+      "تتطلب تحققاً بشرياً",
+      "متوسط"
+    ],
+    [
+      "تعديل Threshold المطابقة",
+      "لجنة الأنظمة البيومترية",
+      "يتطلب قراراً",
+      "عالٍ"
+    ],
+    [
+      "الوصول إلى بيانات بيومترية حساسة",
+      "فريق الخصوصية",
+      "يتطلب مراجعة",
+      "عالٍ"
+    ],
+    [
+      "إطلاق تحسين في البيئة التشغيلية",
+      "مدير المنصة",
+      "جاهز للاعتماد",
+      "متوسط"
+    ],
+    [
+      "إغلاق حالة عالية الخطورة",
+      "مالك المخاطر البيومترية",
+      "بانتظار التحقق",
+      "عالٍ"
+    ]
+  ],
+
+  fallbackActions: [
+    "مراجعة الحالات البيومترية ذات درجات الثقة المنخفضة.",
+    "تحليل المواقع التي تسجل أعلى نسبة عينات منخفضة الجودة.",
+    "تفعيل التنبيه التلقائي عند تراجع صحة أي نظام بيومتري.",
+    "إغلاق الحالات عالية الخطورة التي تجاوزت مدة المعالجة.",
+    "مراجعة صلاحيات الوصول إلى البيانات البيومترية الحساسة."
   ],
 
   render(container) {
@@ -92,191 +232,529 @@ AIW.Modules.automation = {
     const AUTO = window.AIW?.Automation;
     const R = window.AIW?.Recommendation;
 
-    const stats = AUTO?.statistics ? AUTO.statistics() : {
+    const localStats = {
       total: this.workflows.length,
-      active: this.workflows.filter(w => w.status === "نشط").length,
+      active: this.workflows.filter(
+        workflow => workflow.status === "نشط"
+      ).length,
       completed: 0,
-      waiting: this.workflows.filter(w => w.status !== "نشط").length
+      waiting: this.workflows.filter(
+        workflow => workflow.status !== "نشط"
+      ).length
     };
 
-    const avgAutomation = this.average(this.workflows.map(w => w.automation));
-    const activeWorkflows = this.workflows.filter(w => w.status === "نشط").length;
-    const highApprovals = this.approvals.filter(a => String(a[3]).includes("عال")).length;
-    const nextActions = R?.nextActions ? R.nextActions() : [];
+    let stats = localStats;
+
+    try {
+      if (AUTO?.statistics) {
+        const engineStats = AUTO.statistics();
+
+        stats = {
+          total: Number(engineStats?.total ?? localStats.total),
+          active: Number(engineStats?.active ?? localStats.active),
+          completed: Number(
+            engineStats?.completed ?? localStats.completed
+          ),
+          waiting: Number(engineStats?.waiting ?? localStats.waiting)
+        };
+      }
+    } catch (error) {
+      console.warn(
+        "AIW Automation statistics fallback activated:",
+        error
+      );
+    }
+
+    const avgAutomation = this.average(
+      this.workflows.map(workflow => workflow.automation)
+    );
+
+    const activeWorkflows = this.workflows.filter(
+      workflow => workflow.status === "نشط"
+    ).length;
+
+    const highApprovals = this.approvals.filter(approval =>
+      String(approval[3]).includes("عال")
+    ).length;
+
+    let nextActions = [];
+
+    try {
+      if (R?.nextActions) {
+        const engineActions = R.nextActions();
+
+        if (Array.isArray(engineActions)) {
+          nextActions = engineActions.filter(Boolean);
+        }
+      }
+    } catch (error) {
+      console.warn(
+        "AIW Recommendation Engine fallback activated:",
+        error
+      );
+    }
+
+    if (!nextActions.length) {
+      nextActions = [...this.fallbackActions];
+    }
 
     container.innerHTML = `
       <section class="module-page">
 
-        ${W ? W.hero({
-          kicker: "Automation · Workflow Engine",
-          title: "مركز الأتمتة وسير العمل",
-          description: "إدارة سير العمل المؤسسي لمبادرات الذكاء الاصطناعي من استقبال الفكرة إلى الاعتماد، الحوكمة، المؤشرات، التقارير، والتنبيهات.",
-          chips: [
-            "⚙️ Workflow Engine",
-            `🔁 ${this.workflows.length} Workflows`,
-            `✅ ${activeWorkflows} نشطة`,
-            `📊 ${avgAutomation}% أتمتة`
-          ]
-        }) : this.fallbackHero()}
+        ${
+          W
+            ? W.hero({
+                kicker: "Biometric Automation · Workflow Engine",
+                title: "مركز أتمتة العمليات البيومترية",
+                description:
+                  "إدارة سير العمل المؤسسي للحالات والأنظمة البيومترية من التسجيل والمطابقة إلى الحوكمة، المراجعة البشرية، التصعيد، ومراقبة الأداء التشغيلي.",
+                chips: [
+                  "⚙️ Workflow Engine",
+                  `🔁 ${this.workflows.length} Workflows`,
+                  `✅ ${activeWorkflows} نشطة`,
+                  `📊 ${avgAutomation}% أتمتة`
+                ]
+              })
+            : this.fallbackHero()
+        }
 
         <div class="module-grid">
-          ${this.kpi("إجمالي Workflows", this.workflows.length, "Automation Flows")}
-          ${this.kpi("نشطة", activeWorkflows, "Active")}
-          ${this.kpi("Triggers", this.triggers.length, "Event Rules")}
-          ${this.kpi("طلبات اعتماد", this.approvals.length, "Approvals")}
-          ${this.kpi("اعتمادات عالية الخطورة", highApprovals, "High Risk")}
-          ${this.kpi("متوسط الأتمتة", `${avgAutomation}%`, "Automation Level")}
+          ${this.kpi(
+            "إجمالي Workflows",
+            this.workflows.length,
+            "Biometric Flows"
+          )}
+
+          ${this.kpi(
+            "المسارات النشطة",
+            activeWorkflows,
+            "Active Workflows"
+          )}
+
+          ${this.kpi(
+            "Event Triggers",
+            this.triggers.length,
+            "Operational Events"
+          )}
+
+          ${this.kpi(
+            "طلبات الاعتماد",
+            this.approvals.length,
+            "Approval Queue"
+          )}
+
+          ${this.kpi(
+            "اعتمادات عالية الخطورة",
+            highApprovals,
+            "High Risk"
+          )}
+
+          ${this.kpi(
+            "متوسط الأتمتة",
+            `${avgAutomation}%`,
+            "Automation Level"
+          )}
         </div>
 
         <div class="module-wide-grid">
+
           <div class="module-panel">
-            ${this.sectionTitle("الخلاصة التشغيلية", "كيف تساعد الأتمتة في تحويل الاستراتيجية إلى تشغيل يومي.")}
+            ${this.sectionTitle(
+              "الخلاصة التشغيلية",
+              "كيف تربط الأتمتة الحالات البيومترية بالأنظمة والحوكمة والقرارات التشغيلية."
+            )}
+
             <div class="automation-summary-card">
-              <strong>الأتمتة تربط الأفكار بالحوكمة والمشاريع والمؤشرات</strong>
+              <strong>
+                الأتمتة تربط التسجيل والمطابقة والجودة والمخاطر ضمن مسار تشغيلي موحد
+              </strong>
+
               <p>
-                كل فكرة أو مشروع أو خطر أو تقرير يجب أن يملك Workflow واضح:
-                من يراجع؟ من يعتمد؟ متى يتم التصعيد؟ وما المؤشر الذي يقيس الأثر؟
+                كل حالة بيومترية يجب أن تمر عبر Workflow واضح يحدد
+                المسؤول عن المراجعة، مستوى الخطورة، الإجراء المطلوب،
+                وقت التصعيد، وحالة الإغلاق، مع الحفاظ على المراجعة
+                البشرية للقرارات الحساسة.
               </p>
 
               <div class="automation-summary-strip">
-                <div><span>Total</span><b>${stats.total}</b></div>
-                <div><span>Active</span><b>${stats.active}</b></div>
-                <div><span>Waiting</span><b>${stats.waiting}</b></div>
-                <div><span>Level</span><b>${avgAutomation}%</b></div>
+                <div>
+                  <span>Total</span>
+                  <b>${stats.total}</b>
+                </div>
+
+                <div>
+                  <span>Active</span>
+                  <b>${stats.active}</b>
+                </div>
+
+                <div>
+                  <span>Waiting</span>
+                  <b>${stats.waiting}</b>
+                </div>
+
+                <div>
+                  <span>Level</span>
+                  <b>${avgAutomation}%</b>
+                </div>
               </div>
             </div>
           </div>
 
           <div class="module-panel">
-            ${this.sectionTitle("Automation Operating Model", "نموذج التشغيل الآلي في المنصة.")}
+            ${this.sectionTitle(
+              "Biometric Automation Model",
+              "نموذج تشغيل الأتمتة داخل منصة الذكاء البيومتري."
+            )}
+
             <div class="automation-model">
-              <div><b>1</b><span>Event Trigger</span></div>
-              <div><b>2</b><span>Business Rule</span></div>
-              <div><b>3</b><span>Approval / Action</span></div>
-              <div><b>4</b><span>Notification</span></div>
-              <div><b>5</b><span>Report Update</span></div>
+              <div>
+                <b>1</b>
+                <span>Biometric Event</span>
+              </div>
+
+              <div>
+                <b>2</b>
+                <span>Quality & Risk Rule</span>
+              </div>
+
+              <div>
+                <b>3</b>
+                <span>Human Review</span>
+              </div>
+
+              <div>
+                <b>4</b>
+                <span>Action & Escalation</span>
+              </div>
+
+              <div>
+                <b>5</b>
+                <span>Monitoring Update</span>
+              </div>
             </div>
           </div>
+
         </div>
 
         <div class="module-panel">
-          ${this.sectionTitle("Workflow Portfolio", "سير العمل الرئيسي داخل منصة التحول المؤسسي.")}
+          ${this.sectionTitle(
+            "Biometric Workflow Portfolio",
+            "مسارات العمل الرئيسية لإدارة العمليات والحالات البيومترية."
+          )}
+
           <div class="automation-workflow-grid">
-            ${this.workflows.map(w => this.workflowCard(w)).join("")}
+            ${this.workflows
+              .map(workflow => this.workflowCard(workflow))
+              .join("")}
           </div>
         </div>
 
         <div class="module-wide-grid">
+
           <div class="module-panel">
-            ${this.sectionTitle("Event Triggers", "الأحداث التي تشغل الأتمتة داخل النظام.")}
+            ${this.sectionTitle(
+              "Biometric Event Triggers",
+              "الأحداث التشغيلية التي تشغل الأتمتة داخل المنصة."
+            )}
+
             <div class="automation-trigger-list">
-              ${this.triggers.map((t, i) => `
-                <div>
-                  <b>${String(i + 1).padStart(2, "0")}</b>
-                  <strong>${t[0]}</strong>
-                  <span>${t[1]}</span>
-                  <p>${t[2]}</p>
-                </div>
-              `).join("")}
+              ${this.triggers
+                .map(
+                  (trigger, index) => `
+                    <div>
+                      <b>${String(index + 1).padStart(2, "0")}</b>
+
+                      <strong>${trigger[0]}</strong>
+
+                      <span>${trigger[1]}</span>
+
+                      <p>${trigger[2]}</p>
+                    </div>
+                  `
+                )
+                .join("")}
             </div>
           </div>
 
           <div class="module-panel">
-            ${this.sectionTitle("Approval Queue", "طلبات الاعتماد التي تحتاج متابعة تنفيذية.")}
+            ${this.sectionTitle(
+              "Biometric Approval Queue",
+              "الطلبات التي تحتاج مراجعة بشرية أو اعتماداً تنفيذياً."
+            )}
+
             <div class="automation-approval-list">
-              ${this.approvals.map((a, i) => `
-                <div>
-                  <b>${String(i + 1).padStart(2, "0")}</b>
-                  <div>
-                    <strong>${a[0]}</strong>
-                    <span>${a[1]}</span>
-                    <small>${a[2]}</small>
-                  </div>
-                  <em class="${this.riskClass(a[3])}">${a[3]}</em>
-                </div>
-              `).join("")}
+              ${this.approvals
+                .map(
+                  (approval, index) => `
+                    <div>
+                      <b>${String(index + 1).padStart(2, "0")}</b>
+
+                      <div>
+                        <strong>${approval[0]}</strong>
+                        <span>${approval[1]}</span>
+                        <small>${approval[2]}</small>
+                      </div>
+
+                      <em class="${this.riskClass(approval[3])}">
+                        ${approval[3]}
+                      </em>
+                    </div>
+                  `
+                )
+                .join("")}
             </div>
           </div>
+
         </div>
 
         <div class="module-panel">
-          ${this.sectionTitle("Automation Roadmap", "خطة تطوير الأتمتة من Workflow بسيط إلى تشغيل ذكي.")}
+          ${this.sectionTitle(
+            "Biometric Automation Roadmap",
+            "تطوير التشغيل البيومتري من الإجراءات اليدوية إلى الأتمتة الذكية بإشراف بشري."
+          )}
+
           <div class="automation-roadmap">
-            <div><b>1</b><strong>Manual Workflow</strong><span>تحديد المسؤوليات والخطوات.</span></div>
-            <div><b>2</b><strong>Semi-Automated</strong><span>تنبيهات وتحديثات تلقائية.</span></div>
-            <div><b>3</b><strong>Rule-Based</strong><span>قواعد عمل وتشغيل تلقائي حسب الحالة.</span></div>
-            <div><b>4</b><strong>AI Assisted</strong><span>توصيات ذكية للقرارات والتصعيد.</span></div>
-            <div><b>5</b><strong>Autonomous Ops</strong><span>تشغيل مؤسسي متقدم مع إشراف بشري.</span></div>
+            <div>
+              <b>1</b>
+              <strong>Manual Review</strong>
+              <span>
+                توحيد خطوات مراجعة الحالات وتحديد المسؤوليات.
+              </span>
+            </div>
+
+            <div>
+              <b>2</b>
+              <strong>Assisted Workflow</strong>
+              <span>
+                تنبيهات وتوجيه تلقائي للحالات حسب النوع.
+              </span>
+            </div>
+
+            <div>
+              <b>3</b>
+              <strong>Rule-Based Operations</strong>
+              <span>
+                تشغيل الإجراءات حسب الجودة والمخاطر ودرجة الثقة.
+              </span>
+            </div>
+
+            <div>
+              <b>4</b>
+              <strong>AI Assisted Review</strong>
+              <span>
+                تحليل الحالات وتقديم توصيات للمراجع البشري.
+              </span>
+            </div>
+
+            <div>
+              <b>5</b>
+              <strong>Human-Governed Automation</strong>
+              <span>
+                تشغيل ذكي متقدم مع رقابة واعتماد بشري دائم.
+              </span>
+            </div>
           </div>
         </div>
 
         <div class="module-wide-grid">
+
           <div class="module-panel">
-            ${this.sectionTitle("Next Best Actions", "توصيات تشغيلية من Recommendation Engine.")}
+            ${this.sectionTitle(
+              "Next Best Actions",
+              "أهم الإجراءات التشغيلية المقترحة لتحسين أداء الأنظمة البيومترية."
+            )}
+
             <div class="executive-list">
-              ${nextActions.map((item, i) => `
-                <div class="executive-item">
-                  <strong>${String(i + 1).padStart(2, "0")}</strong>
-                  <span>${item}</span>
-                </div>
-              `).join("")}
+              ${nextActions
+                .slice(0, 6)
+                .map(
+                  (item, index) => `
+                    <div class="executive-item">
+                      <strong>
+                        ${String(index + 1).padStart(2, "0")}
+                      </strong>
+
+                      <span>${this.actionText(item)}</span>
+                    </div>
+                  `
+                )
+                .join("")}
             </div>
           </div>
 
           <div class="module-panel">
-            ${this.sectionTitle("Automation Engine Status", "حالة المحرك التقني للأتمتة.")}
+            ${this.sectionTitle(
+              "Biometric Automation Engine Status",
+              "الحالة التقنية لمحرك أتمتة العمليات البيومترية."
+            )}
+
             <div class="automation-engine-status">
-              <strong>AIW.Automation Engine</strong>
-              <p>المحرك مفعل ويستمع لأحداث البيانات والتنقل والتحديثات المستقبلية.</p>
-              <div class="aiw-progress"><div style="width:${avgAutomation}%"></div></div>
-              <small>Current automation capability: ${avgAutomation}%</small>
+              <strong>AIW Biometric Automation Engine</strong>
+
+              <p>
+                المحرك مفعّل لمراقبة أحداث التسجيل والمطابقة والجودة
+                وصحة الأنظمة والمخاطر، مع دعم التنبيهات والتصعيد
+                والمراجعة البشرية.
+              </p>
+
+              <div class="aiw-progress">
+                <div style="width:${this.clamp(avgAutomation, 0, 100)}%">
+                </div>
+              </div>
+
+              <small>
+                Current biometric automation capability:
+                ${avgAutomation}%
+              </small>
             </div>
           </div>
+
         </div>
 
       </section>
     `;
   },
 
-  workflowCard(w) {
+  workflowCard(workflow) {
+    const automationLevel = this.clamp(
+      Number(workflow.automation || 0),
+      0,
+      100
+    );
+
     return `
       <article class="automation-workflow-card">
+
         <div class="automation-workflow-head">
-          <div>${w.icon}</div>
-          <span class="aiw-status ${w.status === "نشط" ? "green" : "orange"}">${w.status}</span>
+          <div>${workflow.icon}</div>
+
+          <span class="aiw-status ${this.statusClass(workflow.status)}">
+            ${workflow.status}
+          </span>
         </div>
 
-        <h3>${w.title}</h3>
-        <p>${w.trigger}</p>
+        <h3>${workflow.title}</h3>
+
+        <p>${workflow.trigger}</p>
 
         <div class="automation-steps">
-          ${w.steps.map((s, i) => `<span>${i + 1}. ${s}</span>`).join("")}
+          ${workflow.steps
+            .map(
+              (step, index) => `
+                <span>${index + 1}. ${step}</span>
+              `
+            )
+            .join("")}
         </div>
 
         <div class="automation-meta">
-          <span>المالك: ${w.owner}</span>
-          <span>${w.automation}% أتمتة</span>
+          <span>المالك: ${workflow.owner}</span>
+          <span>${automationLevel}% أتمتة</span>
         </div>
 
-        <div class="aiw-progress"><div style="width:${w.automation}%"></div></div>
+        <div class="aiw-progress">
+          <div style="width:${automationLevel}%"></div>
+        </div>
+
       </article>
     `;
   },
 
   average(values) {
-    if (!values.length) return 0;
-    return Math.round(values.reduce((a, b) => a + Number(b || 0), 0) / values.length);
+    if (!Array.isArray(values) || !values.length) return 0;
+
+    const validValues = values
+      .map(value => Number(value))
+      .filter(value => Number.isFinite(value));
+
+    if (!validValues.length) return 0;
+
+    const total = validValues.reduce(
+      (sum, value) => sum + value,
+      0
+    );
+
+    return Math.round(total / validValues.length);
+  },
+
+  clamp(value, min, max) {
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue)) return min;
+
+    return Math.min(max, Math.max(min, numericValue));
+  },
+
+  statusClass(status) {
+    const normalizedStatus = String(status || "").trim();
+
+    if (normalizedStatus === "نشط") {
+      return "green";
+    }
+
+    if (
+      normalizedStatus === "قيد التفعيل" ||
+      normalizedStatus === "قيد المراجعة"
+    ) {
+      return "orange";
+    }
+
+    if (
+      normalizedStatus === "مخطط" ||
+      normalizedStatus === "مسودة"
+    ) {
+      return "blue";
+    }
+
+    if (
+      normalizedStatus === "متوقف" ||
+      normalizedStatus === "متعثر"
+    ) {
+      return "red";
+    }
+
+    return "blue";
   },
 
   riskClass(level) {
-    if (String(level).includes("عال")) return "red";
-    if (String(level).includes("متوسط")) return "orange";
+    const normalizedLevel = String(level || "").trim();
+
+    if (normalizedLevel.includes("عال")) {
+      return "red";
+    }
+
+    if (normalizedLevel.includes("متوسط")) {
+      return "orange";
+    }
+
     return "green";
+  },
+
+  actionText(item) {
+    if (typeof item === "string") {
+      return item;
+    }
+
+    if (item && typeof item === "object") {
+      return (
+        item.title ||
+        item.action ||
+        item.text ||
+        item.recommendation ||
+        "مراجعة الإجراء التشغيلي المقترح."
+      );
+    }
+
+    return "مراجعة الإجراء التشغيلي المقترح.";
   },
 
   kpi(label, value, note) {
     if (window.AIW?.Widgets?.kpi) {
-      return AIW.Widgets.kpi({ label, value, note });
+      return AIW.Widgets.kpi({
+        label,
+        value,
+        note
+      });
     }
 
     return `
@@ -288,15 +766,18 @@ AIW.Modules.automation = {
     `;
   },
 
-  sectionTitle(title, desc) {
+  sectionTitle(title, description) {
     if (window.AIW?.Widgets?.sectionTitle) {
-      return AIW.Widgets.sectionTitle(title, desc);
+      return AIW.Widgets.sectionTitle(
+        title,
+        description
+      );
     }
 
     return `
       <div class="module-section-title compact">
         <h2>${title}</h2>
-        <p>${desc}</p>
+        <p>${description}</p>
       </div>
     `;
   },
@@ -304,9 +785,16 @@ AIW.Modules.automation = {
   fallbackHero() {
     return `
       <div class="module-hero">
-        <span class="module-kicker">Automation · Workflow Engine</span>
-        <h1>مركز الأتمتة وسير العمل</h1>
-        <p>إدارة سير العمل المؤسسي لمبادرات الذكاء الاصطناعي.</p>
+        <span class="module-kicker">
+          Biometric Automation · Workflow Engine
+        </span>
+
+        <h1>مركز أتمتة العمليات البيومترية</h1>
+
+        <p>
+          إدارة سير العمل للحالات والأنظمة البيومترية من التسجيل
+          والمطابقة إلى المراجعة والتصعيد والمراقبة التشغيلية.
+        </p>
       </div>
     `;
   }
