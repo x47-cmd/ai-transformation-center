@@ -505,30 +505,37 @@ body {
   }
 }
 
-/* =====================================================
-   Page Credit
-===================================================== */
+/* =========================================================
+   Global Page Credit
+========================================================= */
 
-.page-credit{
+.aiw-global-credit{
+  width:100%;
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  margin:10px 0 18px;
+  gap:3px;
+
+  margin-top:36px;
+  padding:20px 16px calc(118px + env(safe-area-inset-bottom));
+
   text-align:center;
   user-select:none;
+  pointer-events:none;
 }
 
-.page-credit span{
-  font-size:11px;
+.aiw-global-credit span{
+  font-size:10px;
+  line-height:1.4;
   font-weight:500;
+  letter-spacing:.35px;
   color:#94a3b8;
-  letter-spacing:.4px;
 }
 
-.page-credit strong{
-  margin-top:2px;
-  font-size:17px;
+.aiw-global-credit strong{
+  font-size:14px;
+  line-height:1.4;
   font-weight:700;
-  color:#1e293b;
+  color:#64748b;
 }
