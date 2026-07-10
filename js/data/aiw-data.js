@@ -1,26 +1,76 @@
+
 /* =========================================================
-   AI Work - Enterprise Data Layer V2.1
+   AI Work - Enterprise Data Layer V2.2
    Scope: Enterprise Biometric Intelligence Platform
-   Update: Smart Permission Provisioning + Error Case Intelligence
+
+   Updates:
+   - Central Single Source of Truth
+   - Persistent Local Storage
+   - Automatic Summary Calculations
+   - Cross-Page Live Synchronization
+   - Data Backup and Recovery
+   - Compatible with existing AIW.Data modules
 ========================================================= */
 
 window.AIW = window.AIW || {};
 
-AIW.Data = {
+/* =========================================================
+   Storage Configuration
+========================================================= */
+
+AIW.StorageKeys = {
+  primary: "aiwDataV1",
+  backup: "aiwDataBackupV1",
+  settings: "aiwSettingsV1"
+};
+
+/* =========================================================
+   Default Enterprise Data
+========================================================= */
+
+AIW.DefaultData = {
   summary: {
     title: "Enterprise Biometric Intelligence Platform",
     subtitle: "منصة الذكاء الاصطناعي للأنظمة البيومترية والبوابات الذكية",
     period: "2026–2030",
+
     ideasCount: 32,
+    targetIdeas: 100,
+
     departmentsCount: 5,
     flagshipProjectsCount: 15,
     roadmapPhases: 6,
-    targetIdeas: 100,
+
     maturityScore: 34,
+    aiReadiness: 34,
+
     portfolioHealth: 68,
+    systemHealth: 68,
+
+    operationsHealth: 92,
+    operationalHealth: 92,
+
+    governanceControlsCount: 7,
+
     expectedROI: 42000000,
-    vision: "تطوير منظومة ذكية لتحسين جودة التسجيلات البيومترية، مراقبة استخدام الصلاحيات، رفع كفاءة البوابات الذكية، وتعزيز الأمن الرقمي في بيئة المطارات والمنافذ.",
-    mission: "تحويل التحديات التشغيلية والأمنية في أنظمة بصمة العين والبوابات الذكية إلى مشاريع ذكاء اصطناعي قابلة للتنفيذ والقياس والحوكمة."
+
+    operationsTrend: [
+      82,
+      76,
+      88,
+      70,
+      92,
+      84,
+      96,
+      90,
+      94
+    ],
+
+    vision:
+      "تطوير منظومة ذكية لتحسين جودة التسجيلات البيومترية، مراقبة استخدام الصلاحيات، رفع كفاءة البوابات الذكية، وتعزيز الأمن الرقمي في بيئة المطارات والمنافذ.",
+
+    mission:
+      "تحويل التحديات التشغيلية والأمنية في أنظمة بصمة العين والبوابات الذكية إلى مشاريع ذكاء اصطناعي قابلة للتنفيذ والقياس والحوكمة."
   },
 
   flagshipProjects: [
@@ -42,11 +92,36 @@ AIW.Data = {
   ],
 
   departments: [
-    { id: "biometric", name: "الأنظمة البيومترية", count: 8, maturity: 62 },
-    { id: "smartgates", name: "البوابات الذكية", count: 6, maturity: 58 },
-    { id: "users", name: "المستخدمون والصلاحيات", count: 8, maturity: 55 },
-    { id: "security", name: "الأمن الرقمي", count: 5, maturity: 70 },
-    { id: "analytics", name: "التحليلات والتقارير التنفيذية", count: 5, maturity: 52 }
+    {
+      id: "biometric",
+      name: "الأنظمة البيومترية",
+      count: 8,
+      maturity: 62
+    },
+    {
+      id: "smartgates",
+      name: "البوابات الذكية",
+      count: 6,
+      maturity: 58
+    },
+    {
+      id: "users",
+      name: "المستخدمون والصلاحيات",
+      count: 8,
+      maturity: 55
+    },
+    {
+      id: "security",
+      name: "الأمن الرقمي",
+      count: 5,
+      maturity: 70
+    },
+    {
+      id: "analytics",
+      name: "التحليلات والتقارير التنفيذية",
+      count: 5,
+      maturity: 52
+    }
   ],
 
   roadmap: [
@@ -54,37 +129,43 @@ AIW.Data = {
       phase: "المرحلة الأولى — حصر البيانات",
       year: "2026 Q1–Q2",
       progress: 20,
-      activities: "حصر مصادر بيانات التسجيلات، سجلات الدخول، الصلاحيات، الأجهزة، وأخطاء الأنظمة البيومترية"
+      activities:
+        "حصر مصادر بيانات التسجيلات، سجلات الدخول، الصلاحيات، الأجهزة، وأخطاء الأنظمة البيومترية"
     },
     {
       phase: "المرحلة الثانية — بناء لوحات التحليل",
       year: "2026 Q3–Q4",
       progress: 35,
-      activities: "إنشاء لوحات Power BI لمراقبة التسجيلات، الأخطاء، المستخدمين، والصلاحيات"
+      activities:
+        "إنشاء لوحات Power BI لمراقبة التسجيلات، الأخطاء، المستخدمين، والصلاحيات"
     },
     {
       phase: "المرحلة الثالثة — نماذج الذكاء الاصطناعي",
       year: "2027",
       progress: 50,
-      activities: "تطبيق نماذج كشف الشذوذ، جودة البيانات، وتحليل سلوك المستخدمين"
+      activities:
+        "تطبيق نماذج كشف الشذوذ، جودة البيانات، وتحليل سلوك المستخدمين"
     },
     {
       phase: "المرحلة الرابعة — الأتمتة والتنبيهات",
       year: "2028",
       progress: 65,
-      activities: "تفعيل التنبيهات الذكية، إنشاء البلاغات تلقائياً، وربطها بإجراءات المراجعة"
+      activities:
+        "تفعيل التنبيهات الذكية، إنشاء البلاغات تلقائياً، وربطها بإجراءات المراجعة"
     },
     {
       phase: "المرحلة الخامسة — المنصة التنفيذية",
       year: "2029",
       progress: 82,
-      activities: "تطوير لوحة تنفيذية موحدة لقياس الأداء والمخاطر والتوصيات"
+      activities:
+        "تطوير لوحة تنفيذية موحدة لقياس الأداء والمخاطر والتوصيات"
     },
     {
       phase: "المرحلة السادسة — النضج والاستدامة",
       year: "2030",
       progress: 100,
-      activities: "تحسين مستمر، حوكمة النماذج، قياس العائد، وتوسيع الاستخدام حسب الحاجة"
+      activities:
+        "تحسين مستمر، حوكمة النماذج، قياس العائد، وتوسيع الاستخدام حسب الحاجة"
     }
   ],
 
@@ -92,17 +173,20 @@ AIW.Data = {
     {
       title: "مشاريع سريعة",
       type: "Quick Wins",
-      examples: "لوحة أخطاء التسجيل، تحليل مدة الجلسات، مراقبة المستخدمين الأكثر نشاطاً، تقرير جودة البيانات"
+      examples:
+        "لوحة أخطاء التسجيل، تحليل مدة الجلسات، مراقبة المستخدمين الأكثر نشاطاً، تقرير جودة البيانات"
     },
     {
       title: "مشاريع متوسطة المدى",
       type: "Medium Term",
-      examples: "الاستمارة الذكية لصرف الصلاحيات، مساعد تحليل الإدراجات الخاطئة، كشف السجلات المتعارضة، تحليل سلوك المستخدمين، ومراقبة الصلاحيات"
+      examples:
+        "الاستمارة الذكية لصرف الصلاحيات، مساعد تحليل الإدراجات الخاطئة، كشف السجلات المتعارضة، تحليل سلوك المستخدمين، ومراقبة الصلاحيات"
     },
     {
       title: "مشاريع استراتيجية",
       type: "Strategic",
-      examples: "محرك سلامة البيانات البيومترية، كشف إساءة استخدام الحسابات، لوحة القيادة التنفيذية، والصيانة التنبؤية للبوابات"
+      examples:
+        "محرك سلامة البيانات البيومترية، كشف إساءة استخدام الحسابات، لوحة القيادة التنفيذية، والصيانة التنبؤية للبوابات"
     }
   ],
 
@@ -506,8 +590,15 @@ AIW.Data = {
     challenge: item[6],
     solution: item[7],
     aiRole: item[8],
-    benefits: item[9]
+    benefits: item[9],
+    status: "proposed",
+    createdAt: null,
+    updatedAt: null
   })),
+
+  projects: [],
+
+  alerts: [],
 
   kpis: [
     "نسبة جودة التسجيلات البيومترية",
@@ -547,32 +638,38 @@ AIW.Data = {
     {
       title: "جودة البيانات",
       level: "عالٍ",
-      mitigation: "تطبيق قواعد جودة بيانات واضحة قبل تشغيل نماذج الذكاء الاصطناعي"
+      mitigation:
+        "تطبيق قواعد جودة بيانات واضحة قبل تشغيل نماذج الذكاء الاصطناعي"
     },
     {
       title: "الخصوصية",
       level: "عالٍ",
-      mitigation: "استخدام مؤشرات تشغيلية ومخرجات مراجعة دون عرض بيانات شخصية غير لازمة"
+      mitigation:
+        "استخدام مؤشرات تشغيلية ومخرجات مراجعة دون عرض بيانات شخصية غير لازمة"
     },
     {
       title: "الإنذارات الخاطئة",
       level: "متوسط",
-      mitigation: "اعتماد مراجعة بشرية وتدرج في مستويات التنبيه"
+      mitigation:
+        "اعتماد مراجعة بشرية وتدرج في مستويات التنبيه"
     },
     {
       title: "التكامل مع الأنظمة",
       level: "متوسط",
-      mitigation: "البدء بلوحات قراءة وتحليل قبل أي تكامل تشغيلي عميق"
+      mitigation:
+        "البدء بلوحات قراءة وتحليل قبل أي تكامل تشغيلي عميق"
     },
     {
       title: "حوكمة الصلاحيات",
       level: "عالٍ",
-      mitigation: "تحديد أدوار واضحة للمراجعة والاعتماد وتوثيق جميع قرارات صرف الصلاحيات"
+      mitigation:
+        "تحديد أدوار واضحة للمراجعة والاعتماد وتوثيق جميع قرارات صرف الصلاحيات"
     },
     {
       title: "التعديل غير الصحيح للسجلات",
       level: "عالٍ",
-      mitigation: "منع التعديل التلقائي النهائي وإلزام اعتماد الموظف المختص مع حفظ النسخة السابقة وسجل التدقيق"
+      mitigation:
+        "منع التعديل التلقائي النهائي وإلزام اعتماد الموظف المختص مع حفظ النسخة السابقة وسجل التدقيق"
     }
   ],
 
@@ -584,5 +681,1175 @@ AIW.Data = {
     "بناء Power BI Dashboard موحد للتسجيلات، البوابات، المستخدمين، الصلاحيات، والتنبيهات",
     "تطبيق مبدأ Human-in-the-Loop في جميع الحالات الحساسة قبل صرف الصلاحيات أو تعديل التسجيلات",
     "تحويل أفضل الأفكار إلى مشاريع تنفيذية مع KPIs وBusiness Case وخطة حوكمة واضحة"
-  ]
+  ],
+
+  meta: {
+    schemaVersion: "2.2",
+    createdAt: null,
+    updatedAt: null,
+    lastBackupAt: null
+  }
 };
+
+/* =========================================================
+   Enterprise Store
+========================================================= */
+
+AIW.Store = {
+  _data: null,
+  _listeners: new Set(),
+
+  /* =======================================================
+     Initialize Store
+  ======================================================= */
+
+  init() {
+    const storedData = this.readStoredData();
+
+    this._data = storedData
+      ? this.deepMerge(
+          this.clone(AIW.DefaultData),
+          storedData
+        )
+      : this.clone(AIW.DefaultData);
+
+    this.normalizeData();
+
+    if (!this._data.meta.createdAt) {
+      this._data.meta.createdAt =
+        new Date().toISOString();
+    }
+
+    this._data.meta.schemaVersion = "2.2";
+
+    AIW.Data = this._data;
+
+    this.save({
+      silent: true,
+      backup: false
+    });
+
+    this.emit("aiw:storeReady", {
+      data: this.getState()
+    });
+
+    return AIW.Data;
+  },
+
+  /* =======================================================
+     Public Data Readers
+  ======================================================= */
+
+  getState() {
+    return this._data || AIW.Data || {};
+  },
+
+  getData() {
+    return this.getState();
+  },
+
+  get(path, fallback = null) {
+    if (!path) {
+      return this.getState();
+    }
+
+    const keys = String(path)
+      .split(".")
+      .filter(Boolean);
+
+    let current = this.getState();
+
+    for (const key of keys) {
+      if (
+        current === null ||
+        current === undefined ||
+        typeof current !== "object" ||
+        !(key in current)
+      ) {
+        return fallback;
+      }
+
+      current = current[key];
+    }
+
+    return current;
+  },
+
+  /* =======================================================
+     General Update
+  ======================================================= */
+
+  update(path, value, options = {}) {
+    if (!path) return false;
+
+    const keys = String(path)
+      .split(".")
+      .filter(Boolean);
+
+    if (!keys.length) return false;
+
+    let current = this._data;
+
+    for (let index = 0; index < keys.length - 1; index++) {
+      const key = keys[index];
+
+      if (
+        !current[key] ||
+        typeof current[key] !== "object"
+      ) {
+        current[key] = {};
+      }
+
+      current = current[key];
+    }
+
+    const finalKey = keys[keys.length - 1];
+
+    current[finalKey] =
+      typeof value === "function"
+        ? value(current[finalKey])
+        : value;
+
+    this.normalizeData();
+
+    return this.save({
+      event: options.event || "aiw:dataUpdated",
+      detail: {
+        path,
+        value: current[finalKey]
+      }
+    });
+  },
+
+  updateSummary(values = {}) {
+    if (
+      !values ||
+      typeof values !== "object"
+    ) {
+      return false;
+    }
+
+    this._data.summary = {
+      ...this._data.summary,
+      ...values
+    };
+
+    this.normalizeData();
+
+    return this.save({
+      event: "aiw:summaryUpdated",
+      detail: {
+        summary: this._data.summary
+      }
+    });
+  },
+
+  /* =======================================================
+     Ideas Management
+  ======================================================= */
+
+  addIdea(idea = {}) {
+    const now = new Date().toISOString();
+
+    const newIdea = {
+      id: this.getNextId(this._data.ideas),
+      department: idea.department || "غير مصنف",
+      title: idea.title || "فكرة جديدة",
+      priority: idea.priority || "متوسطة",
+      ease: idea.ease || "متوسطة",
+      duration: idea.duration || "غير محددة",
+      cost: idea.cost || "غير محددة",
+      challenge: idea.challenge || "",
+      solution: idea.solution || "",
+      aiRole: idea.aiRole || "",
+      benefits: idea.benefits || "",
+      status: idea.status || "proposed",
+      createdAt: now,
+      updatedAt: now
+    };
+
+    this._data.ideas.push(newIdea);
+
+    this.normalizeData();
+
+    this.save({
+      event: "aiw:ideasUpdated",
+      detail: {
+        action: "add",
+        idea: newIdea
+      }
+    });
+
+    return newIdea;
+  },
+
+  updateIdea(id, changes = {}) {
+    const ideaIndex = this._data.ideas.findIndex(
+      (item) => String(item.id) === String(id)
+    );
+
+    if (ideaIndex === -1) {
+      return false;
+    }
+
+    const updatedIdea = {
+      ...this._data.ideas[ideaIndex],
+      ...changes,
+      id: this._data.ideas[ideaIndex].id,
+      updatedAt: new Date().toISOString()
+    };
+
+    this._data.ideas[ideaIndex] = updatedIdea;
+
+    this.normalizeData();
+
+    this.save({
+      event: "aiw:ideasUpdated",
+      detail: {
+        action: "update",
+        idea: updatedIdea
+      }
+    });
+
+    return updatedIdea;
+  },
+
+  removeIdea(id) {
+    const ideaIndex = this._data.ideas.findIndex(
+      (item) => String(item.id) === String(id)
+    );
+
+    if (ideaIndex === -1) {
+      return false;
+    }
+
+    const removedIdea =
+      this._data.ideas.splice(ideaIndex, 1)[0];
+
+    this.normalizeData();
+
+    this.save({
+      event: "aiw:ideasUpdated",
+      detail: {
+        action: "remove",
+        idea: removedIdea
+      }
+    });
+
+    return removedIdea;
+  },
+
+  /* =======================================================
+     Projects Management
+  ======================================================= */
+
+  addProject(project = {}) {
+    const now = new Date().toISOString();
+
+    const newProject = {
+      id: this.getNextId(this._data.projects),
+      title: project.title || "مشروع جديد",
+      department: project.department || "غير مصنف",
+      status: project.status || "planned",
+      progress: this.normalizePercent(
+        project.progress,
+        0
+      ),
+      priority: project.priority || "متوسطة",
+      owner: project.owner || "",
+      startDate: project.startDate || "",
+      targetDate: project.targetDate || "",
+      description: project.description || "",
+      createdAt: now,
+      updatedAt: now
+    };
+
+    this._data.projects.push(newProject);
+
+    this.normalizeData();
+
+    this.save({
+      event: "aiw:projectsUpdated",
+      detail: {
+        action: "add",
+        project: newProject
+      }
+    });
+
+    return newProject;
+  },
+
+  updateProject(id, changes = {}) {
+    const projectIndex =
+      this._data.projects.findIndex(
+        (item) => String(item.id) === String(id)
+      );
+
+    if (projectIndex === -1) {
+      return false;
+    }
+
+    const updatedProject = {
+      ...this._data.projects[projectIndex],
+      ...changes,
+      id: this._data.projects[projectIndex].id,
+      updatedAt: new Date().toISOString()
+    };
+
+    if ("progress" in changes) {
+      updatedProject.progress =
+        this.normalizePercent(
+          changes.progress,
+          0
+        );
+    }
+
+    this._data.projects[projectIndex] =
+      updatedProject;
+
+    this.normalizeData();
+
+    this.save({
+      event: "aiw:projectsUpdated",
+      detail: {
+        action: "update",
+        project: updatedProject
+      }
+    });
+
+    return updatedProject;
+  },
+
+  removeProject(id) {
+    const projectIndex =
+      this._data.projects.findIndex(
+        (item) => String(item.id) === String(id)
+      );
+
+    if (projectIndex === -1) {
+      return false;
+    }
+
+    const removedProject =
+      this._data.projects.splice(
+        projectIndex,
+        1
+      )[0];
+
+    this.normalizeData();
+
+    this.save({
+      event: "aiw:projectsUpdated",
+      detail: {
+        action: "remove",
+        project: removedProject
+      }
+    });
+
+    return removedProject;
+  },
+
+  /* =======================================================
+     Alerts Management
+  ======================================================= */
+
+  addAlert(alert = {}) {
+    const now = new Date().toISOString();
+
+    const newAlert = {
+      id: this.getNextId(this._data.alerts),
+      title: alert.title || "تنبيه جديد",
+      message: alert.message || "",
+      severity: alert.severity || "medium",
+      status: alert.status || "open",
+      source: alert.source || "platform",
+      createdAt: now,
+      updatedAt: now,
+      resolvedAt: null
+    };
+
+    this._data.alerts.push(newAlert);
+
+    this.normalizeData();
+
+    this.save({
+      event: "aiw:alertsUpdated",
+      detail: {
+        action: "add",
+        alert: newAlert
+      }
+    });
+
+    return newAlert;
+  },
+
+  updateAlert(id, changes = {}) {
+    const alertIndex =
+      this._data.alerts.findIndex(
+        (item) => String(item.id) === String(id)
+      );
+
+    if (alertIndex === -1) {
+      return false;
+    }
+
+    const currentAlert =
+      this._data.alerts[alertIndex];
+
+    const updatedAlert = {
+      ...currentAlert,
+      ...changes,
+      id: currentAlert.id,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (
+      changes.status === "resolved" &&
+      !updatedAlert.resolvedAt
+    ) {
+      updatedAlert.resolvedAt =
+        new Date().toISOString();
+    }
+
+    this._data.alerts[alertIndex] =
+      updatedAlert;
+
+    this.normalizeData();
+
+    this.save({
+      event: "aiw:alertsUpdated",
+      detail: {
+        action: "update",
+        alert: updatedAlert
+      }
+    });
+
+    return updatedAlert;
+  },
+
+  resolveAlert(id) {
+    return this.updateAlert(id, {
+      status: "resolved",
+      resolvedAt: new Date().toISOString()
+    });
+  },
+
+  removeAlert(id) {
+    const alertIndex =
+      this._data.alerts.findIndex(
+        (item) => String(item.id) === String(id)
+      );
+
+    if (alertIndex === -1) {
+      return false;
+    }
+
+    const removedAlert =
+      this._data.alerts.splice(
+        alertIndex,
+        1
+      )[0];
+
+    this.normalizeData();
+
+    this.save({
+      event: "aiw:alertsUpdated",
+      detail: {
+        action: "remove",
+        alert: removedAlert
+      }
+    });
+
+    return removedAlert;
+  },
+
+  /* =======================================================
+     Governance Management
+  ======================================================= */
+
+  addGovernanceControl(control) {
+    if (!control) return false;
+
+    const newControl =
+      typeof control === "string"
+        ? control
+        : {
+            id: this.getNextId(
+              this._data.governance
+            ),
+            ...control
+          };
+
+    this._data.governance.push(newControl);
+
+    this.normalizeData();
+
+    this.save({
+      event: "aiw:governanceUpdated",
+      detail: {
+        action: "add",
+        control: newControl
+      }
+    });
+
+    return newControl;
+  },
+
+  removeGovernanceControl(indexOrId) {
+    const governance =
+      this._data.governance;
+
+    let controlIndex = -1;
+
+    if (
+      typeof indexOrId === "number" &&
+      governance[indexOrId] !== undefined
+    ) {
+      controlIndex = indexOrId;
+    } else {
+      controlIndex =
+        governance.findIndex(
+          (item) =>
+            item &&
+            typeof item === "object" &&
+            String(item.id) ===
+              String(indexOrId)
+        );
+    }
+
+    if (controlIndex === -1) {
+      return false;
+    }
+
+    const removedControl =
+      governance.splice(controlIndex, 1)[0];
+
+    this.normalizeData();
+
+    this.save({
+      event: "aiw:governanceUpdated",
+      detail: {
+        action: "remove",
+        control: removedControl
+      }
+    });
+
+    return removedControl;
+  },
+
+  /* =======================================================
+     Automatic Calculations
+  ======================================================= */
+
+  normalizeData() {
+    if (!this._data) {
+      this._data =
+        this.clone(AIW.DefaultData);
+    }
+
+    const data = this._data;
+
+    if (
+      !data.summary ||
+      typeof data.summary !== "object"
+    ) {
+      data.summary = {};
+    }
+
+    if (!Array.isArray(data.ideas)) {
+      data.ideas = [];
+    }
+
+    if (!Array.isArray(data.projects)) {
+      data.projects = [];
+    }
+
+    if (!Array.isArray(data.flagshipProjects)) {
+      data.flagshipProjects = [];
+    }
+
+    if (!Array.isArray(data.departments)) {
+      data.departments = [];
+    }
+
+    if (!Array.isArray(data.governance)) {
+      data.governance = [];
+    }
+
+    if (!Array.isArray(data.alerts)) {
+      data.alerts = [];
+    }
+
+    if (!Array.isArray(data.roadmap)) {
+      data.roadmap = [];
+    }
+
+    if (
+      !data.meta ||
+      typeof data.meta !== "object"
+    ) {
+      data.meta = {};
+    }
+
+    /* Ideas */
+
+    data.summary.ideasCount =
+      data.ideas.length;
+
+    data.summary.targetIdeas =
+      Math.max(
+        1,
+        this.toNumber(
+          data.summary.targetIdeas,
+          100
+        )
+      );
+
+    data.summary.highPriorityIdeasCount =
+      data.ideas.filter((idea) => {
+        const priority = String(
+          idea?.priority || ""
+        )
+          .trim()
+          .toLowerCase();
+
+        return (
+          priority === "عالية" ||
+          priority === "عالي" ||
+          priority === "high" ||
+          priority === "critical"
+        );
+      }).length;
+
+    /* Projects */
+
+    data.summary.flagshipProjectsCount =
+      data.flagshipProjects.length ||
+      data.projects.length;
+
+    data.summary.projectsCount =
+      data.projects.length ||
+      data.flagshipProjects.length;
+
+    /* Departments */
+
+    data.summary.departmentsCount =
+      data.departments.length;
+
+    /* Roadmap */
+
+    data.summary.roadmapPhases =
+      data.roadmap.length;
+
+    /* Governance */
+
+    data.summary.governanceControlsCount =
+      data.governance.length;
+
+    data.summary.humanInTheLoopControls =
+      data.governance.length;
+
+    /* Readiness */
+
+    data.summary.maturityScore =
+      this.normalizePercent(
+        data.summary.maturityScore ??
+          data.summary.aiReadiness,
+        34
+      );
+
+    data.summary.aiReadiness =
+      data.summary.maturityScore;
+
+    /* System Health */
+
+    data.summary.portfolioHealth =
+      this.normalizePercent(
+        data.summary.portfolioHealth ??
+          data.summary.systemHealth,
+        68
+      );
+
+    data.summary.systemHealth =
+      data.summary.portfolioHealth;
+
+    /* Operational Health */
+
+    data.summary.operationsHealth =
+      this.normalizePercent(
+        data.summary.operationsHealth ??
+          data.summary.operationalHealth,
+        92
+      );
+
+    data.summary.operationalHealth =
+      data.summary.operationsHealth;
+
+    /* Operations Trend */
+
+    if (
+      !Array.isArray(
+        data.summary.operationsTrend
+      ) ||
+      !data.summary.operationsTrend.length
+    ) {
+      data.summary.operationsTrend = [
+        82,
+        76,
+        88,
+        70,
+        92,
+        84,
+        96,
+        90,
+        94
+      ];
+    }
+
+    data.summary.operationsTrend =
+      data.summary.operationsTrend
+        .map((value) =>
+          this.normalizePercent(value, 0)
+        )
+        .slice(-9);
+
+    /* Meta */
+
+    data.meta.schemaVersion = "2.2";
+    data.meta.updatedAt =
+      new Date().toISOString();
+
+    AIW.Data = data;
+
+    return data;
+  },
+
+  /* =======================================================
+     Save and Persistence
+  ======================================================= */
+
+  save(options = {}) {
+    try {
+      this.normalizeData();
+
+      if (options.backup !== false) {
+        this.createBackup();
+      }
+
+      const serializedData =
+        JSON.stringify(this._data);
+
+      localStorage.setItem(
+        AIW.StorageKeys.primary,
+        serializedData
+      );
+
+      AIW.Data = this._data;
+
+      if (!options.silent) {
+        this.emit(
+          options.event || "aiw:dataChanged",
+          options.detail || {
+            data: this.getState()
+          }
+        );
+
+        this.emit("aiw:storeChanged", {
+          data: this.getState()
+        });
+
+        this.notifySubscribers();
+      }
+
+      return true;
+    } catch (error) {
+      console.error(
+        "AI Work Store: Unable to save data.",
+        error
+      );
+
+      return false;
+    }
+  },
+
+  createBackup() {
+    try {
+      if (!this._data) return false;
+
+      const previousSaved =
+        localStorage.getItem(
+          AIW.StorageKeys.primary
+        );
+
+      if (previousSaved) {
+        localStorage.setItem(
+          AIW.StorageKeys.backup,
+          previousSaved
+        );
+
+        if (this._data.meta) {
+          this._data.meta.lastBackupAt =
+            new Date().toISOString();
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.warn(
+        "AI Work Store: Backup failed.",
+        error
+      );
+
+      return false;
+    }
+  },
+
+  restoreBackup() {
+    try {
+      const backup =
+        localStorage.getItem(
+          AIW.StorageKeys.backup
+        );
+
+      if (!backup) {
+        return false;
+      }
+
+      const parsedBackup =
+        JSON.parse(backup);
+
+      this._data = this.deepMerge(
+        this.clone(AIW.DefaultData),
+        parsedBackup
+      );
+
+      this.normalizeData();
+
+      this.save({
+        event: "aiw:dataRestored",
+        backup: false
+      });
+
+      return true;
+    } catch (error) {
+      console.error(
+        "AI Work Store: Unable to restore backup.",
+        error
+      );
+
+      return false;
+    }
+  },
+
+  reset() {
+    this._data =
+      this.clone(AIW.DefaultData);
+
+    this._data.meta.createdAt =
+      new Date().toISOString();
+
+    this.normalizeData();
+
+    this.save({
+      event: "aiw:dataReset",
+      backup: true
+    });
+
+    return this.getState();
+  },
+
+  /* =======================================================
+     Import and Export
+  ======================================================= */
+
+  exportData() {
+    this.normalizeData();
+
+    return JSON.stringify(
+      this._data,
+      null,
+      2
+    );
+  },
+
+  importData(importedData) {
+    try {
+      const parsedData =
+        typeof importedData === "string"
+          ? JSON.parse(importedData)
+          : importedData;
+
+      if (
+        !parsedData ||
+        typeof parsedData !== "object"
+      ) {
+        return false;
+      }
+
+      this.createBackup();
+
+      this._data = this.deepMerge(
+        this.clone(AIW.DefaultData),
+        parsedData
+      );
+
+      this.normalizeData();
+
+      this.save({
+        event: "aiw:dataImported",
+        backup: false
+      });
+
+      return true;
+    } catch (error) {
+      console.error(
+        "AI Work Store: Import failed.",
+        error
+      );
+
+      return false;
+    }
+  },
+
+  /* =======================================================
+     Subscription System
+  ======================================================= */
+
+  subscribe(listener) {
+    if (typeof listener !== "function") {
+      return () => {};
+    }
+
+    this._listeners.add(listener);
+
+    return () => {
+      this._listeners.delete(listener);
+    };
+  },
+
+  notifySubscribers() {
+    const currentData =
+      this.getState();
+
+    this._listeners.forEach((listener) => {
+      try {
+        listener(currentData);
+      } catch (error) {
+        console.warn(
+          "AI Work Store: Subscriber failed.",
+          error
+        );
+      }
+    });
+  },
+
+  /* =======================================================
+     Browser Events
+  ======================================================= */
+
+  emit(eventName, detail = {}) {
+    window.dispatchEvent(
+      new CustomEvent(eventName, {
+        detail
+      })
+    );
+  },
+
+  /* =======================================================
+     Storage Reader
+  ======================================================= */
+
+  readStoredData() {
+    const storageKeys = [
+      AIW.StorageKeys.primary,
+      "aiwData",
+      "AIW_DATA"
+    ];
+
+    for (const storageKey of storageKeys) {
+      try {
+        const savedValue =
+          localStorage.getItem(storageKey);
+
+        if (!savedValue) continue;
+
+        const parsedValue =
+          JSON.parse(savedValue);
+
+        if (
+          parsedValue &&
+          typeof parsedValue === "object"
+        ) {
+          return parsedValue;
+        }
+      } catch (error) {
+        console.warn(
+          `AI Work Store: Invalid data in ${storageKey}.`,
+          error
+        );
+      }
+    }
+
+    return null;
+  },
+
+  /* =======================================================
+     Utilities
+  ======================================================= */
+
+  getNextId(items = []) {
+    if (!Array.isArray(items)) {
+      return 1;
+    }
+
+    const ids = items
+      .map((item) =>
+        this.toNumber(item?.id, 0)
+      )
+      .filter((id) => id > 0);
+
+    return ids.length
+      ? Math.max(...ids) + 1
+      : 1;
+  },
+
+  toNumber(value, fallback = 0) {
+    const parsedValue = Number(value);
+
+    return Number.isFinite(parsedValue)
+      ? parsedValue
+      : fallback;
+  },
+
+  normalizePercent(value, fallback = 0) {
+    const parsedValue =
+      this.toNumber(value, fallback);
+
+    return Math.min(
+      100,
+      Math.max(
+        0,
+        Math.round(parsedValue)
+      )
+    );
+  },
+
+  clone(value) {
+    if (
+      typeof structuredClone === "function"
+    ) {
+      try {
+        return structuredClone(value);
+      } catch (error) {
+        // JSON fallback below.
+      }
+    }
+
+    return JSON.parse(
+      JSON.stringify(value)
+    );
+  },
+
+  deepMerge(target, source) {
+    if (
+      !source ||
+      typeof source !== "object"
+    ) {
+      return target;
+    }
+
+    Object.keys(source).forEach((key) => {
+      const sourceValue = source[key];
+      const targetValue = target[key];
+
+      if (Array.isArray(sourceValue)) {
+        target[key] = this.clone(sourceValue);
+        return;
+      }
+
+      if (
+        sourceValue &&
+        typeof sourceValue === "object"
+      ) {
+        if (
+          !targetValue ||
+          typeof targetValue !== "object" ||
+          Array.isArray(targetValue)
+        ) {
+          target[key] = {};
+        }
+
+        target[key] = this.deepMerge(
+          target[key],
+          sourceValue
+        );
+
+        return;
+      }
+
+      target[key] = sourceValue;
+    });
+
+    return target;
+  }
+};
+
+/* =========================================================
+   Cross-Tab Synchronization
+
+   Updates data when another browser tab modifies storage.
+========================================================= */
+
+window.addEventListener(
+  "storage",
+  (event) => {
+    if (
+      event.key !== AIW.StorageKeys.primary ||
+      !event.newValue
+    ) {
+      return;
+    }
+
+    try {
+      const incomingData =
+        JSON.parse(event.newValue);
+
+      AIW.Store._data =
+        AIW.Store.deepMerge(
+          AIW.Store.clone(AIW.DefaultData),
+          incomingData
+        );
+
+      AIW.Store.normalizeData();
+
+      AIW.Store.emit(
+        "aiw:dataUpdated",
+        {
+          source: "storage",
+          data: AIW.Store.getState()
+        }
+      );
+
+      AIW.Store.emit(
+        "aiw:storeChanged",
+        {
+          source: "storage",
+          data: AIW.Store.getState()
+        }
+      );
+
+      AIW.Store.notifySubscribers();
+    } catch (error) {
+      console.warn(
+        "AI Work Store: Cross-tab synchronization failed.",
+        error
+      );
+    }
+  }
+);
+
+/* =========================================================
+   Initialize Data Layer
+========================================================= */
+
+AIW.Store.init();
