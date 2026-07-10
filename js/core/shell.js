@@ -1,19 +1,23 @@
 /* =========================================================
-   AI Work - Enterprise Application Shell V2.1
-   Scope: Enterprise Biometric Intelligence Platform
+   AI Work - Enterprise Application Shell V5.0
+   Enterprise Biometric Intelligence Platform
+   Store V2.2 Native Architecture
+
+   File Path:
+   js/core/shell.js
 
    Responsibilities:
-   - Stable Application Layout
-   - Global Header
-   - Desktop Navigation
-   - Main Module Container
-   - Platform Status
-   - Language Toggle
-   - Store Synchronization
-   - Route Synchronization
-   - Global Footer Credit
-   - Legacy ATCShell Compatibility
-   - No Dashboard Content Duplication
+   - Stable application layout
+   - Dynamic navigation from AIW.Config
+   - Global header and platform status
+   - Main module container
+   - Language and appearance synchronization
+   - AIW.Store V2.2 integration
+   - AIW.Router and AIW.App route synchronization
+   - Global footer credit
+   - Mobile navigation state
+   - Legacy ATCShell compatibility
+   - No dashboard content duplication
 ========================================================= */
 
 (function () {
@@ -23,98 +27,222 @@
 
   const Shell = {
     id: "shell",
-    version: "2.1.0",
+    version: "5.0.0",
 
     _initialized: false,
     _eventsBound: false,
     _storeUnsubscribe: null,
     _refreshTimer: null,
+    _mountedByShell: false,
 
     root: null,
     main: null,
 
-    navigationItems: [
+    fallbackNavigationItems: [
       {
         id: "dashboard",
-        label: "الرئيسية",
-        labelEn: "Dashboard",
-        icon: "⌂"
+        title: "الرئيسية",
+        titleEn: "Dashboard",
+        icon: "⌂",
+        enabled: true,
+        order: 1
       },
       {
         id: "strategy",
-        label: "الاستراتيجية",
-        labelEn: "Strategy",
-        icon: "◎"
+        title: "الاستراتيجية",
+        titleEn: "Strategy",
+        icon: "◎",
+        enabled: true,
+        order: 2
       },
       {
         id: "projects",
-        label: "المشاريع",
-        labelEn: "Projects",
-        icon: "▣"
+        title: "المشاريع",
+        titleEn: "Projects",
+        icon: "▣",
+        enabled: true,
+        order: 3
       },
       {
         id: "ideas",
-        label: "الفرص",
-        labelEn: "Opportunities",
-        icon: "✦"
+        title: "الأفكار",
+        titleEn: "Ideas",
+        icon: "✦",
+        enabled: true,
+        order: 4
       },
       {
         id: "governance",
-        label: "الحوكمة",
-        labelEn: "Governance",
-        icon: "◇"
+        title: "الحوكمة",
+        titleEn: "Governance",
+        icon: "◇",
+        enabled: true,
+        order: 5
       },
       {
         id: "maturity",
-        label: "النضج",
-        labelEn: "Maturity",
-        icon: "◫"
+        title: "النضج",
+        titleEn: "Maturity",
+        icon: "◫",
+        enabled: true,
+        order: 6
       },
       {
         id: "reports",
-        label: "التقارير",
-        labelEn: "Reports",
-        icon: "▤"
+        title: "التقارير",
+        titleEn: "Reports",
+        icon: "▤",
+        enabled: true,
+        order: 7
       },
       {
         id: "kpis",
-        label: "المؤشرات",
-        labelEn: "KPIs",
-        icon: "◈"
+        title: "المؤشرات",
+        titleEn: "KPIs",
+        icon: "◈",
+        enabled: true,
+        order: 8
       },
       {
         id: "business",
-        label: "الجدوى",
-        labelEn: "Business Case",
-        icon: "◉"
+        title: "الجدوى",
+        titleEn: "Business Case",
+        icon: "◉",
+        enabled: true,
+        order: 9
       },
       {
         id: "automation",
-        label: "الأتمتة",
-        labelEn: "Automation",
-        icon: "⚙"
+        title: "الأتمتة",
+        titleEn: "Automation",
+        icon: "⚙",
+        enabled: true,
+        order: 10
       },
       {
         id: "decision",
-        label: "القرار",
-        labelEn: "Decision",
-        icon: "⌘"
+        title: "القرار",
+        titleEn: "Decision",
+        icon: "⌘",
+        enabled: true,
+        order: 11
       },
       {
         id: "settings",
-        label: "المزيد",
-        labelEn: "More",
-        icon: "•••"
+        title: "المزيد",
+        titleEn: "More",
+        icon: "•••",
+        enabled: true,
+        order: 12
       }
     ],
 
     /* =========================================================
-       INITIALIZATION
+       Configuration
+    ========================================================= */
+
+    getConfig() {
+      return (
+        window.AIW?.Config ||
+        window.AIW_CONFIG ||
+        window.ATC_CONFIG ||
+        {}
+      );
+    },
+
+    getAppConfig() {
+      return (
+        this.getConfig().app ||
+        {}
+      );
+    },
+
+    getNavigationItems() {
+      const configured =
+        this.getConfig()
+          ?.navigation
+          ?.modules;
+
+      const source =
+        Array.isArray(configured) &&
+        configured.length
+          ? configured
+          : this.fallbackNavigationItems;
+
+      return source
+        .filter(item =>
+          item &&
+          item.id &&
+          item.enabled !== false
+        )
+        .map((item, index) => ({
+          ...item,
+
+          id:
+            String(item.id)
+              .trim()
+              .toLowerCase(),
+
+          title:
+            item.title ||
+            item.label ||
+            item.name ||
+            item.id,
+
+          titleEn:
+            item.titleEn ||
+            item.labelEn ||
+            item.subtitle ||
+            item.englishTitle ||
+            item.title ||
+            item.id,
+
+          icon:
+            item.icon ||
+            "•",
+
+          order:
+            Number.isFinite(
+              Number(item.order)
+            )
+              ? Number(item.order)
+              : index + 1
+        }))
+        .sort(
+          (first, second) =>
+            first.order -
+            second.order
+        );
+    },
+
+    get navigationItems() {
+      return this.getNavigationItems();
+    },
+
+    getDefaultRoute() {
+      return (
+        this.getConfig()
+          ?.navigation
+          ?.defaultModule ||
+        "dashboard"
+      );
+    },
+
+    /* =========================================================
+       Initialization
     ========================================================= */
 
     init(root = null) {
       if (this._initialized) {
+        if (root) {
+          this.root = root;
+        }
+
         this.cacheElements();
+        this.applySettings();
+        this.updateRouteState();
+        this.updatePlatformStatus();
+
         return this;
       }
 
@@ -135,212 +263,390 @@
       this.updatePlatformStatus();
       this.registerMetadata();
 
+      this.emit("aiw:shellReady", {
+        version: this.version,
+        mounted:
+          Boolean(
+            document.querySelector(
+              "[data-aiw-shell]"
+            )
+          ),
+        timestamp:
+          new Date().toISOString()
+      });
+
       return this;
     },
 
     cacheElements() {
       this.main =
         document.getElementById("appMain") ||
-        document.querySelector("[data-app-main]") ||
+        document.querySelector(
+          "[data-app-main]"
+        ) ||
         null;
 
       if (!this.root) {
         this.root =
           document.getElementById("app") ||
           document.getElementById("appRoot") ||
+          document.querySelector(
+            "[data-aiw-shell]"
+          ) ||
           document.body;
       }
+
+      return {
+        root: this.root,
+        main: this.main
+      };
     },
 
     /* =========================================================
-       DATA ACCESS
+       Store and Data Access
     ========================================================= */
 
     getStore() {
-      return window.AIW?.Store || null;
+      return (
+        window.AIW?.Store ||
+        null
+      );
     },
 
     getData() {
-      const store = this.getStore();
+      const store =
+        this.getStore();
 
       try {
         if (
           store &&
-          typeof store.getState === "function"
+          typeof store.getState ===
+            "function"
         ) {
-          return store.getState();
+          return (
+            store.getState() ||
+            {}
+          );
         }
 
         if (
           store &&
-          typeof store.getData === "function"
+          typeof store.getData ===
+            "function"
         ) {
-          return store.getData();
+          return (
+            store.getData() ||
+            {}
+          );
         }
       } catch (error) {
         console.warn(
-          "[AIW.Shell] Unable to read Store data:",
+          "[AIW.Shell V5.0] Unable to read Store data:",
           error
         );
       }
 
-      return window.AIW?.Data || {};
+      return {};
     },
 
     getSettings() {
-      const store = this.getStore();
+      const store =
+        this.getStore();
 
       try {
         if (
           store &&
-          typeof store.getSettings === "function"
+          typeof store.getSettings ===
+            "function"
         ) {
-          return store.getSettings();
+          const settings =
+            store.getSettings();
+
+          if (
+            settings &&
+            typeof settings ===
+              "object"
+          ) {
+            return settings;
+          }
+        }
+
+        const state =
+          this.getData();
+
+        if (
+          state.settings &&
+          typeof state.settings ===
+            "object"
+        ) {
+          return state.settings;
         }
       } catch (error) {
         console.warn(
-          "[AIW.Shell] Unable to read settings:",
+          "[AIW.Shell V5.0] Unable to read settings:",
           error
         );
       }
 
       return {
-        language: "ar",
-        locale: "ar-AE",
-        direction: "rtl",
-        theme: "light",
+        language:
+          this.getConfig()
+            ?.language
+            ?.default ||
+          "ar",
+
+        locale:
+          this.getAppConfig().locale ||
+          "ar-AE",
+
+        direction:
+          this.getAppConfig().direction ||
+          "rtl",
+
+        theme:
+          this.getConfig()
+            ?.theme
+            ?.default ||
+          "light",
+
         compactMode: false
       };
     },
 
+    updateSettings(changes = {}) {
+      const store =
+        this.getStore();
+
+      if (
+        !changes ||
+        typeof changes !== "object"
+      ) {
+        return false;
+      }
+
+      try {
+        if (
+          store &&
+          typeof store.saveSettings ===
+            "function"
+        ) {
+          return store.saveSettings({
+            ...this.getSettings(),
+            ...changes
+          });
+        }
+
+        if (
+          store &&
+          typeof store.setSettings ===
+            "function"
+        ) {
+          return store.setSettings({
+            ...this.getSettings(),
+            ...changes
+          });
+        }
+
+        if (
+          store &&
+          typeof store.patch ===
+            "function"
+        ) {
+          return store.patch(
+            "settings",
+            {
+              ...this.getSettings(),
+              ...changes
+            }
+          );
+        }
+      } catch (error) {
+        console.warn(
+          "[AIW.Shell V5.0] Settings update failed:",
+          error
+        );
+      }
+
+      return false;
+    },
+
     /* =========================================================
-       PLATFORM STATUS
+       Platform Status
     ========================================================= */
 
     getPlatformStatus() {
-      const data = this.getData();
-      const modules = window.AIW?.Modules || {};
+      const data =
+        this.getData();
+
+      const configuredModules =
+        this.getNavigationItems();
+
+      const registeredModules =
+        window.AIW?.Modules ||
+        {};
 
       const totalModules =
-        Object.keys(modules).length;
+        configuredModules.length;
 
       const readyModules =
-        Object.values(modules).filter(
-          module =>
+        configuredModules.filter(item => {
+          const module =
+            registeredModules[
+              item.id
+            ];
+
+          return Boolean(
             module &&
-            typeof module.render === "function"
-        ).length;
+            typeof module.render ===
+              "function"
+          );
+        }).length;
 
       const engines = {
-  Store:
-    Boolean(window.AIW?.Store),
+        Store:
+          Boolean(
+            window.AIW?.Store
+          ),
 
-  Router:
-    Boolean(
-      window.AIW?.Router ||
-      window.ATCRouter
-    ),
+        Router:
+          Boolean(
+            window.AIW?.Router ||
+            window.ATCRouter
+          ),
 
-  App:
-    Boolean(
-      window.AIW?.App ||
-      window.ATCApp
-    ),
+        App:
+          Boolean(
+            window.AIW?.App ||
+            window.ATCApp
+          ),
 
-  Widgets:
-    Boolean(window.AIW?.Widgets),
+        Shell:
+          true,
 
-  Analytics:
-    Boolean(window.AIW?.Analytics),
+        Widgets:
+          Boolean(
+            window.AIW?.Widgets
+          ),
 
-  BiometricAnalytics:
-    Boolean(
-      window.AIW?.BiometricAnalytics
-    ),
+        Charts:
+          Boolean(
+            window.AIW?.Charts
+          ),
 
-  Automation:
-    Boolean(window.AIW?.Automation),
+        Analytics:
+          Boolean(
+            window.AIW?.Analytics
+          ),
 
-  AIEngine:
-    Boolean(
-      window.AIW?.AIEngine ||
-      window.AIW?.AI
-    ),
+        BiometricAnalytics:
+          Boolean(
+            window.AIW
+              ?.BiometricAnalytics
+          ),
 
-  DecisionEngine:
-    Boolean(
-      window.AIW?.DecisionEngine ||
-      window.ATCDecisionEngine
-    ),
+        Automation:
+          Boolean(
+            window.AIW?.Automation
+          ),
 
-  RecommendationEngine:
-    Boolean(
-      window.AIW?.RecommendationEngine ||
-      window.ATCRecommendationEngine
-    ),
+        AI:
+          Boolean(
+            window.AIW?.AI ||
+            window.AIW?.AIEngine
+          ),
 
-  Notifications:
-    Boolean(
-      window.AIW?.Notifications ||
-      window.ATCNotifications
-    ),
+        Decision:
+          Boolean(
+            window.AIW
+              ?.Decision ||
+            window.AIW
+              ?.DecisionEngine ||
+            window.ATCDecisionEngine
+          ),
 
-  Permissions:
-    Boolean(
-      window.AIW?.Permissions ||
-      window.ATCPermissions
-    ),
+        Recommendation:
+          Boolean(
+            window.AIW
+              ?.Recommendation ||
+            window.AIW
+              ?.RecommendationEngine ||
+            window.ATCRecommendationEngine
+          ),
 
-  Export:
-    Boolean(
-      window.AIW?.Export ||
-      window.ATCExport
-    ),
+        Notifications:
+          Boolean(
+            window.AIW
+              ?.Notifications ||
+            window.ATCNotifications
+          ),
 
-  Charts:
-    Boolean(window.AIW?.Charts)
-};
+        Permissions:
+          Boolean(
+            window.AIW
+              ?.Permissions ||
+            window.ATCPermissions
+          ),
 
-const engineEntries =
-  Object.entries(engines);
+        Export:
+          Boolean(
+            window.AIW?.Export ||
+            window.ATCExport
+          )
+      };
 
-const activeEngines =
-  engineEntries.filter(
-    ([, active]) => active
-  ).length;
+      const engineEntries =
+        Object.entries(
+          engines
+        );
 
-const totalEngines =
-  engineEntries.length;
+      const totalEngines =
+        engineEntries.length;
 
-const coreReady =
-  engines.Store &&
-  engines.Router &&
-  engines.App;
+      const activeEngines =
+        engineEntries.filter(
+          ([, active]) =>
+            active
+        ).length;
+
+      const coreReady =
+        engines.Store &&
+        engines.Router &&
+        engines.App &&
+        engines.Shell;
 
       const collections = [
         data.ideas,
         data.projects,
-        data.flagshipProjects,
         data.departments,
-        data.kpis,
         data.governance,
         data.risks,
+        data.roadmap,
+        data.automation,
+        data.kpis,
         data.reports,
-        data.maturity
+        data.decisionHistory,
+        data.kpiHistory,
+        data.executionHistory
       ];
 
       const availableCollections =
-        collections.filter(value => {
-          if (Array.isArray(value)) {
-            return value.length > 0;
-          }
+        collections.filter(
+          value => {
+            if (
+              Array.isArray(value)
+            ) {
+              return value.length > 0;
+            }
 
-          return Boolean(
-            value &&
-            typeof value === "object" &&
-            Object.keys(value).length
-          );
-        }).length;
+            return Boolean(
+              value &&
+              typeof value ===
+                "object" &&
+              Object.keys(value)
+                .length > 0
+            );
+          }
+        ).length;
 
       const moduleScore =
         totalModules
@@ -351,12 +657,12 @@ const coreReady =
           : 0;
 
       const engineScore =
-  totalEngines
-    ? (
-        activeEngines /
         totalEngines
-      ) * 100
-    : 0;
+          ? (
+              activeEngines /
+              totalEngines
+            ) * 100
+          : 0;
 
       const dataScore =
         collections.length
@@ -366,46 +672,86 @@ const coreReady =
             ) * 100
           : 0;
 
-      const health = Math.round(
-        moduleScore * 0.4 +
-        engineScore * 0.35 +
-        dataScore * 0.25
-      );
+      let health =
+        Math.round(
+          moduleScore * 0.42 +
+          engineScore * 0.38 +
+          dataScore * 0.2
+        );
 
-      let label = "يحتاج مراجعة";
-      let className = "orange";
+      if (!coreReady) {
+        health =
+          Math.min(
+            health,
+            54
+          );
+      }
 
-      if (health >= 90) {
+      let label =
+        "يحتاج مراجعة";
+
+      let labelEn =
+        "Needs Review";
+
+      let className =
+        "orange";
+
+      if (
+        coreReady &&
+        health >= 90
+      ) {
         label = "ممتاز";
+        labelEn = "Excellent";
         className = "green";
-      } else if (health >= 75) {
+      } else if (
+        coreReady &&
+        health >= 75
+      ) {
         label = "مستقر";
+        labelEn = "Stable";
         className = "green";
-      } else if (health >= 55) {
+      } else if (
+        health >= 55
+      ) {
         label = "قيد التطوير";
+        labelEn = "In Development";
         className = "orange";
       }
 
       if (!coreReady) {
-        label = "Core غير مكتمل";
-        className = "orange";
+        label =
+          "Core غير مكتمل";
+
+        labelEn =
+          "Core Incomplete";
+
+        className =
+          "orange";
       }
 
       return {
         health,
         label,
+        labelEn,
         className,
         totalModules,
         readyModules,
         activeEngines,
         totalEngines,
-        coreReady
+        availableCollections,
+        totalCollections:
+          collections.length,
+        coreReady,
+        engines
       };
     },
 
     updatePlatformStatus() {
       const status =
         this.getPlatformStatus();
+
+      const language =
+        this.getLanguage();
 
       const valueElement =
         document.querySelector(
@@ -429,13 +775,16 @@ const coreReady =
 
       if (labelElement) {
         labelElement.textContent =
-          status.label;
+          language === "en"
+            ? status.labelEn
+            : status.label;
       }
 
       if (indicatorElement) {
         indicatorElement.classList.remove(
           "green",
-          "orange"
+          "orange",
+          "red"
         );
 
         indicatorElement.classList.add(
@@ -444,16 +793,40 @@ const coreReady =
 
         indicatorElement.setAttribute(
           "title",
-          `Platform Health ${status.health}% · ${status.readyModules}/${status.totalModules} Modules · ${status.activeEngines}/${status.totalEngines} Engines`
+          [
+            `Platform Health ${status.health}%`,
+            `${status.readyModules}/${status.totalModules} Modules`,
+            `${status.activeEngines}/${status.totalEngines} Engines`,
+            `${status.availableCollections}/${status.totalCollections} Data Collections`
+          ].join(" · ")
         );
+
+        indicatorElement.dataset.health =
+          String(
+            status.health
+          );
+
+        indicatorElement.dataset.coreReady =
+          String(
+            status.coreReady
+          );
       }
 
       return status;
     },
 
     /* =========================================================
-       LANGUAGE AND SETTINGS
+       Language and Appearance
     ========================================================= */
+
+    getLanguage() {
+      return (
+        this.getSettings()
+          .language === "en"
+          ? "en"
+          : "ar"
+      );
+    },
 
     applySettings() {
       const settings =
@@ -465,43 +838,59 @@ const coreReady =
           : "ar";
 
       const direction =
-        language === "en"
-          ? "ltr"
-          : "rtl";
+        settings.direction ||
+        (
+          language === "en"
+            ? "ltr"
+            : "rtl"
+        );
+
+      const theme =
+        settings.theme === "dark"
+          ? "dark"
+          : "light";
 
       document.documentElement.lang =
         language;
 
       document.documentElement.dir =
-        settings.direction ||
         direction;
+
+      document.documentElement.dataset.theme =
+        theme;
 
       document.body.classList.toggle(
         "aiw-compact-mode",
-        Boolean(settings.compactMode)
+        Boolean(
+          settings.compactMode
+        )
       );
 
       document.body.classList.toggle(
         "aiw-dark-mode",
-        settings.theme === "dark"
+        theme === "dark"
+      );
+
+      document.body.classList.toggle(
+        "aiw-light-mode",
+        theme !== "dark"
       );
 
       this.updateLanguageLabels(
         language
       );
 
+      this.updatePlatformStatus();
+
       return settings;
     },
 
     toggleLanguage() {
-      const store =
-        this.getStore();
-
-      const currentSettings =
+      const current =
         this.getSettings();
 
       const nextLanguage =
-        currentSettings.language === "en"
+        current.language === "en"
           ? "ar"
           : "en";
 
@@ -510,46 +899,45 @@ const coreReady =
           ? "ltr"
           : "rtl";
 
-      const updatedSettings = {
-        ...currentSettings,
-        language: nextLanguage,
-        locale:
-          nextLanguage === "en"
-            ? "en-US"
-            : "ar-AE",
-        direction:
-          nextDirection
-      };
+      const nextLocale =
+        nextLanguage === "en"
+          ? "en-US"
+          : "ar-AE";
 
-      if (
-        store &&
-        typeof store.saveSettings === "function"
-      ) {
-        store.saveSettings(
-          updatedSettings
-        );
-      } else {
-        document.documentElement.lang =
-          nextLanguage;
+      const updated =
+        this.updateSettings({
+          language:
+            nextLanguage,
+          direction:
+            nextDirection,
+          locale:
+            nextLocale
+        });
 
-        document.documentElement.dir =
-          nextDirection;
-      }
+      document.documentElement.lang =
+        nextLanguage;
 
-      this.applySettings();
+      document.documentElement.dir =
+        nextDirection;
 
-      window.dispatchEvent(
-        new CustomEvent(
-          "aiw:languageChanged",
-          {
-            detail: {
-              language:
-                nextLanguage,
-              direction:
-                nextDirection
-            }
-          }
-        )
+      this.updateLanguageLabels(
+        nextLanguage
+      );
+
+      this.emit(
+        "aiw:languageChanged",
+        {
+          language:
+            nextLanguage,
+          direction:
+            nextDirection,
+          locale:
+            nextLocale,
+          persisted:
+            Boolean(updated),
+          timestamp:
+            new Date().toISOString()
+        }
       );
 
       this.refreshCurrentModule();
@@ -557,7 +945,7 @@ const coreReady =
       return nextLanguage;
     },
 
-    updateLanguageLabels(language) {
+    updateLanguageLabels(language = this.getLanguage()) {
       document
         .querySelectorAll(
           "[data-route-label]"
@@ -568,20 +956,19 @@ const coreReady =
               "data-route-label"
             );
 
-          const navigationItem =
-            this.navigationItems.find(
-              item =>
-                item.id === route
-            );
+          const item =
+            this.getNavigationItems()
+              .find(
+                candidate =>
+                  candidate.id === route
+              );
 
-          if (!navigationItem) {
-            return;
-          }
+          if (!item) return;
 
           element.textContent =
             language === "en"
-              ? navigationItem.labelEn
-              : navigationItem.label;
+              ? item.titleEn
+              : item.title;
         });
 
       const languageButton =
@@ -598,58 +985,127 @@ const coreReady =
             ? "العربية"
             : "EN";
       }
+
+      const nav =
+        document.querySelector(
+          ".atc-shell-navigation"
+        );
+
+      if (nav) {
+        nav.setAttribute(
+          "aria-label",
+          language === "en"
+            ? "Main navigation"
+            : "التنقل الرئيسي"
+        );
+      }
+
+      this.updateCurrentPageLabel();
     },
 
     /* =========================================================
-       NAVIGATION
+       Navigation
     ========================================================= */
 
-    navigate(route) {
-      const router =
+    getRouter() {
+      return (
         window.AIW?.Router ||
-        window.ATCRouter;
+        window.ATCRouter ||
+        null
+      );
+    },
 
-      const app =
+    getApp() {
+      return (
         window.AIW?.App ||
-        window.ATCApp;
+        window.ATCApp ||
+        null
+      );
+    },
+
+    navigate(route, options = {}) {
+      const router =
+        this.getRouter();
 
       if (
         router &&
-        typeof router.navigate === "function"
+        typeof router.navigate ===
+          "function"
       ) {
-        return router.navigate(route);
+        return router.navigate(
+          route,
+          {
+            source:
+              options.source ||
+              "shell",
+            ...options
+          }
+        );
       }
+
+      const app =
+        this.getApp();
 
       if (
         app &&
-        typeof app.go === "function"
+        typeof app.go ===
+          "function"
       ) {
-        return app.go(route);
+        return app.go(
+          route,
+          {
+            source:
+              options.source ||
+              "shell",
+            ...options
+          }
+        );
       }
 
       window.location.hash =
-        route || "dashboard";
+        route ||
+        this.getDefaultRoute();
 
       return route;
     },
 
     getCurrentRoute() {
       const router =
-        window.AIW?.Router ||
-        window.ATCRouter;
+        this.getRouter();
 
       if (
         router &&
         typeof router.getCurrentRoute ===
           "function"
       ) {
-        return router.getCurrentRoute();
+        try {
+          return (
+            router.getCurrentRoute() ||
+            this.getDefaultRoute()
+          );
+        } catch (error) {
+          // App fallback below.
+        }
+      }
+
+      const app =
+        this.getApp();
+
+      if (
+        app &&
+        typeof app.getCurrentRoute ===
+          "function"
+      ) {
+        return (
+          app.getCurrentRoute() ||
+          this.getDefaultRoute()
+        );
       }
 
       return (
         window.location.hash
           .replace(/^#/, "") ||
-        "dashboard"
+        this.getDefaultRoute()
       );
     },
 
@@ -694,50 +1150,76 @@ const coreReady =
           }
         });
 
+      this.updateCurrentPageLabel(
+        currentRoute
+      );
+
+      return currentRoute;
+    },
+
+    updateCurrentPageLabel(route = null) {
+      const currentRoute =
+        route ||
+        this.getCurrentRoute();
+
       const pageLabel =
         document.querySelector(
           "[data-current-page-label]"
         );
 
-      if (pageLabel) {
-        const navigationItem =
-          this.navigationItems.find(
-            item =>
-              item.id === currentRoute
+      if (!pageLabel) {
+        return currentRoute;
+      }
+
+      const item =
+        this.getNavigationItems()
+          .find(
+            candidate =>
+              candidate.id ===
+              currentRoute
           );
 
-        const language =
-          this.getSettings().language;
+      const language =
+        this.getLanguage();
 
-        pageLabel.textContent =
-          navigationItem
-            ? language === "en"
-              ? navigationItem.labelEn
-              : navigationItem.label
-            : currentRoute;
-      }
+      pageLabel.textContent =
+        item
+          ? (
+              language === "en"
+                ? item.titleEn
+                : item.title
+            )
+          : currentRoute;
 
       return currentRoute;
     },
 
     refreshCurrentModule() {
       const app =
-        window.AIW?.App ||
-        window.ATCApp;
+        this.getApp();
 
       if (
         app &&
-        typeof app.refresh === "function"
+        typeof app.refresh ===
+          "function"
       ) {
         app.refresh();
         return true;
       }
 
+      this.emit(
+        "aiw:refreshCurrentModule",
+        {
+          source:
+            "shell"
+        }
+      );
+
       return false;
     },
 
     /* =========================================================
-       EVENTS
+       Events
     ========================================================= */
 
     bindEvents() {
@@ -751,7 +1233,7 @@ const coreReady =
         "click",
         event => {
           const languageButton =
-            event.target.closest(
+            event.target.closest?.(
               "#atcLangBtn, [data-language-toggle]"
             );
 
@@ -762,13 +1244,24 @@ const coreReady =
           }
 
           const menuButton =
-            event.target.closest(
+            event.target.closest?.(
               "[data-shell-menu-toggle]"
             );
 
           if (menuButton) {
             event.preventDefault();
             this.toggleNavigation();
+            return;
+          }
+
+          const overlay =
+            event.target.closest?.(
+              "[data-shell-navigation-overlay]"
+            );
+
+          if (overlay) {
+            event.preventDefault();
+            this.closeNavigation();
           }
         }
       );
@@ -781,15 +1274,6 @@ const coreReady =
           );
 
           this.closeNavigation();
-        }
-      );
-
-      window.addEventListener(
-        "atc:routeChanged",
-        event => {
-          this.updateRouteState(
-            event?.detail?.route
-          );
         }
       );
 
@@ -807,24 +1291,43 @@ const coreReady =
         }
       );
 
-      window.addEventListener(
+      [
         "aiw:dataChanged",
-        () => {
-          this.scheduleStatusRefresh();
-        }
-      );
-
-      window.addEventListener(
+        "aiw:dataUpdated",
         "aiw:storeChanged",
-        () => {
-          this.scheduleStatusRefresh();
+        "aiw:moduleRegistered",
+        "aiw:moduleRendered",
+        "aiw:appReady"
+      ].forEach(
+        eventName => {
+          window.addEventListener(
+            eventName,
+            () => {
+              this.scheduleStatusRefresh();
+            }
+          );
         }
       );
 
       window.addEventListener(
         "resize",
         () => {
-          if (window.innerWidth > 1024) {
+          if (
+            window.innerWidth >
+            1024
+          ) {
+            this.closeNavigation();
+          }
+        }
+      );
+
+      document.addEventListener(
+        "keydown",
+        event => {
+          if (
+            event.key ===
+            "Escape"
+          ) {
             this.closeNavigation();
           }
         }
@@ -848,22 +1351,33 @@ const coreReady =
             "function"
         ) {
           this._storeUnsubscribe =
-            store.subscribe(change => {
-              const type =
-                change?.type || "";
+            store.subscribe(
+              change => {
+                const type =
+                  String(
+                    change?.type ||
+                    change?.event ||
+                    change?.action ||
+                    ""
+                  );
 
-              if (
-                type.includes("settings")
-              ) {
-                this.applySettings();
+                if (
+                  type
+                    .toLowerCase()
+                    .includes(
+                      "settings"
+                    )
+                ) {
+                  this.applySettings();
+                }
+
+                this.scheduleStatusRefresh();
               }
-
-              this.scheduleStatusRefresh();
-            });
+            );
         }
       } catch (error) {
         console.warn(
-          "[AIW.Shell] Store subscription failed:",
+          "[AIW.Shell V5.0] Store subscription failed:",
           error
         );
       }
@@ -875,13 +1389,17 @@ const coreReady =
       );
 
       this._refreshTimer =
-        window.setTimeout(() => {
-          this.updatePlatformStatus();
-        }, 100);
+        window.setTimeout(
+          () => {
+            this.updatePlatformStatus();
+            this.updateRouteState();
+          },
+          100
+        );
     },
 
     /* =========================================================
-       MOBILE NAVIGATION
+       Mobile Navigation
     ========================================================= */
 
     toggleNavigation() {
@@ -904,6 +1422,18 @@ const coreReady =
         opened
       );
 
+      const button =
+        document.querySelector(
+          "[data-shell-menu-toggle]"
+        );
+
+      if (button) {
+        button.setAttribute(
+          "aria-expanded",
+          String(opened)
+        );
+      }
+
       return opened;
     },
 
@@ -920,10 +1450,22 @@ const coreReady =
       document.body.classList.remove(
         "aiw-navigation-open"
       );
+
+      const button =
+        document.querySelector(
+          "[data-shell-menu-toggle]"
+        );
+
+      if (button) {
+        button.setAttribute(
+          "aria-expanded",
+          "false"
+        );
+      }
     },
 
     /* =========================================================
-       METADATA
+       Metadata
     ========================================================= */
 
     registerMetadata() {
@@ -931,7 +1473,7 @@ const coreReady =
         this.getStore();
 
       if (!store) {
-        return;
+        return false;
       }
 
       try {
@@ -942,55 +1484,72 @@ const coreReady =
           store.setMetadata({
             shellVersion:
               this.version,
+
             shellArchitecture:
               "Enterprise Application Shell",
+
+            shellNavigationCount:
+              this.getNavigationItems()
+                .length,
+
             lastShellInitialization:
               new Date().toISOString()
           });
+
+          return true;
         }
       } catch (error) {
         console.warn(
-          "[AIW.Shell] Metadata registration skipped:",
+          "[AIW.Shell V5.0] Metadata registration skipped:",
           error
         );
       }
+
+      return false;
     },
 
     /* =========================================================
-       RENDER HELPERS
+       Render Helpers
     ========================================================= */
 
     renderNavigation() {
-      const settings =
-        this.getSettings();
-
       const language =
-        settings.language === "en"
-          ? "en"
-          : "ar";
+        this.getLanguage();
 
-      return this.navigationItems
+      return this
+        .getNavigationItems()
         .map(item => `
           <button
             class="atc-icon-btn"
             type="button"
-            data-route="${item.id}"
-            aria-label="${
+            data-route="${this.escapeHTML(
+              item.id
+            )}"
+            aria-label="${this.escapeHTML(
               language === "en"
-                ? this.escapeHTML(item.labelEn)
-                : this.escapeHTML(item.label)
-            }"
+                ? item.titleEn
+                : item.title
+            )}"
           >
-            <span class="atc-nav-icon">
-              ${item.icon}
+            <span
+              class="atc-nav-icon"
+              aria-hidden="true"
+            >
+              ${this.escapeHTML(
+                item.icon
+              )}
             </span>
 
-            <span data-route-label="${item.id}">
-              ${
+            <span
+              data-route-label="${this.escapeHTML(
+                item.id
+              )}"
+            >
+              ${this.escapeHTML(
                 language === "en"
-                  ? this.escapeHTML(item.labelEn)
-                  : this.escapeHTML(item.label)
-              }
+                  ? item.titleEn
+                  : item.title
+              )}
             </span>
           </button>
         `)
@@ -998,16 +1557,47 @@ const coreReady =
     },
 
     render() {
-      const settings =
-        this.getSettings();
-
       const language =
-        settings.language === "en"
-          ? "en"
-          : "ar";
+        this.getLanguage();
 
       const status =
         this.getPlatformStatus();
+
+      const appConfig =
+        this.getAppConfig();
+
+      const appName =
+        appConfig.shortName ||
+        "AI Work";
+
+      const platformName =
+        appConfig.englishName ||
+        appConfig.name ||
+        "Enterprise Biometric Intelligence Platform";
+
+      const currentRoute =
+        this.getCurrentRoute();
+
+      const currentItem =
+        this.getNavigationItems()
+          .find(
+            item =>
+              item.id ===
+              currentRoute
+          );
+
+      const currentLabel =
+        currentItem
+          ? (
+              language === "en"
+                ? currentItem.titleEn
+                : currentItem.title
+            )
+          : (
+              language === "en"
+                ? "Dashboard"
+                : "الرئيسية"
+            );
 
       return `
         <div
@@ -1017,17 +1607,24 @@ const coreReady =
         >
           <header class="atc-topbar">
             <div class="atc-brand">
-              <div class="atc-logo">
+              <div
+                class="atc-logo"
+                aria-hidden="true"
+              >
                 AI
               </div>
 
               <div>
                 <strong>
-                  AI Work
+                  ${this.escapeHTML(
+                    appName
+                  )}
                 </strong>
 
                 <span>
-                  Enterprise Biometric Intelligence Platform
+                  ${this.escapeHTML(
+                    platformName
+                  )}
                 </span>
               </div>
             </div>
@@ -1036,12 +1633,21 @@ const coreReady =
               <div
                 class="atc-platform-status ${status.className}"
                 data-platform-status
+                data-health="${status.health}"
+                data-core-ready="${status.coreReady}"
                 title="Platform Health ${status.health}%"
               >
-                <span class="atc-status-dot"></span>
+                <span
+                  class="atc-status-dot"
+                  aria-hidden="true"
+                ></span>
 
                 <span data-platform-health-label>
-                  ${status.label}
+                  ${
+                    language === "en"
+                      ? status.labelEn
+                      : status.label
+                  }
                 </span>
 
                 <strong data-platform-health-value>
@@ -1055,7 +1661,12 @@ const coreReady =
                 class="atc-icon-btn"
                 type="button"
                 data-shell-menu-toggle
-                aria-label="فتح قائمة التنقل"
+                aria-label="${
+                  language === "en"
+                    ? "Open navigation"
+                    : "فتح قائمة التنقل"
+                }"
+                aria-expanded="false"
               >
                 ☰
               </button>
@@ -1065,6 +1676,11 @@ const coreReady =
                 id="atcLangBtn"
                 type="button"
                 data-language-toggle
+                aria-label="${
+                  language === "en"
+                    ? "Switch to Arabic"
+                    : "التبديل إلى الإنجليزية"
+                }"
               >
                 ${
                   language === "en"
@@ -1077,12 +1693,27 @@ const coreReady =
 
           <nav
             class="atc-shell-navigation"
-            aria-label="التنقل الرئيسي"
+            aria-label="${
+              language === "en"
+                ? "Main navigation"
+                : "التنقل الرئيسي"
+            }"
           >
             <div class="atc-shell-navigation-inner">
               ${this.renderNavigation()}
             </div>
           </nav>
+
+          <button
+            class="atc-shell-navigation-overlay"
+            type="button"
+            data-shell-navigation-overlay
+            aria-label="${
+              language === "en"
+                ? "Close navigation"
+                : "إغلاق قائمة التنقل"
+            }"
+          ></button>
 
           <div class="atc-shell-context">
             <span>
@@ -1090,11 +1721,9 @@ const coreReady =
             </span>
 
             <strong data-current-page-label>
-              ${
-                language === "en"
-                  ? "Dashboard"
-                  : "الرئيسية"
-              }
+              ${this.escapeHTML(
+                currentLabel
+              )}
             </strong>
           </div>
 
@@ -1108,17 +1737,27 @@ const coreReady =
           <footer class="atc-footer">
             <div>
               <strong>
-                Enterprise Biometric Intelligence Platform
+                ${this.escapeHTML(
+                  platformName
+                )}
               </strong>
 
               <span>
-                AI Work · Version ${this.version}
+                ${this.escapeHTML(
+                  appName
+                )}
+                · Shell V${this.version}
               </span>
             </div>
 
             <div class="aiw-global-credit">
-              <span>Designed &amp; Developed by</span>
-              <strong>يوسف الحوسني</strong>
+              <span>
+                Designed &amp; Developed by
+              </span>
+
+              <strong>
+                يوسف الحوسني
+              </strong>
             </div>
           </footer>
         </div>
@@ -1136,28 +1775,82 @@ const coreReady =
         return false;
       }
 
+      const existingShell =
+        target.querySelector?.(
+          ":scope > [data-aiw-shell]"
+        );
+
+      if (existingShell) {
+        this.root = target;
+        this.cacheElements();
+        this.init(target);
+
+        return true;
+      }
+
       target.innerHTML =
         this.render();
 
       this.root = target;
+      this._mountedByShell = true;
+
       this.cacheElements();
       this.init(target);
       this.updateRouteState();
       this.updatePlatformStatus();
 
-      window.dispatchEvent(
-        new CustomEvent(
-          "aiw:shellMounted",
-          {
-            detail: {
-              version:
-                this.version
-            }
-          }
-        )
+      const app =
+        this.getApp();
+
+      if (
+        app &&
+        !app.main
+      ) {
+        app.main =
+          this.main;
+      }
+
+      this.emit(
+        "aiw:shellMounted",
+        {
+          version:
+            this.version,
+
+          mainFound:
+            Boolean(
+              this.main
+            ),
+
+          timestamp:
+            new Date().toISOString()
+        }
       );
 
       return true;
+    },
+
+    emit(name, detail = {}) {
+      if (!name) return false;
+
+      try {
+        window.dispatchEvent(
+          new CustomEvent(
+            name,
+            {
+              detail
+            }
+          )
+        );
+
+        return true;
+      } catch (error) {
+        console.warn(
+          `[AIW.Shell V5.0] Event "${name}" failed:`,
+          error
+        );
+
+        return false;
+      }
     },
 
     escapeHTML(value) {
@@ -1170,10 +1863,10 @@ const coreReady =
     },
 
     /* =========================================================
-       CLEANUP
+       Cleanup
     ========================================================= */
 
-    destroy() {
+    destroy(options = {}) {
       window.clearTimeout(
         this._refreshTimer
       );
@@ -1186,30 +1879,34 @@ const coreReady =
           this._storeUnsubscribe();
         } catch (error) {
           console.warn(
-            "[AIW.Shell] Store unsubscribe failed:",
+            "[AIW.Shell V5.0] Store unsubscribe failed:",
             error
           );
         }
       }
 
+      if (
+        options.remove === true &&
+        this._mountedByShell &&
+        this.root
+      ) {
+        this.root.innerHTML =
+          "";
+      }
+
       this._storeUnsubscribe = null;
+      this._refreshTimer = null;
       this._initialized = false;
+      this._mountedByShell = false;
       this.root = null;
       this.main = null;
     }
   };
 
   /* =========================================================
-     GLOBAL REFERENCES
+     Global References
   ========================================================= */
 
   AIW.Shell = Shell;
-
-  /*
-   * Legacy compatibility.
-   * Existing index files may still call:
-   * ATCShell.render()
-   * ATCShell.mount()
-   */
   window.ATCShell = Shell;
 })();
