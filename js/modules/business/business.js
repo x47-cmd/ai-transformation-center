@@ -1,16 +1,24 @@
 /* =========================================================
-   AI Work - Business Case Center V2.1
+   AI Work - Business Case Center V5.0
    Enterprise Biometric AI Feasibility Center
+   Store V2.2 Native Architecture
 
-   Updates:
-   - Enterprise Biometric Intelligence scope
-   - Central AIW.Store integration
-   - Persistent business cases
-   - Automatic project and idea linking
-   - Dynamic investment calculations
-   - Cross-page synchronization
-   - CRUD-ready business case management
-   - No UI design changes
+   File Path:
+   js/modules/business/business.js
+
+   Features:
+   - AIW.Store V2.2 as Single Source of Truth
+   - No internal default business-case seeding
+   - Business cases created from real ideas or projects
+   - Idea / project source traceability
+   - Duplicate business-case prevention
+   - Human-in-the-Loop approval workflow
+   - Persistent cost, value, budget and benefit data
+   - Dynamic feasibility, ROI and investment scores
+   - Automatic idea-to-project link synchronization
+   - Business-case details and create/edit modals
+   - Cross-page Store synchronization
+   - Existing core UI design preserved
 ========================================================= */
 
 window.AIW = window.AIW || {};
@@ -20,576 +28,254 @@ AIW.Modules.business = {
   id: "business",
   title: "الجدوى",
   icon: "💰",
+  version: "5.0.0",
 
   _container: null,
-  _syncBound: false,
-  _seedChecked: false,
+  _unsubscribeStore: null,
+  _refreshTimer: null,
+  _eventsBound: false,
+  _selectedCaseId: null,
+  _activeModal: null,
 
   /* =======================================================
-     Default Business Cases
-
-     These cases are aligned with the Enterprise Biometric
-     Intelligence Platform instead of general AI projects.
+     Constants
   ======================================================= */
 
-  defaultCases: [
-    {
-      id: 1,
-      projectId: 6,
-      ideaTitle:
-        "Biometric Registration Quality Monitor",
+  STATUS: {
+    DRAFT: "draft",
+    UNDER_REVIEW: "under-review",
+    APPROVED: "approved",
+    REJECTED: "rejected",
+    ARCHIVED: "archived"
+  },
 
-      title:
-        "مراقبة جودة التسجيلات البيومترية",
-
-      englishTitle:
-        "Biometric Registration Quality Monitor",
-
-      type: "Quick Win",
-      cost: 240000,
-      value: 780000,
-      duration: "3-5 أشهر",
-      risk: "منخفضة",
-      readiness: 86,
-      priority: "عالية",
-      department: "الأنظمة البيومترية",
-      status: "proposed",
-
-      description:
-        "إنشاء لوحة ذكية لمراقبة جودة التسجيلات الجديدة واكتشاف الحالات منخفضة الجودة قبل تأثيرها على المطابقة.",
-
-      benefits: [
-        "رفع جودة التسجيل من المصدر",
-        "تقليل التصحيح اليدوي",
-        "خفض حالات فشل المطابقة",
-        "تحسين أداء الأجهزة والمواقع"
-      ]
-    },
-
-    {
-      id: 2,
-      projectId: 8,
-      ideaTitle:
-        "Registration Error Intelligence Dashboard",
-
-      title:
-        "لوحة ذكاء أخطاء التسجيل",
-
-      englishTitle:
-        "Registration Error Intelligence Dashboard",
-
-      type: "Quick Win",
-      cost: 220000,
-      value: 720000,
-      duration: "3-4 أشهر",
-      risk: "منخفضة",
-      readiness: 90,
-      priority: "عالية",
-      department:
-        "التحليلات والتقارير التنفيذية",
-      status: "proposed",
-
-      description:
-        "لوحة تنفيذية لتحليل أخطاء التسجيل حسب الجهاز والموقع والمستخدم والفترة ونوع العملية.",
-
-      benefits: [
-        "تحديد أكثر الأخطاء تكرارًا",
-        "تسريع معالجة الحالات",
-        "دعم تحليل السبب الجذري",
-        "رفع وضوح الأداء التشغيلي"
-      ]
-    },
-
-    {
-      id: 3,
-      projectId: 9,
-      ideaTitle:
-        "Privilege Usage Analytics",
-
-      title:
-        "تحليل استخدام الصلاحيات",
-
-      englishTitle:
-        "Privilege Usage Analytics",
-
-      type: "Quick Win",
-      cost: 280000,
-      value: 920000,
-      duration: "3-5 أشهر",
-      risk: "منخفضة",
-      readiness: 84,
-      priority: "عالية",
-      department:
-        "المستخدمون والصلاحيات",
-      status: "proposed",
-
-      description:
-        "تحليل استخدام الصلاحيات الحساسة واكتشاف الصلاحيات غير المستخدمة أو الأعلى من الحاجة التشغيلية.",
-
-      benefits: [
-        "تقليل الصلاحيات غير الضرورية",
-        "رفع الامتثال",
-        "دعم مبدأ أقل صلاحية",
-        "تسهيل المراجعة والتدقيق"
-      ]
-    },
-
-    {
-      id: 4,
-      projectId: 10,
-      ideaTitle:
-        "Long Session Anomaly Detection",
-
-      title:
-        "كشف الجلسات الطويلة غير الطبيعية",
-
-      englishTitle:
-        "Long Session Anomaly Detection",
-
-      type: "Quick Win",
-      cost: 210000,
-      value: 650000,
-      duration: "3-4 أشهر",
-      risk: "منخفضة",
-      readiness: 82,
-      priority: "عالية",
-      department:
-        "المستخدمون والصلاحيات",
-      status: "proposed",
-
-      description:
-        "مراقبة مدة الجلسات واكتشاف الاستخدام غير المعتاد مقارنة بنمط المستخدم والموقع.",
-
-      benefits: [
-        "كشف مبكر للاستخدام غير الطبيعي",
-        "تعزيز الرقابة على الحسابات",
-        "تقليل احتمالية مشاركة الحساب",
-        "تحسين إجراءات المراجعة"
-      ]
-    },
-
-    {
-      id: 5,
-      projectId: 5,
-      ideaTitle:
-        "Airport Biometric Operations Dashboard",
-
-      title:
-        "لوحة العمليات البيومترية بالمطارات",
-
-      englishTitle:
-        "Airport Biometric Operations Dashboard",
-
-      type: "Quick Win",
-      cost: 360000,
-      value: 1250000,
-      duration: "3-4 أشهر",
-      risk: "منخفضة",
-      readiness: 88,
-      priority: "عالية",
-      department:
-        "التحليلات والتقارير التنفيذية",
-      status: "proposed",
-
-      description:
-        "لوحة موحدة لمقارنة جودة التسجيلات والأخطاء واستخدام الأنظمة والبوابات حسب المطار والموقع.",
-
-      benefits: [
-        "رؤية تشغيلية موحدة",
-        "تسريع اتخاذ القرار",
-        "مقارنة المواقع والمطارات",
-        "رفع كفاءة توزيع الجهود"
-      ]
-    },
-
-    {
-      id: 6,
-      projectId: 1,
-      ideaTitle:
-        "Biometric Data Integrity Engine",
-
-      title:
-        "محرك سلامة البيانات البيومترية",
-
-      englishTitle:
-        "Biometric Data Integrity Engine",
-
-      type: "Strategic",
-      cost: 1350000,
-      value: 4600000,
-      duration: "6-9 أشهر",
-      risk: "متوسطة",
-      readiness: 72,
-      priority: "عالية",
-      department: "الأنظمة البيومترية",
-      status: "planned",
-
-      description:
-        "محرك ذكاء اصطناعي لاكتشاف السجلات المتعارضة والتسجيلات الخاطئة والحالات التي تحتاج مراجعة.",
-
-      benefits: [
-        "رفع سلامة قواعد البيانات",
-        "كشف التعارضات مبكرًا",
-        "تقليل الأخطاء التشغيلية",
-        "منح درجة ثقة لكل سجل"
-      ]
-    },
-
-    {
-      id: 7,
-      projectId: 2,
-      ideaTitle:
-        "Credential Misuse Detection Engine",
-
-      title:
-        "محرك كشف إساءة استخدام الحسابات",
-
-      englishTitle:
-        "Credential Misuse Detection Engine",
-
-      type: "Strategic",
-      cost: 1450000,
-      value: 5100000,
-      duration: "6-8 أشهر",
-      risk: "متوسطة",
-      readiness: 70,
-      priority: "عالية",
-      department:
-        "المستخدمون والصلاحيات",
-      status: "planned",
-
-      description:
-        "محرك يحلل أنماط استخدام الحسابات والأجهزة والمواقع والجلسات لاكتشاف الاستخدام غير الاعتيادي.",
-
-      benefits: [
-        "تعزيز الرقابة الأمنية",
-        "كشف مشاركة الحسابات",
-        "تقليل إساءة استخدام الصلاحيات",
-        "تسريع التحقيق والمراجعة"
-      ]
-    },
-
-    {
-      id: 8,
-      projectId: 4,
-      ideaTitle:
-        "Smart Gate Performance Intelligence",
-
-      title:
-        "تحليل أداء البوابات الذكية",
-
-      englishTitle:
-        "Smart Gate Performance Intelligence",
-
-      type: "Strategic",
-      cost: 1100000,
-      value: 3800000,
-      duration: "6-8 أشهر",
-      risk: "متوسطة",
-      readiness: 68,
-      priority: "عالية",
-      department: "البوابات الذكية",
-      status: "planned",
-
-      description:
-        "منصة تحليل أداء البوابات حسب عدد العمليات وزمن العبور والأخطاء ونسبة النجاح والتوفر.",
-
-      benefits: [
-        "رفع جاهزية البوابات",
-        "تحسين زمن عبور المسافر",
-        "اكتشاف الانخفاض غير الطبيعي",
-        "تحسين تخطيط التشغيل"
-      ]
-    },
-
-    {
-      id: 9,
-      projectId: 14,
-      ideaTitle:
-        "Smart Gate Predictive Maintenance",
-
-      title:
-        "الصيانة التنبؤية للبوابات الذكية",
-
-      englishTitle:
-        "Smart Gate Predictive Maintenance",
-
-      type: "Transformational",
-      cost: 2400000,
-      value: 7900000,
-      duration: "8-10 أشهر",
-      risk: "عالية",
-      readiness: 52,
-      priority: "عالية",
-      department: "البوابات الذكية",
-      status: "strategic",
-
-      description:
-        "استخدام البيانات التشغيلية والأعطال السابقة للتنبؤ باحتمالية تعطل البوابات قبل توقفها.",
-
-      benefits: [
-        "تقليل التوقف المفاجئ",
-        "خفض تكاليف الأعطال",
-        "تحسين جدولة الصيانة",
-        "رفع استمرارية الخدمة"
-      ]
-    },
-
-    {
-      id: 10,
-      projectId: 15,
-      ideaTitle:
-        "Executive Biometric Intelligence Dashboard",
-
-      title:
-        "لوحة القيادة التنفيذية للأنظمة البيومترية",
-
-      englishTitle:
-        "Executive Biometric Intelligence Dashboard",
-
-      type: "Transformational",
-      cost: 1850000,
-      value: 6800000,
-      duration: "5-7 أشهر",
-      risk: "متوسطة",
-      readiness: 74,
-      priority: "عالية",
-      department:
-        "التحليلات والتقارير التنفيذية",
-      status: "strategic",
-
-      description:
-        "لوحة تنفيذية موحدة لربط جودة التسجيلات والبوابات والمستخدمين والصلاحيات والمخاطر والحوكمة.",
-
-      benefits: [
-        "توحيد الرؤية التنفيذية",
-        "رفع سرعة اتخاذ القرار",
-        "ربط المؤشرات بالمخاطر",
-        "تحويل البيانات إلى توصيات"
-      ]
-    }
-  ],
+  TYPE: {
+    QUICK_WIN: "quick-win",
+    STRATEGIC: "strategic",
+    TRANSFORMATIONAL: "transformational"
+  },
 
   /* =======================================================
-     Central Data Reader
+     Store Access
   ======================================================= */
 
-  getSharedData() {
+  getStore() {
+    return window.AIW?.Store || null;
+  },
+
+  getState() {
+    const store = this.getStore();
+
     try {
-      if (
-        window.AIW?.Store &&
-        typeof window.AIW.Store.getState ===
-          "function"
-      ) {
-        return window.AIW.Store.getState() || {};
+      if (store && typeof store.getState === "function") {
+        return store.getState() || {};
       }
 
-      if (
-        window.AIW?.Store &&
-        typeof window.AIW.Store.getData ===
-          "function"
-      ) {
-        return window.AIW.Store.getData() || {};
+      if (store && typeof store.getData === "function") {
+        return store.getData() || {};
       }
-
-      return window.AIW?.Data || {};
     } catch (error) {
-      console.warn(
-        "AI Work Business: Unable to read shared data.",
-        error
-      );
-
-      return window.AIW?.Data || {};
+      console.warn("[AIW.Business] Unable to read Store state:", error);
     }
+
+    return {};
   },
 
-  /* =======================================================
-     Business Center Initialization
-  ======================================================= */
+  getRawCases() {
+    const store = this.getStore();
 
-  ensureBusinessSeeded() {
-    if (this._seedChecked) return;
-
-    this._seedChecked = true;
-
-    const data = this.getSharedData();
-
-    const hasBusinessCenter =
-      data.businessCenter &&
-      typeof data.businessCenter === "object" &&
-      Array.isArray(data.businessCenter.cases);
-
-    if (hasBusinessCenter) {
-      return;
-    }
-
-    const now = new Date().toISOString();
-
-    const businessCenter = {
-      cases: this.clone(
-        this.defaultCases
-      ).map((item) => ({
-        ...item,
-        createdAt: now,
-        updatedAt: now
-      })),
-
-      settings: {
-        currency: "AED",
-        reportingPeriod: "سنوي",
-        minimumReadiness: 60,
-        minimumROI: 100,
-        quickWinDurationMonths: 5,
-        includeInactiveCases: false
-      },
-
-      summary: {
-        manualTotalCost: null,
-        manualTotalValue: null
-      },
-
-      meta: {
-        createdAt: now,
-        updatedAt: now
+    try {
+      if (store && typeof store.getCollection === "function") {
+        return store.getCollection("businessCases");
       }
-    };
-
-    if (
-      window.AIW?.Store &&
-      typeof window.AIW.Store.update ===
-        "function"
-    ) {
-      window.AIW.Store.update(
-        "businessCenter",
-        businessCenter,
-        {
-          event: "aiw:businessUpdated"
-        }
-      );
-
-      return;
+    } catch (error) {
+      console.warn("[AIW.Business] Unable to read business cases:", error);
     }
 
-    if (window.AIW?.Data) {
-      window.AIW.Data.businessCenter =
-        businessCenter;
-    }
+    const state = this.getState();
+
+    return Array.isArray(state.businessCases)
+      ? state.businessCases.filter(item => !item?.deletedAt)
+      : [];
   },
 
-  getBusinessCenter() {
-    const data = this.getSharedData();
+  getIdeas() {
+    const store = this.getStore();
 
-    const source =
-      data.businessCenter &&
-      typeof data.businessCenter === "object"
-        ? data.businessCenter
-        : {};
+    try {
+      if (store && typeof store.getIdeas === "function") {
+        return store.getIdeas();
+      }
+    } catch (error) {
+      console.warn("[AIW.Business] Unable to read ideas:", error);
+    }
+
+    const state = this.getState();
+
+    return Array.isArray(state.ideas)
+      ? state.ideas.filter(item => !item?.deletedAt)
+      : [];
+  },
+
+  getProjects() {
+    const store = this.getStore();
+
+    try {
+      if (store && typeof store.getProjects === "function") {
+        return store.getProjects({
+          includeArchived: true
+        });
+      }
+    } catch (error) {
+      console.warn("[AIW.Business] Unable to read projects:", error);
+    }
+
+    const state = this.getState();
+
+    return Array.isArray(state.projects)
+      ? state.projects.filter(item => !item?.deletedAt)
+      : [];
+  },
+
+  getSettings() {
+    const store = this.getStore();
+
+    try {
+      if (store && typeof store.getSettings === "function") {
+        const settings = store.getSettings() || {};
+
+        return {
+          currency:
+            settings.currency ||
+            settings.businessCase?.currency ||
+            "AED",
+
+          requireApproval:
+            settings.businessCase?.requireApproval !== false,
+
+          minimumReadiness:
+            this.normalizePercent(
+              settings.businessCase?.minimumReadiness,
+              60
+            ),
+
+          minimumScore:
+            this.normalizePercent(
+              settings.businessCase?.minimumScore,
+              60
+            ),
+
+          minimumROI:
+            this.toSafeNumber(
+              settings.businessCase?.minimumROI,
+              0
+            )
+        };
+      }
+    } catch (error) {
+      console.warn("[AIW.Business] Unable to read settings:", error);
+    }
 
     return {
-      cases: Array.isArray(source.cases)
-        ? source.cases
-            .map((item, index) =>
-              this.normalizeCase(item, index)
-            )
-            .filter(Boolean)
-        : this.clone(this.defaultCases),
-
-      settings: {
-        currency:
-          source.settings?.currency ||
-          "AED",
-
-        reportingPeriod:
-          source.settings?.reportingPeriod ||
-          "سنوي",
-
-        minimumReadiness:
-          this.normalizePercent(
-            source.settings?.minimumReadiness,
-            60
-          ),
-
-        minimumROI:
-          this.toSafeNumber(
-            source.settings?.minimumROI,
-            100
-          ),
-
-        quickWinDurationMonths:
-          this.toSafeNumber(
-            source.settings
-              ?.quickWinDurationMonths,
-            5
-          ),
-
-        includeInactiveCases:
-          source.settings
-            ?.includeInactiveCases === true
-      },
-
-      summary: {
-        manualTotalCost:
-          this.toNullableNumber(
-            source.summary?.manualTotalCost
-          ),
-
-        manualTotalValue:
-          this.toNullableNumber(
-            source.summary?.manualTotalValue
-          )
-      },
-
-      meta: {
-        createdAt:
-          source.meta?.createdAt || null,
-
-        updatedAt:
-          source.meta?.updatedAt || null
-      }
+      currency: "AED",
+      requireApproval: true,
+      minimumReadiness: 60,
+      minimumScore: 60,
+      minimumROI: 0
     };
   },
 
-  normalizeCase(item, index = 0) {
-    if (
-      !item ||
-      typeof item !== "object"
-    ) {
-      return null;
-    }
+  /* =======================================================
+     Normalization
+  ======================================================= */
+
+  normalizeCase(item = {}, index = 0) {
+    const now = new Date().toISOString();
+
+    const sourceType =
+      item.sourceType ||
+      (
+        item.projectId
+          ? "project"
+          : item.ideaId
+            ? "idea"
+            : "manual"
+      );
+
+    const status = this.normalizeStatus(
+      item.businessStatus ||
+      item.status ||
+      this.STATUS.DRAFT
+    );
 
     return {
       ...item,
 
       id:
-        item.id ??
-        index + 1,
+        item.id ||
+        `business-case-${index + 1}`,
+
+      sourceType,
+
+      ideaId:
+        item.ideaId ||
+        item.sourceIdeaId ||
+        null,
 
       projectId:
-        item.projectId ?? null,
-
-      ideaTitle:
-        item.ideaTitle ||
-        item.englishTitle ||
-        "",
+        item.projectId ||
+        null,
 
       title:
         item.title ||
-        "دراسة جدوى غير مسماة",
+        item.name ||
+        "دراسة جدوى جديدة",
 
-      englishTitle:
+      titleEn:
+        item.titleEn ||
         item.englishTitle ||
-        item.english ||
+        item.nameEn ||
         "",
 
+      description:
+        item.description ||
+        item.desc ||
+        "",
+
+      objective:
+        item.objective ||
+        "",
+
+      department:
+        item.department ||
+        "غير مصنف",
+
+      owner:
+        item.owner ||
+        null,
+
+      sponsor:
+        item.sponsor ||
+        null,
+
       type:
-        item.type ||
-        "Strategic",
+        this.normalizeType(
+          item.type ||
+          item.investmentType ||
+          this.TYPE.STRATEGIC
+        ),
+
+      priority:
+        item.priority ||
+        "medium",
 
       cost:
         Math.max(
           0,
           this.toSafeNumber(
-            item.cost,
+            item.cost ??
+            item.estimatedCost ??
+            item.budget?.estimated,
             0
           )
         ),
@@ -598,364 +284,998 @@ AIW.Modules.business = {
         Math.max(
           0,
           this.toSafeNumber(
-            item.value,
+            item.value ??
+            item.expectedValue ??
+            item.expectedBenefit,
             0
           )
         ),
 
       duration:
         item.duration ||
-        "غير محددة",
-
-      risk:
-        item.risk ||
-        "متوسطة",
+        item.timeline ||
+        "",
 
       readiness:
         this.normalizePercent(
-          item.readiness,
+          item.readiness ??
+          item.deliveryReadiness ??
+          item.score,
           0
         ),
 
-      priority:
-        item.priority ||
-        "متوسطة",
+      dataReadiness:
+        this.normalizePercent(
+          item.dataReadiness,
+          item.readiness ?? 0
+        ),
 
-      department:
-        item.department ||
-        "غير مصنف",
+      technicalReadiness:
+        this.normalizePercent(
+          item.technicalReadiness,
+          item.readiness ?? 0
+        ),
 
-      status:
-        item.status ||
-        "proposed",
+      governanceReadiness:
+        this.normalizePercent(
+          item.governanceReadiness,
+          item.readiness ?? 0
+        ),
 
-      description:
-        item.description ||
-        item.desc ||
-        "",
+      operationalImpact:
+        this.normalizePercent(
+          item.operationalImpact ??
+          item.impact,
+          50
+        ),
+
+      riskLevel:
+        item.riskLevel ||
+        item.risk ||
+        "medium",
 
       benefits:
-        Array.isArray(item.benefits)
-          ? item.benefits
-          : []
+        this.toArray(
+          item.benefits
+        ),
+
+      expectedOutcomes:
+        this.toArray(
+          item.expectedOutcomes
+        ),
+
+      assumptions:
+        this.toArray(
+          item.assumptions
+        ),
+
+      dependencies:
+        this.toArray(
+          item.dependencies
+        ),
+
+      risks:
+        this.toArray(
+          item.risks
+        ),
+
+      kpis:
+        this.toArray(
+          item.kpis
+        ),
+
+      status,
+      businessStatus: status,
+
+      approval: {
+        required:
+          item.approval?.required !== false,
+
+        status:
+          item.approval?.status ||
+          (
+            status === this.STATUS.APPROVED
+              ? "approved"
+              : status === this.STATUS.REJECTED
+                ? "rejected"
+                : status === this.STATUS.UNDER_REVIEW
+                  ? "pending"
+                  : "not-submitted"
+          ),
+
+        submittedAt:
+          item.approval?.submittedAt ||
+          null,
+
+        submittedBy:
+          item.approval?.submittedBy ||
+          null,
+
+        decidedAt:
+          item.approval?.decidedAt ||
+          null,
+
+        decidedBy:
+          item.approval?.decidedBy ||
+          null,
+
+        note:
+          item.approval?.note ||
+          ""
+      },
+
+      decisionHistory:
+        this.toArray(
+          item.decisionHistory ||
+          item.history
+        ),
+
+      createdAt:
+        item.createdAt ||
+        now,
+
+      updatedAt:
+        item.updatedAt ||
+        now,
+
+      deletedAt:
+        item.deletedAt ?? null
+    };
+  },
+
+  getCases() {
+    const ideas = this.getIdeas();
+    const projects = this.getProjects();
+
+    return this.getRawCases()
+      .map((item, index) =>
+        this.enrichCase(
+          this.normalizeCase(item, index),
+          ideas,
+          projects
+        )
+      )
+      .filter(item => !item.deletedAt);
+  },
+
+  enrichCase(businessCase, ideas, projects) {
+    const linkedIdea =
+      businessCase.ideaId
+        ? ideas.find(
+            idea =>
+              String(idea?.id) ===
+              String(businessCase.ideaId)
+          )
+        : null;
+
+    const linkedProject =
+      businessCase.projectId
+        ? projects.find(
+            project =>
+              String(project?.id) ===
+              String(businessCase.projectId)
+          )
+        : (
+            businessCase.ideaId
+              ? projects.find(
+                  project =>
+                    String(project?.sourceIdeaId) ===
+                    String(businessCase.ideaId)
+                )
+              : null
+          );
+
+    const readinessValues = [
+      businessCase.readiness,
+      linkedIdea?.readiness,
+      linkedIdea?.decisionScore,
+      linkedProject?.readiness,
+      linkedProject?.progress
+    ]
+      .map(value => Number(value))
+      .filter(Number.isFinite);
+
+    const linkedReadiness = readinessValues.length
+      ? Math.round(
+          readinessValues.reduce(
+            (sum, value) => sum + value,
+            0
+          ) / readinessValues.length
+        )
+      : businessCase.readiness;
+
+    return {
+      ...businessCase,
+
+      linkedIdea,
+      linkedProject,
+
+      ideaId:
+        businessCase.ideaId ||
+        linkedProject?.sourceIdeaId ||
+        null,
+
+      projectId:
+        businessCase.projectId ||
+        linkedProject?.id ||
+        null,
+
+      department:
+        businessCase.department !== "غير مصنف"
+          ? businessCase.department
+          : (
+              linkedProject?.department ||
+              linkedIdea?.department ||
+              "غير مصنف"
+            ),
+
+      priority:
+        businessCase.priority !== "medium"
+          ? businessCase.priority
+          : (
+              linkedProject?.priority ||
+              linkedIdea?.priority ||
+              "medium"
+            ),
+
+      duration:
+        businessCase.duration ||
+        linkedProject?.duration ||
+        linkedIdea?.duration ||
+        "",
+
+      readiness:
+        this.normalizePercent(
+          linkedReadiness,
+          businessCase.readiness
+        )
     };
   },
 
   /* =======================================================
-     Business Center Updates
+     Source Eligibility
   ======================================================= */
 
-  updateBusinessCenter(changes = {}) {
-    if (
-      !changes ||
-      typeof changes !== "object"
-    ) {
-      return false;
-    }
+  getEligibleSources() {
+    const cases = this.getCases();
+    const ideas = this.getIdeas();
+    const projects = this.getProjects();
 
-    const current =
-      this.getBusinessCenter();
-
-    const updated = {
-      ...current,
-      ...changes,
-
-      settings: {
-        ...current.settings,
-        ...(changes.settings || {})
-      },
-
-      summary: {
-        ...current.summary,
-        ...(changes.summary || {})
-      },
-
-      meta: {
-        ...current.meta,
-        updatedAt:
-          new Date().toISOString()
-      }
-    };
-
-    if (
-      window.AIW?.Store &&
-      typeof window.AIW.Store.update ===
-        "function"
-    ) {
-      return window.AIW.Store.update(
-        "businessCenter",
-        updated,
-        {
-          event: "aiw:businessUpdated"
-        }
-      );
-    }
-
-    if (window.AIW?.Data) {
-      window.AIW.Data.businessCenter =
-        updated;
-
-      window.dispatchEvent(
-        new CustomEvent(
-          "aiw:businessUpdated",
-          {
-            detail: {
-              businessCenter: updated
-            }
-          }
-        )
-      );
-
-      return true;
-    }
-
-    return false;
-  },
-
-  addCase(item = {}) {
-    const center =
-      this.getBusinessCenter();
-
-    const cases = [...center.cases];
-    const now = new Date().toISOString();
-
-    const newCase = this.normalizeCase(
-      {
-        id: this.getNextId(cases),
-        projectId:
-          item.projectId ?? null,
-
-        ideaTitle:
-          item.ideaTitle ||
-          item.englishTitle ||
-          "",
-
-        title:
-          item.title ||
-          "دراسة جدوى جديدة",
-
-        englishTitle:
-          item.englishTitle ||
-          "",
-
-        type:
-          item.type ||
-          "Strategic",
-
-        cost:
-          item.cost ?? 0,
-
-        value:
-          item.value ?? 0,
-
-        duration:
-          item.duration ||
-          "غير محددة",
-
-        risk:
-          item.risk ||
-          "متوسطة",
-
-        readiness:
-          item.readiness ?? 0,
-
-        priority:
-          item.priority ||
-          "متوسطة",
-
-        department:
-          item.department ||
-          "غير مصنف",
-
-        status:
-          item.status ||
-          "proposed",
-
-        description:
-          item.description ||
-          "",
-
-        benefits:
-          Array.isArray(
-            item.benefits
-          )
-            ? item.benefits
-            : [],
-
-        createdAt: now,
-        updatedAt: now
-      },
-      cases.length
+    const usedIdeaIds = new Set(
+      cases
+        .map(item => item.ideaId)
+        .filter(Boolean)
+        .map(String)
     );
 
-    cases.push(newCase);
-
-    this.updateBusinessCenter({
+    const usedProjectIds = new Set(
       cases
+        .map(item => item.projectId)
+        .filter(Boolean)
+        .map(String)
+    );
+
+    const eligibleIdeas = ideas.filter(idea => {
+      if (idea?.deletedAt) return false;
+      if (usedIdeaIds.has(String(idea.id))) return false;
+
+      return true;
     });
 
-    return newCase;
+    const eligibleProjects = projects.filter(project => {
+      if (project?.deletedAt) return false;
+      if (usedProjectIds.has(String(project.id))) return false;
+
+      if (
+        project.sourceIdeaId &&
+        usedIdeaIds.has(String(project.sourceIdeaId))
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+
+    return {
+      ideas: eligibleIdeas,
+      projects: eligibleProjects
+    };
+  },
+
+  hasCaseForIdea(ideaId) {
+    if (!ideaId) return false;
+
+    return this.getCases().some(
+      item =>
+        String(item.ideaId) === String(ideaId)
+    );
+  },
+
+  hasCaseForProject(projectId) {
+    if (!projectId) return false;
+
+    return this.getCases().some(
+      item =>
+        String(item.projectId) === String(projectId)
+    );
+  },
+
+  /* =======================================================
+     CRUD
+  ======================================================= */
+
+  createCase(payload = {}) {
+    const store = this.getStore();
+
+    if (!store) {
+      return {
+        success: false,
+        reason: "store-unavailable",
+        message: "مخزن البيانات غير متاح."
+      };
+    }
+
+    const sourceType =
+      payload.sourceType ||
+      (
+        payload.projectId
+          ? "project"
+          : payload.ideaId
+            ? "idea"
+            : "manual"
+      );
+
+    if (
+      payload.ideaId &&
+      this.hasCaseForIdea(payload.ideaId)
+    ) {
+      return {
+        success: false,
+        reason: "duplicate-idea-case",
+        message: "توجد دراسة جدوى مرتبطة بهذه الفكرة مسبقاً."
+      };
+    }
+
+    if (
+      payload.projectId &&
+      this.hasCaseForProject(payload.projectId)
+    ) {
+      return {
+        success: false,
+        reason: "duplicate-project-case",
+        message: "توجد دراسة جدوى مرتبطة بهذا المشروع مسبقاً."
+      };
+    }
+
+    const idea = payload.ideaId
+      ? this.getIdeas().find(
+          item =>
+            String(item.id) ===
+            String(payload.ideaId)
+        )
+      : null;
+
+    const project = payload.projectId
+      ? this.getProjects().find(
+          item =>
+            String(item.id) ===
+            String(payload.projectId)
+        )
+      : null;
+
+    const sourceIdea =
+      idea ||
+      (
+        project?.sourceIdeaId
+          ? this.getIdeas().find(
+              item =>
+                String(item.id) ===
+                String(project.sourceIdeaId)
+            )
+          : null
+      );
+
+    const now = new Date().toISOString();
+
+    const record = this.normalizeCase({
+      ...payload,
+
+      id:
+        payload.id ||
+        this.generateId("business-case"),
+
+      sourceType,
+
+      ideaId:
+        payload.ideaId ||
+        sourceIdea?.id ||
+        null,
+
+      projectId:
+        payload.projectId ||
+        project?.id ||
+        null,
+
+      title:
+        payload.title ||
+        project?.title ||
+        sourceIdea?.title ||
+        "دراسة جدوى جديدة",
+
+      titleEn:
+        payload.titleEn ||
+        project?.titleEn ||
+        sourceIdea?.titleEn ||
+        sourceIdea?.title ||
+        "",
+
+      description:
+        payload.description ||
+        project?.description ||
+        sourceIdea?.solution ||
+        sourceIdea?.description ||
+        "",
+
+      objective:
+        payload.objective ||
+        project?.objective ||
+        sourceIdea?.challenge ||
+        "",
+
+      department:
+        payload.department ||
+        project?.department ||
+        sourceIdea?.department ||
+        "غير مصنف",
+
+      priority:
+        payload.priority ||
+        project?.priority ||
+        sourceIdea?.priority ||
+        "medium",
+
+      duration:
+        payload.duration ||
+        project?.duration ||
+        sourceIdea?.duration ||
+        "",
+
+      readiness:
+        payload.readiness ??
+        project?.readiness ??
+        project?.progress ??
+        sourceIdea?.readiness ??
+        sourceIdea?.decisionScore ??
+        0,
+
+      riskLevel:
+        payload.riskLevel ||
+        project?.riskLevel ||
+        sourceIdea?.riskLevel ||
+        sourceIdea?.risk ||
+        "medium",
+
+      benefits:
+        payload.benefits?.length
+          ? payload.benefits
+          : (
+              project?.benefits ||
+              sourceIdea?.benefits ||
+              []
+            ),
+
+      kpis:
+        payload.kpis?.length
+          ? payload.kpis
+          : (
+              project?.kpis ||
+              sourceIdea?.kpis ||
+              []
+            ),
+
+      status:
+        payload.status ||
+        this.STATUS.DRAFT,
+
+      businessStatus:
+        payload.status ||
+        this.STATUS.DRAFT,
+
+      approval: {
+        required:
+          payload.approval?.required !== false,
+        status: "not-submitted",
+        submittedAt: null,
+        submittedBy: null,
+        decidedAt: null,
+        decidedBy: null,
+        note: ""
+      },
+
+      decisionHistory: [
+        {
+          id:
+            this.generateId("business-history"),
+
+          action:
+            "created",
+
+          sourceType,
+
+          ideaId:
+            payload.ideaId ||
+            sourceIdea?.id ||
+            null,
+
+          projectId:
+            payload.projectId ||
+            project?.id ||
+            null,
+
+          actor:
+            payload.actor ||
+            null,
+
+          createdAt: now
+        }
+      ],
+
+      createdAt: now,
+      updatedAt: now
+    });
+
+    let created = null;
+
+    try {
+      if (typeof store.add === "function") {
+        created = store.add(
+          "businessCases",
+          record
+        );
+      } else {
+        const current = this.getRawCases();
+
+        store.set(
+          "businessCases",
+          [record, ...current],
+          {
+            eventName:
+              "aiw:businessUpdated"
+          }
+        );
+
+        created = record;
+      }
+
+      this.emit("aiw:businessCaseCreated", {
+        businessCase: created
+      });
+
+      return {
+        success: true,
+        businessCase: created
+      };
+    } catch (error) {
+      console.error("[AIW.Business] Create failed:", error);
+
+      return {
+        success: false,
+        reason: "create-failed",
+        message: "تعذر إنشاء دراسة الجدوى."
+      };
+    }
   },
 
   updateCase(id, changes = {}) {
-    const center =
-      this.getBusinessCenter();
+    const store = this.getStore();
+    const current = this.getCases().find(
+      item =>
+        String(item.id) === String(id)
+    );
 
-    const caseIndex =
-      center.cases.findIndex(
-        (item) =>
-          String(item.id) === String(id)
-      );
-
-    if (caseIndex === -1) {
-      return false;
+    if (!store || !current) {
+      return {
+        success: false,
+        reason: "case-not-found",
+        message: "لم يتم العثور على دراسة الجدوى."
+      };
     }
 
-    const cases =
-      center.cases.map(
-        (item, index) => {
-          if (index !== caseIndex) {
-            return item;
-          }
-
-          return this.normalizeCase(
-            {
-              ...item,
-              ...changes,
-              id: item.id,
-              updatedAt:
-                new Date().toISOString()
-            },
-            index
-          );
-        }
-      );
-
-    this.updateBusinessCenter({
-      cases
+    const updatedPayload = this.normalizeCase({
+      ...current,
+      ...changes,
+      id: current.id,
+      linkedIdea: undefined,
+      linkedProject: undefined,
+      updatedAt: new Date().toISOString()
     });
 
-    return cases[caseIndex];
+    let updated = null;
+
+    try {
+      if (typeof store.update === "function") {
+        updated = store.update(
+          "businessCases",
+          id,
+          updatedPayload
+        );
+      } else {
+        const cases = this.getRawCases().map(item =>
+          String(item.id) === String(id)
+            ? updatedPayload
+            : item
+        );
+
+        store.set(
+          "businessCases",
+          cases,
+          {
+            eventName:
+              "aiw:businessUpdated"
+          }
+        );
+
+        updated = updatedPayload;
+      }
+
+      this.emit("aiw:businessCaseUpdated", {
+        businessCase: updated
+      });
+
+      return {
+        success: true,
+        businessCase: updated
+      };
+    } catch (error) {
+      console.error("[AIW.Business] Update failed:", error);
+
+      return {
+        success: false,
+        reason: "update-failed",
+        message: "تعذر تحديث دراسة الجدوى."
+      };
+    }
   },
 
   removeCase(id) {
-    const center =
-      this.getBusinessCenter();
+    const store = this.getStore();
+    const current = this.getCases().find(
+      item =>
+        String(item.id) === String(id)
+    );
 
-    const removedCase =
-      center.cases.find(
-        (item) =>
-          String(item.id) === String(id)
-      );
-
-    if (!removedCase) {
-      return false;
+    if (!store || !current) {
+      return {
+        success: false,
+        reason: "case-not-found",
+        message: "لم يتم العثور على دراسة الجدوى."
+      };
     }
 
-    const cases =
-      center.cases.filter(
-        (item) =>
-          String(item.id) !== String(id)
-      );
+    try {
+      let removed = false;
 
-    this.updateBusinessCenter({
-      cases
-    });
-
-    return removedCase;
-  },
-
-  /* =======================================================
-     Project and Idea Synchronization
-  ======================================================= */
-
-  getCasesWithLinkedData(cases) {
-    const data = this.getSharedData();
-
-    const projects =
-      Array.isArray(data.projects)
-        ? data.projects
-        : [];
-
-    const ideas =
-      Array.isArray(data.ideas)
-        ? data.ideas
-        : [];
-
-    return cases.map((businessCase) => {
-      const linkedProject =
-        projects.find(
-          (project) =>
-            businessCase.projectId !== null &&
-            String(project?.id) ===
-              String(
-                businessCase.projectId
-              )
-        ) ||
-        projects.find(
-          (project) =>
-            project?.englishTitle ===
-              businessCase.englishTitle ||
-            project?.title ===
-              businessCase.title
+      if (typeof store.remove === "function") {
+        removed = store.remove(
+          "businessCases",
+          id
+        );
+      } else {
+        const cases = this.getRawCases().filter(
+          item =>
+            String(item.id) !== String(id)
         );
 
-      const linkedIdea =
-        ideas.find(
-          (idea) =>
-            idea?.title ===
-              businessCase.ideaTitle ||
-            idea?.title ===
-              businessCase.englishTitle
+        store.set(
+          "businessCases",
+          cases,
+          {
+            eventName:
+              "aiw:businessUpdated"
+          }
         );
 
-      const linkedReadiness =
-        linkedProject
-          ? this.normalizePercent(
-              linkedProject.progress ??
-                linkedProject.readiness,
-              businessCase.readiness
-            )
-          : businessCase.readiness;
+        removed = true;
+      }
+
+      this.emit("aiw:businessCaseRemoved", {
+        id,
+        businessCase: current
+      });
 
       return {
-        ...businessCase,
-
-        readiness:
-          businessCase.manualReadiness !==
-          undefined &&
-          businessCase.manualReadiness !==
-            null
-            ? this.normalizePercent(
-                businessCase.manualReadiness,
-                linkedReadiness
-              )
-            : linkedReadiness,
-
-        priority:
-          linkedProject?.priority ||
-          linkedIdea?.priority ||
-          businessCase.priority,
-
-        department:
-          linkedProject?.department ||
-          linkedIdea?.department ||
-          businessCase.department,
-
-        duration:
-          linkedProject?.duration ||
-          linkedIdea?.duration ||
-          businessCase.duration,
-
-        risk:
-          linkedIdea?.riskLevel ||
-          businessCase.risk
+        success: Boolean(removed),
+        businessCase: current
       };
-    });
+    } catch (error) {
+      console.error("[AIW.Business] Remove failed:", error);
+
+      return {
+        success: false,
+        reason: "remove-failed",
+        message: "تعذر حذف دراسة الجدوى."
+      };
+    }
   },
 
   /* =======================================================
-     Financial Calculations
+     Approval Workflow
+  ======================================================= */
+
+  submitForApproval(id, options = {}) {
+    const current = this.getCases().find(
+      item =>
+        String(item.id) === String(id)
+    );
+
+    if (!current) {
+      return {
+        success: false,
+        reason: "case-not-found",
+        message: "لم يتم العثور على دراسة الجدوى."
+      };
+    }
+
+    if (
+      current.status === this.STATUS.APPROVED ||
+      current.status === this.STATUS.REJECTED
+    ) {
+      return {
+        success: false,
+        reason: "final-status",
+        message: "لا يمكن رفع دراسة منتهية القرار."
+      };
+    }
+
+    const now = new Date().toISOString();
+
+    const history = [
+      {
+        id:
+          this.generateId("business-history"),
+
+        action:
+          "submitted-for-approval",
+
+        fromStatus:
+          current.status,
+
+        toStatus:
+          this.STATUS.UNDER_REVIEW,
+
+        actor:
+          options.actor ||
+          options.submittedBy ||
+          null,
+
+        note:
+          options.note ||
+          "",
+
+        createdAt: now
+      },
+      ...current.decisionHistory
+    ];
+
+    const result = this.updateCase(id, {
+      status:
+        this.STATUS.UNDER_REVIEW,
+
+      businessStatus:
+        this.STATUS.UNDER_REVIEW,
+
+      approval: {
+        ...current.approval,
+        required: true,
+        status: "pending",
+        submittedAt: now,
+        submittedBy:
+          options.submittedBy ||
+          options.actor ||
+          null,
+        decidedAt: null,
+        decidedBy: null,
+        note:
+          options.note ||
+          ""
+      },
+
+      decisionHistory:
+        history
+    });
+
+    if (result.success) {
+      this.recordExecution({
+        entityType:
+          "business-case",
+
+        entityId:
+          id,
+
+        ideaId:
+          current.ideaId,
+
+        projectId:
+          current.projectId,
+
+        action:
+          "submitted-for-approval",
+
+        status:
+          "pending",
+
+        actor:
+          options.actor ||
+          options.submittedBy ||
+          null
+      });
+
+      this.emit("aiw:businessCaseSubmitted", {
+        businessCase:
+          result.businessCase
+      });
+    }
+
+    return result;
+  },
+
+  approveCase(id, options = {}) {
+    return this.decideCase(
+      id,
+      "approved",
+      options
+    );
+  },
+
+  rejectCase(id, options = {}) {
+    return this.decideCase(
+      id,
+      "rejected",
+      options
+    );
+  },
+
+  decideCase(id, decision, options = {}) {
+    const current = this.getCases().find(
+      item =>
+        String(item.id) === String(id)
+    );
+
+    if (!current) {
+      return {
+        success: false,
+        reason: "case-not-found",
+        message: "لم يتم العثور على دراسة الجدوى."
+      };
+    }
+
+    const approved =
+      decision === "approved";
+
+    const nextStatus =
+      approved
+        ? this.STATUS.APPROVED
+        : this.STATUS.REJECTED;
+
+    const now =
+      new Date().toISOString();
+
+    const history = [
+      {
+        id:
+          this.generateId("business-history"),
+
+        action:
+          approved
+            ? "approved"
+            : "rejected",
+
+        fromStatus:
+          current.status,
+
+        toStatus:
+          nextStatus,
+
+        actor:
+          options.actor ||
+          options.decidedBy ||
+          null,
+
+        note:
+          options.note ||
+          "",
+
+        createdAt: now
+      },
+      ...current.decisionHistory
+    ];
+
+    const result = this.updateCase(id, {
+      status: nextStatus,
+      businessStatus: nextStatus,
+
+      approval: {
+        ...current.approval,
+        required: true,
+        status:
+          approved
+            ? "approved"
+            : "rejected",
+        decidedAt: now,
+        decidedBy:
+          options.decidedBy ||
+          options.actor ||
+          null,
+        note:
+          options.note ||
+          ""
+      },
+
+      decisionHistory:
+        history
+    });
+
+    if (result.success) {
+      this.recordExecution({
+        entityType:
+          "business-case",
+
+        entityId:
+          id,
+
+        ideaId:
+          current.ideaId,
+
+        projectId:
+          current.projectId,
+
+        action:
+          approved
+            ? "approved"
+            : "rejected",
+
+        status:
+          nextStatus,
+
+        actor:
+          options.actor ||
+          options.decidedBy ||
+          null
+      });
+
+      this.emit(
+        approved
+          ? "aiw:businessCaseApproved"
+          : "aiw:businessCaseRejected",
+        {
+          businessCase:
+            result.businessCase
+        }
+      );
+    }
+
+    return result;
+  },
+
+  recordExecution(entry = {}) {
+    const store = this.getStore();
+
+    try {
+      if (
+        store &&
+        typeof store.recordExecution === "function"
+      ) {
+        return store.recordExecution(entry);
+      }
+    } catch (error) {
+      console.warn("[AIW.Business] Execution history failed:", error);
+    }
+
+    return null;
+  },
+
+  /* =======================================================
+     Calculations
   ======================================================= */
 
   calculateCase(item) {
@@ -977,12 +1297,13 @@ AIW.Modules.business = {
         )
       );
 
-    const net = value - cost;
+    const netValue =
+      value - cost;
 
     const roi =
       cost > 0
         ? Math.round(
-            (net / cost) * 100
+            (netValue / cost) * 100
           )
         : value > 0
           ? 100
@@ -995,20 +1316,47 @@ AIW.Modules.business = {
           )
         : 0;
 
+    const readiness = this.average([
+      item?.readiness,
+      item?.dataReadiness,
+      item?.technicalReadiness,
+      item?.governanceReadiness
+    ]);
+
+    const riskScore =
+      this.riskScore(
+        item?.riskLevel
+      );
+
+    const feasibilityScore =
+      this.normalizePercent(
+        readiness * 0.35 +
+        this.normalizePercent(
+          roi,
+          0
+        ) * 0.2 +
+        this.normalizePercent(
+          item?.operationalImpact,
+          50
+        ) * 0.25 +
+        riskScore * 0.2,
+        0
+      );
+
     return {
       cost,
       value,
-      net,
+      netValue,
       roi,
-      valueCostRatio
+      valueCostRatio,
+      readiness,
+      riskScore,
+      feasibilityScore
     };
   },
 
-  calculateSummary(
-    cases,
-    center
-  ) {
-    const calculatedCost =
+  calculateSummary(cases = []) {
+    const totalCost =
       cases.reduce(
         (total, item) =>
           total +
@@ -1016,7 +1364,7 @@ AIW.Modules.business = {
         0
       );
 
-    const calculatedValue =
+    const totalValue =
       cases.reduce(
         (total, item) =>
           total +
@@ -1024,193 +1372,155 @@ AIW.Modules.business = {
         0
       );
 
-    const totalCost =
-      center.summary.manualTotalCost !==
-      null
-        ? center.summary.manualTotalCost
-        : calculatedCost;
-
-    const totalValue =
-      center.summary.manualTotalValue !==
-      null
-        ? center.summary.manualTotalValue
-        : calculatedValue;
-
     const netValue =
       totalValue - totalCost;
 
     const roi =
       totalCost > 0
         ? Math.round(
-            (netValue / totalCost) *
-              100
+            (netValue / totalCost) * 100
           )
         : 0;
 
-    const quickWins =
-      cases.filter(
-        (item) =>
-          this.isQuickWin(item)
-      ).length;
-
-    const avgReadiness =
+    const averageReadiness =
       cases.length
         ? this.average(
             cases.map(
-              (item) =>
-                item.readiness
+              item =>
+                this.calculateCase(item)
+                  .readiness
             )
           )
         : 0;
 
-    const approvedCases =
-      cases.filter(
-        (item) =>
-          this.isApprovedStatus(
-            item.status
+    const averageScore =
+      cases.length
+        ? this.average(
+            cases.map(
+              item =>
+                this.calculateCase(item)
+                  .feasibilityScore
+            )
           )
+        : 0;
+
+    const approved =
+      cases.filter(
+        item =>
+          item.status ===
+          this.STATUS.APPROVED
       ).length;
 
-    const highValueCases =
+    const pending =
       cases.filter(
-        (item) =>
-          this.calculateCase(item)
-            .roi >=
-          center.settings.minimumROI
+        item =>
+          item.status ===
+          this.STATUS.UNDER_REVIEW
+      ).length;
+
+    const linkedProjects =
+      cases.filter(
+        item =>
+          Boolean(item.projectId)
+      ).length;
+
+    const quickWins =
+      cases.filter(
+        item =>
+          item.type ===
+          this.TYPE.QUICK_WIN
       ).length;
 
     return {
+      totalCases: cases.length,
       totalCost,
       totalValue,
       netValue,
       roi,
-      quickWins,
-      avgReadiness,
-      approvedCases,
-      highValueCases
+      averageReadiness,
+      averageScore,
+      approved,
+      pending,
+      linkedProjects,
+      quickWins
     };
   },
 
-  /* =======================================================
-     AI and Recommendation Engines
-  ======================================================= */
+  riskScore(level) {
+    const value = String(
+      level || ""
+    )
+      .trim()
+      .toLowerCase();
 
-  getAiReport(context) {
-    try {
-      if (
-        window.AIW?.AI &&
-        typeof window.AIW.AI
-          .generateExecutiveReport ===
-          "function"
-      ) {
-        const report =
-          window.AIW.AI
-            .generateExecutiveReport(
-              context
-            );
-
-        if (
-          report &&
-          typeof report === "object"
-        ) {
-          return report;
-        }
-      }
-    } catch (error) {
-      console.warn(
-        "AI Work Business: AI report unavailable.",
-        error
-      );
+    if (
+      value.includes("عال") ||
+      value === "high" ||
+      value === "critical"
+    ) {
+      return 35;
     }
 
-    return {
-      status:
-        "استثمار مرحلي في الحلول البيومترية",
+    if (
+      value.includes("متوسط") ||
+      value === "medium"
+    ) {
+      return 65;
+    }
 
-      message:
-        "يوصى بالبدء بلوحات جودة التسجيلات وتحليل استخدام الصلاحيات ومراقبة أداء البوابات قبل الاستثمار في المحركات التنبؤية عالية التكلفة."
-    };
+    return 90;
   },
 
-  getNextActions(
-    cases,
-    summary
-  ) {
-    try {
-      if (
-        window.AIW?.Recommendation &&
-        typeof window.AIW
-          .Recommendation
-          .nextActions === "function"
-      ) {
-        const generated =
-          window.AIW
-            .Recommendation
-            .nextActions({
-              businessCases: cases,
-              summary
-            });
+  getRecommendations(cases, summary) {
+    const recommendations = [];
 
-        if (
-          Array.isArray(generated) &&
-          generated.length
-        ) {
-          return generated;
-        }
-      }
-    } catch (error) {
-      console.warn(
-        "AI Work Business: Recommendation engine unavailable.",
-        error
+    const bestCases = cases
+      .slice()
+      .sort(
+        (first, second) =>
+          this.calculateCase(second)
+            .feasibilityScore -
+          this.calculateCase(first)
+            .feasibilityScore
+      )
+      .slice(0, 3);
+
+    bestCases.forEach(item => {
+      const score =
+        this.calculateCase(item)
+          .feasibilityScore;
+
+      recommendations.push(
+        `إعطاء أولوية لدراسة ${item.title} بدرجة جدوى ${score}%.`
+      );
+    });
+
+    if (summary.pending > 0) {
+      recommendations.push(
+        `مراجعة ${summary.pending} دراسة جدوى بانتظار الاعتماد البشري.`
       );
     }
 
-    const sortedCases =
-      cases
-        .slice()
-        .sort(
-          (first, second) => {
-            const firstROI =
-              this.calculateCase(
-                first
-              ).roi;
-
-            const secondROI =
-              this.calculateCase(
-                second
-              ).roi;
-
-            return (
-              secondROI -
-              firstROI
-            );
-          }
-        )
-        .slice(0, 3);
-
-    const actions =
-      sortedCases.map(
-        (item) =>
-          `تجهيز دراسة تنفيذ تفصيلية لمشروع ${item.title} لارتفاع القيمة المتوقعة والجاهزية.`
-      );
-
-    if (actions.length < 4) {
-      actions.push(
-        "تحديد خط أساس لمؤشرات جودة التسجيلات والصلاحيات والبوابات قبل بدء التنفيذ."
+    if (
+      summary.totalCases > 0 &&
+      summary.approved === 0
+    ) {
+      recommendations.push(
+        "اعتماد دراسة واحدة على الأقل قبل بدء التوسع في المشاريع التنفيذية."
       );
     }
 
-    if (actions.length < 5) {
-      actions.push(
-        "إرفاق تقييم الحوكمة والمخاطر بكل دراسة جدوى قبل الاعتماد."
+    if (!recommendations.length) {
+      recommendations.push(
+        "إنشاء أول دراسة جدوى من فكرة معتمدة أو مشروع حقيقي."
       );
     }
 
-    return actions.slice(0, 5);
+    return recommendations.slice(0, 5);
   },
 
   /* =======================================================
-     Main Render
+     Render
   ======================================================= */
 
   render(container) {
@@ -1218,45 +1528,12 @@ AIW.Modules.business = {
 
     this._container = container;
 
-    this.ensureBusinessSeeded();
-
     const W = window.AIW?.Widgets;
-
-    const center =
-      this.getBusinessCenter();
-
-    const allCases =
-      this.getCasesWithLinkedData(
-        center.cases
-      );
-
-    const cases =
-      center.settings
-        .includeInactiveCases
-        ? allCases
-        : allCases.filter(
-            (item) =>
-              this.isActiveStatus(
-                item.status
-              )
-          );
-
-    const summary =
-      this.calculateSummary(
-        cases,
-        center
-      );
-
-    const aiReport =
-      this.getAiReport({
-        cases,
-        summary,
-        settings:
-          center.settings
-      });
-
-    const nextActions =
-      this.getNextActions(
+    const cases = this.getCases();
+    const summary = this.calculateSummary(cases);
+    const sources = this.getEligibleSources();
+    const recommendations =
+      this.getRecommendations(
         cases,
         summary
       );
@@ -1274,23 +1551,35 @@ AIW.Modules.business = {
                   "مركز الجدوى الاستثمارية",
 
                 description:
-                  "تحويل مشاريع الأنظمة البيومترية والبوابات الذكية إلى قرارات تنفيذ واضحة عبر التكلفة، القيمة التشغيلية، المخاطر، الجاهزية، وأولوية الاستثمار.",
+                  "إنشاء واعتماد دراسات الجدوى من الأفكار والمشاريع الحقيقية، وربط التكلفة والقيمة والمخاطر والجاهزية بمسار التنفيذ المؤسسي.",
 
                 chips: [
-                  "💰 Investment Dashboard",
-                  `📊 ${summary.roi}% عائد تقديري`,
-                  `🚀 ${summary.quickWins} Quick Wins`,
-                  `✅ ${summary.avgReadiness}% جاهزية`
+                  `💰 ${summary.totalCases} دراسة`,
+                  `⏳ ${summary.pending} بانتظار الاعتماد`,
+                  `✅ ${summary.approved} معتمدة`,
+                  `📁 ${summary.linkedProjects} مرتبطة بمشاريع`
                 ]
               })
-            : this.fallbackHero()
+            : this.fallbackHero(summary)
         }
 
         <div class="module-grid">
           ${this.kpi(
             "دراسات الجدوى",
-            cases.length,
+            summary.totalCases,
             "Business Cases"
+          )}
+
+          ${this.kpi(
+            "بانتظار الاعتماد",
+            summary.pending,
+            "Human Review"
+          )}
+
+          ${this.kpi(
+            "دراسات معتمدة",
+            summary.approved,
+            "Approved"
           )}
 
           ${this.kpi(
@@ -1310,146 +1599,130 @@ AIW.Modules.business = {
           )}
 
           ${this.kpi(
-            "صافي القيمة",
-            this.formatAED(
-              summary.netValue
-            ),
-            "Net Value"
-          )}
-
-          ${this.kpi(
-            "العائد التقديري",
-            `${summary.roi}%`,
-            "Estimated Return"
-          )}
-
-          ${this.kpi(
-            "متوسط الجاهزية",
-            `${summary.avgReadiness}%`,
-            "Readiness"
+            "متوسط الجدوى",
+            `${summary.averageScore}%`,
+            "Feasibility Score"
           )}
         </div>
 
         <div class="module-wide-grid">
           <div class="module-panel">
             ${this.sectionTitle(
+              "إدارة دراسات الجدوى",
+              "أنشئ دراسة من فكرة أو مشروع حقيقي، ثم ارفعها للاعتماد."
+            )}
+
+            <div class="business-action-card">
+              <strong>
+                ${
+                  cases.length
+                    ? "أضف دراسة جدوى جديدة"
+                    : "ابدأ بأول دراسة جدوى"
+                }
+              </strong>
+
+              <p>
+                الأفكار والمشاريع المرتبطة تحفظ مصدر الدراسة وتمنع تكرار إنشاء دراسة لنفس العنصر.
+              </p>
+
+              <button
+                type="button"
+                class="module-btn primary"
+                data-business-action="create"
+                ${
+                  !sources.ideas.length &&
+                  !sources.projects.length
+                    ? "disabled"
+                    : ""
+                }
+              >
+                + إنشاء دراسة جدوى
+              </button>
+            </div>
+          </div>
+
+          <div class="module-panel">
+            ${this.sectionTitle(
               "الخلاصة الاستثمارية",
-              "قراءة تنفيذية للجدوى المالية والتشغيلية."
+              "قراءة مباشرة للمحفظة الحالية."
             )}
 
             <div class="business-ultimate-summary">
               <strong>
-                أفضل بداية هي المشاريع المتخصصة سريعة القياس ومنخفضة التعقيد
+                ${
+                  summary.totalCases
+                    ? `صافي القيمة التقديرية ${this.formatAED(summary.netValue)}`
+                    : "لا توجد تقديرات استثمارية حتى الآن"
+                }
               </strong>
 
               <p>
-                يوصى بالبدء بمراقبة جودة التسجيلات، لوحة أخطاء التسجيل،
-                تحليل استخدام الصلاحيات، ولوحة العمليات البيومترية.
-                هذه المشاريع تمنح الإدارة قيمة تشغيلية مبكرة قبل الانتقال
-                إلى محركات الكشف والتنبؤ الأكثر تعقيداً.
+                ${
+                  summary.totalCases
+                    ? `العائد التقديري للمحفظة ${summary.roi}%، ومتوسط جاهزية التنفيذ ${summary.averageReadiness}%.`
+                    : "أنشئ دراسة من فكرة أو مشروع لبدء احتساب التكلفة والقيمة والجاهزية."
+                }
               </p>
 
               <div class="business-summary-strip">
                 <div>
                   <span>Cost</span>
-                  <b>
-                    ${this.formatAED(
-                      summary.totalCost
-                    )}
-                  </b>
+                  <b>${this.formatAED(summary.totalCost)}</b>
                 </div>
 
                 <div>
                   <span>Value</span>
-                  <b>
-                    ${this.formatAED(
-                      summary.totalValue
-                    )}
-                  </b>
+                  <b>${this.formatAED(summary.totalValue)}</b>
                 </div>
 
                 <div>
                   <span>Net</span>
-                  <b>
-                    ${this.formatAED(
-                      summary.netValue
-                    )}
-                  </b>
+                  <b>${this.formatAED(summary.netValue)}</b>
                 </div>
 
                 <div>
-                  <span>Return</span>
-                  <b>
-                    ${summary.roi}%
-                  </b>
+                  <span>ROI</span>
+                  <b>${summary.roi}%</b>
                 </div>
               </div>
             </div>
           </div>
-
-          <div class="module-panel">
-            ${this.sectionTitle(
-              "AI Investment Insight",
-              "توصية ذكية مرتبطة بمحرك AI."
-            )}
-
-            <div class="business-ai-card">
-              <strong>
-                ${this.escapeHtml(
-                  aiReport.status ||
-                  "استثمار مرحلي ذكي"
-                )}
-              </strong>
-
-              <p>
-                ${this.escapeHtml(
-                  aiReport.message ||
-                  "المرحلة التالية يجب أن تبدأ بالمشاريع منخفضة التكلفة وسريعة الأثر قبل التوسع الكبير."
-                )}
-              </p>
-
-              <button
-                class="module-btn secondary"
-                data-module="kpis"
-              >
-                فتح المؤشرات
-              </button>
-            </div>
-          </div>
         </div>
 
-        <div class="module-wide-grid">
-          <div class="module-panel">
-            ${this.sectionTitle(
-              "Return by Project",
-              "مقارنة العائد التقديري حسب المشروع."
-            )}
+        ${
+          cases.length
+            ? `
+              <div class="module-wide-grid">
+                <div class="module-panel">
+                  ${this.sectionTitle(
+                    "Return by Business Case",
+                    "مقارنة العائد التقديري للدراسات الحالية."
+                  )}
 
-            <div class="business-chart-card">
-              <canvas
-                id="businessRoiChart"
-              ></canvas>
-            </div>
-          </div>
+                  <div class="business-chart-card">
+                    <canvas id="businessRoiChart"></canvas>
+                  </div>
+                </div>
 
-          <div class="module-panel">
-            ${this.sectionTitle(
-              "Investment Mix",
-              "توزيع المشاريع حسب نوع الاستثمار."
-            )}
+                <div class="module-panel">
+                  ${this.sectionTitle(
+                    "Feasibility Health",
+                    "توزيع الدراسات حسب درجة الجدوى."
+                  )}
 
-            <div class="business-chart-card">
-              <canvas
-                id="businessMixChart"
-              ></canvas>
-            </div>
-          </div>
-        </div>
+                  <div class="business-chart-card">
+                    <canvas id="businessMixChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            `
+            : ""
+        }
 
         <div class="module-panel">
           ${this.sectionTitle(
             "محفظة دراسات الجدوى",
-            "تقدير تنفيذي للتكلفة والقيمة والعائد حسب المشروع."
+            "كل دراسة مرتبطة بمصدرها الحقيقي وتاريخ قرارها."
           )}
 
           ${
@@ -1457,101 +1730,44 @@ AIW.Modules.business = {
               ? `
                 <div class="business-grid">
                   ${cases
-                    .map((item) =>
+                    .map(item =>
                       this.caseCard(item)
                     )
                     .join("")}
                 </div>
               `
-              : this.emptyState(
-                  "لا توجد دراسات جدوى مسجلة حالياً."
+              : this.emptyPortfolio(
+                  sources
                 )
           }
-        </div>
-
-        <div class="module-panel">
-          ${this.sectionTitle(
-            "مصفوفة الأولوية الاستثمارية",
-            "تقسيم المشاريع حسب سرعة القيمة وحجم الاستثمار."
-          )}
-
-          <div class="priority-matrix">
-            <div>
-              <strong>
-                🚀 ابدأ فوراً
-              </strong>
-
-              <span>
-                Quick Wins منخفضة التكلفة وسريعة القياس.
-              </span>
-            </div>
-
-            <div>
-              <strong>
-                📈 جهّز للتوسع
-              </strong>
-
-              <span>
-                مشاريع متوسطة تحتاج بيانات وتكامل.
-              </span>
-            </div>
-
-            <div>
-              <strong>
-                🏛️ قرار استراتيجي
-              </strong>
-
-              <span>
-                مشاريع كبرى تحتاج لجنة وميزانية وحوكمة.
-              </span>
-            </div>
-
-            <div>
-              <strong>
-                ⏸️ انتظر
-              </strong>
-
-              <span>
-                أي مشروع لا يملك بيانات أو KPI واضح.
-              </span>
-            </div>
-          </div>
         </div>
 
         <div class="module-wide-grid">
           <div class="module-panel">
             ${this.sectionTitle(
               "معيار الاعتماد",
-              "كيف نقرر أي مشروع يبدأ أولاً؟"
+              "العناصر الأساسية قبل قبول الدراسة."
             )}
 
             <div class="business-criteria">
               <div>
                 <b>1</b>
-                <span>
-                  أثر تشغيلي واضح مقابل تكلفة مناسبة
-                </span>
+                <span>مشكلة وقيمة تشغيلية واضحتان</span>
               </div>
 
               <div>
                 <b>2</b>
-                <span>
-                  جاهزية بيانات ومؤشرات قياس
-                </span>
+                <span>تكلفة وقيمة متوقعة قابلتان للتبرير</span>
               </div>
 
               <div>
                 <b>3</b>
-                <span>
-                  مخاطر قابلة للمعالجة والحوكمة
-                </span>
+                <span>جاهزية بيانات وتقنية وحوكمة</span>
               </div>
 
               <div>
                 <b>4</b>
-                <span>
-                  قابلية قياس القيمة خلال 3–6 أشهر
-                </span>
+                <span>مؤشرات قياس ومخاطر قابلة للإدارة</span>
               </div>
             </div>
           </div>
@@ -1559,11 +1775,11 @@ AIW.Modules.business = {
           <div class="module-panel">
             ${this.sectionTitle(
               "Next Best Actions",
-              "الخطوات العملية التالية للاستثمار."
+              "الخطوات العملية التالية."
             )}
 
             ${this.renderExecutiveList(
-              nextActions
+              recommendations
             )}
           </div>
         </div>
@@ -1571,13 +1787,10 @@ AIW.Modules.business = {
       </section>
     `;
 
+    this.bindEvents();
+    this.bindStore();
     this.renderCharts(cases);
-    this.bindAutomaticSync();
   },
-
-  /* =======================================================
-     Business Case Card
-  ======================================================= */
 
   caseCard(item) {
     const calculations =
@@ -1586,39 +1799,29 @@ AIW.Modules.business = {
     return `
       <article
         class="business-card"
-        data-business-case-id="${this.escapeAttribute(
-          item.id
-        )}"
+        data-business-case-id="${this.escapeAttribute(item.id)}"
       >
         <div class="business-card-head">
           <span
-            class="aiw-status ${this.typeClass(
-              item.type
-            )}"
+            class="aiw-status ${this.statusClass(item.status)}"
           >
-            ${this.escapeHtml(
-              item.type
-            )}
+            ${this.statusLabel(item.status)}
           </span>
 
           <b>
-            ${item.readiness}%
+            ${calculations.feasibilityScore}%
           </b>
         </div>
 
         <h3>
-          ${this.escapeHtml(
-            item.title
-          )}
+          ${this.escapeHtml(item.title)}
         </h3>
 
         ${
-          item.englishTitle
+          item.titleEn
             ? `
               <small>
-                ${this.escapeHtml(
-                  item.englishTitle
-                )}
+                ${this.escapeHtml(item.titleEn)}
               </small>
             `
             : ""
@@ -1627,27 +1830,20 @@ AIW.Modules.business = {
         <div class="business-values">
           <div>
             <span>التكلفة</span>
-
             <strong>
-              ${this.formatAED(
-                calculations.cost
-              )}
+              ${this.formatAED(calculations.cost)}
             </strong>
           </div>
 
           <div>
             <span>القيمة</span>
-
             <strong>
-              ${this.formatAED(
-                calculations.value
-              )}
+              ${this.formatAED(calculations.value)}
             </strong>
           </div>
 
           <div>
             <span>العائد</span>
-
             <strong>
               ${calculations.roi}%
             </strong>
@@ -1656,27 +1852,1010 @@ AIW.Modules.business = {
 
         <div class="business-meta">
           <span>
-            ⏱️
-            ${this.escapeHtml(
-              item.duration
-            )}
+            ${item.linkedProject ? "📁 مشروع" : item.linkedIdea ? "💡 فكرة" : "📝 يدوي"}
           </span>
 
           <span>
-            ⚠️ مخاطر
-            ${this.escapeHtml(
-              item.risk
-            )}
+            ⚠️ ${this.escapeHtml(this.riskLabel(item.riskLevel))}
           </span>
         </div>
 
         <div class="aiw-progress">
           <div
-            style="width:${item.readiness}%"
+            style="width:${calculations.feasibilityScore}%"
           ></div>
         </div>
+
+        <button
+          type="button"
+          class="module-btn secondary"
+          data-business-action="details"
+          data-business-case-id="${this.escapeAttribute(item.id)}"
+        >
+          فتح التفاصيل
+        </button>
       </article>
     `;
+  },
+
+  emptyPortfolio(sources) {
+    const sourceCount =
+      sources.ideas.length +
+      sources.projects.length;
+
+    return `
+      <div class="module-empty">
+        <strong>
+          لا توجد دراسات جدوى حالياً
+        </strong>
+
+        <p>
+          ${
+            sourceCount
+              ? `يوجد ${sourceCount} مصدر متاح لإنشاء أول دراسة جدوى.`
+              : "أضف فكرة أو مشروعاً أولاً، ثم أنشئ دراسة الجدوى من المصدر الحقيقي."
+          }
+        </p>
+
+        ${
+          sourceCount
+            ? `
+              <button
+                type="button"
+                class="module-btn primary"
+                data-business-action="create"
+              >
+                إنشاء أول دراسة
+              </button>
+            `
+            : ""
+        }
+      </div>
+    `;
+  },
+
+  /* =======================================================
+     Modals
+  ======================================================= */
+
+  openCreateModal() {
+    const sources =
+      this.getEligibleSources();
+
+    if (
+      !sources.ideas.length &&
+      !sources.projects.length
+    ) {
+      this.notify(
+        "لا توجد أفكار أو مشاريع متاحة لإنشاء دراسة جدوى.",
+        "warning"
+      );
+
+      return;
+    }
+
+    const sourceOptions = [
+      ...sources.ideas.map(idea => ({
+        value:
+          `idea:${idea.id}`,
+
+        label:
+          `💡 ${idea.title}`,
+
+        department:
+          idea.department ||
+          ""
+      })),
+
+      ...sources.projects.map(project => ({
+        value:
+          `project:${project.id}`,
+
+        label:
+          `📁 ${project.title}`,
+
+        department:
+          project.department ||
+          ""
+      }))
+    ];
+
+    this.openModal(`
+      <div class="aiw-modal-card business-modal-card">
+        <div class="aiw-modal-head">
+          <div>
+            <h2>إنشاء دراسة جدوى</h2>
+            <p>اختر الفكرة أو المشروع ثم أدخل التقديرات الأساسية.</p>
+          </div>
+
+          <button
+            type="button"
+            class="aiw-modal-close"
+            data-business-action="close-modal"
+            aria-label="إغلاق"
+          >
+            ×
+          </button>
+        </div>
+
+        <form
+          class="business-form"
+          data-business-form="create"
+        >
+          <label>
+            <span>المصدر</span>
+
+            <select
+              name="source"
+              required
+            >
+              <option value="">
+                اختر فكرة أو مشروعاً
+              </option>
+
+              ${sourceOptions
+                .map(option => `
+                  <option value="${this.escapeAttribute(option.value)}">
+                    ${this.escapeHtml(option.label)}
+                    ${
+                      option.department
+                        ? ` — ${this.escapeHtml(option.department)}`
+                        : ""
+                    }
+                  </option>
+                `)
+                .join("")}
+            </select>
+          </label>
+
+          <div class="business-form-grid">
+            <label>
+              <span>التكلفة التقديرية</span>
+              <input
+                type="number"
+                name="cost"
+                min="0"
+                step="1"
+                value="0"
+                required
+              />
+            </label>
+
+            <label>
+              <span>القيمة المتوقعة</span>
+              <input
+                type="number"
+                name="value"
+                min="0"
+                step="1"
+                value="0"
+                required
+              />
+            </label>
+
+            <label>
+              <span>جاهزية البيانات %</span>
+              <input
+                type="number"
+                name="dataReadiness"
+                min="0"
+                max="100"
+                value="0"
+              />
+            </label>
+
+            <label>
+              <span>الجاهزية التقنية %</span>
+              <input
+                type="number"
+                name="technicalReadiness"
+                min="0"
+                max="100"
+                value="0"
+              />
+            </label>
+
+            <label>
+              <span>جاهزية الحوكمة %</span>
+              <input
+                type="number"
+                name="governanceReadiness"
+                min="0"
+                max="100"
+                value="0"
+              />
+            </label>
+
+            <label>
+              <span>الأثر التشغيلي %</span>
+              <input
+                type="number"
+                name="operationalImpact"
+                min="0"
+                max="100"
+                value="50"
+              />
+            </label>
+          </div>
+
+          <label>
+            <span>نوع الاستثمار</span>
+
+            <select name="type">
+              <option value="quick-win">
+                Quick Win
+              </option>
+
+              <option value="strategic" selected>
+                Strategic
+              </option>
+
+              <option value="transformational">
+                Transformational
+              </option>
+            </select>
+          </label>
+
+          <label>
+            <span>ملاحظات الدراسة</span>
+
+            <textarea
+              name="description"
+              rows="4"
+              placeholder="أضف وصفاً أو ملاحظات إضافية..."
+            ></textarea>
+          </label>
+
+          <div class="aiw-modal-actions">
+            <button
+              type="button"
+              class="module-btn secondary"
+              data-business-action="close-modal"
+            >
+              إلغاء
+            </button>
+
+            <button
+              type="submit"
+              class="module-btn primary"
+            >
+              حفظ دراسة الجدوى
+            </button>
+          </div>
+        </form>
+      </div>
+    `);
+  },
+
+  openDetailsModal(id) {
+    const item = this.getCases().find(
+      businessCase =>
+        String(businessCase.id) ===
+        String(id)
+    );
+
+    if (!item) {
+      this.notify(
+        "لم يتم العثور على دراسة الجدوى.",
+        "error"
+      );
+
+      return;
+    }
+
+    this._selectedCaseId = item.id;
+
+    const calculations =
+      this.calculateCase(item);
+
+    this.openModal(`
+      <div class="aiw-modal-card business-modal-card">
+        <div class="aiw-modal-head">
+          <div>
+            <h2>
+              ${this.escapeHtml(item.title)}
+            </h2>
+
+            <p>
+              ${item.linkedProject
+                ? "مرتبطة بمشروع تنفيذي"
+                : item.linkedIdea
+                  ? "مرتبطة بفكرة"
+                  : "دراسة يدوية"}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            class="aiw-modal-close"
+            data-business-action="close-modal"
+            aria-label="إغلاق"
+          >
+            ×
+          </button>
+        </div>
+
+        <div class="business-detail-grid">
+          ${this.detailMetric(
+            "درجة الجدوى",
+            `${calculations.feasibilityScore}%`
+          )}
+
+          ${this.detailMetric(
+            "العائد",
+            `${calculations.roi}%`
+          )}
+
+          ${this.detailMetric(
+            "التكلفة",
+            this.formatAED(calculations.cost)
+          )}
+
+          ${this.detailMetric(
+            "القيمة",
+            this.formatAED(calculations.value)
+          )}
+
+          ${this.detailMetric(
+            "جاهزية التنفيذ",
+            `${calculations.readiness}%`
+          )}
+
+          ${this.detailMetric(
+            "الحالة",
+            this.statusLabel(item.status)
+          )}
+        </div>
+
+        <div class="business-detail-section">
+          <strong>الوصف</strong>
+          <p>
+            ${this.escapeHtml(
+              item.description ||
+              "لا يوجد وصف إضافي."
+            )}
+          </p>
+        </div>
+
+        <div class="business-detail-section">
+          <strong>المصدر</strong>
+
+          <p>
+            ${
+              item.linkedProject
+                ? `المشروع: ${this.escapeHtml(item.linkedProject.title)}`
+                : item.linkedIdea
+                  ? `الفكرة: ${this.escapeHtml(item.linkedIdea.title)}`
+                  : "دراسة مستقلة"
+            }
+          </p>
+        </div>
+
+        ${
+          item.benefits.length
+            ? `
+              <div class="business-detail-section">
+                <strong>الفوائد</strong>
+
+                <div class="executive-list">
+                  ${item.benefits
+                    .map((benefit, index) => `
+                      <div class="executive-item">
+                        <strong>
+                          ${String(index + 1).padStart(2, "0")}
+                        </strong>
+
+                        <span>
+                          ${this.escapeHtml(
+                            typeof benefit === "string"
+                              ? benefit
+                              : benefit?.title ||
+                                benefit?.description ||
+                                ""
+                          )}
+                        </span>
+                      </div>
+                    `)
+                    .join("")}
+                </div>
+              </div>
+            `
+            : ""
+        }
+
+        <div class="aiw-modal-actions business-detail-actions">
+          ${
+            item.status === this.STATUS.DRAFT
+              ? `
+                <button
+                  type="button"
+                  class="module-btn primary"
+                  data-business-action="submit"
+                  data-business-case-id="${this.escapeAttribute(item.id)}"
+                >
+                  رفع للاعتماد
+                </button>
+              `
+              : ""
+          }
+
+          ${
+            item.status === this.STATUS.UNDER_REVIEW
+              ? `
+                <button
+                  type="button"
+                  class="module-btn primary"
+                  data-business-action="approve"
+                  data-business-case-id="${this.escapeAttribute(item.id)}"
+                >
+                  اعتماد
+                </button>
+
+                <button
+                  type="button"
+                  class="module-btn secondary"
+                  data-business-action="reject"
+                  data-business-case-id="${this.escapeAttribute(item.id)}"
+                >
+                  رفض
+                </button>
+              `
+              : ""
+          }
+
+          ${
+            item.linkedProject
+              ? `
+                <button
+                  type="button"
+                  class="module-btn secondary"
+                  data-business-action="open-project"
+                  data-project-id="${this.escapeAttribute(item.linkedProject.id)}"
+                >
+                  فتح المشروع
+                </button>
+              `
+              : item.linkedIdea
+                ? `
+                  <button
+                    type="button"
+                    class="module-btn secondary"
+                    data-business-action="open-idea"
+                    data-idea-id="${this.escapeAttribute(item.linkedIdea.id)}"
+                  >
+                    فتح الفكرة
+                  </button>
+                `
+                : ""
+          }
+
+          <button
+            type="button"
+            class="module-btn secondary"
+            data-business-action="delete"
+            data-business-case-id="${this.escapeAttribute(item.id)}"
+          >
+            حذف
+          </button>
+        </div>
+      </div>
+    `);
+  },
+
+  detailMetric(label, value) {
+    return `
+      <div class="module-card">
+        <span>${this.escapeHtml(label)}</span>
+        <strong>${this.escapeHtml(value)}</strong>
+      </div>
+    `;
+  },
+
+  openModal(content) {
+    this.closeModal();
+
+    const root =
+      document.getElementById("modalRoot") ||
+      document.body;
+
+    const modal = document.createElement("div");
+
+    modal.className =
+      "aiw-modal business-modal is-open";
+
+    modal.setAttribute(
+      "data-business-modal",
+      "true"
+    );
+
+    modal.innerHTML = `
+      <div
+        class="aiw-modal-backdrop"
+        data-business-action="close-modal"
+      ></div>
+
+      <div class="aiw-modal-dialog">
+        ${content}
+      </div>
+    `;
+
+    root.appendChild(modal);
+
+    if (root.id === "modalRoot") {
+      root.setAttribute(
+        "aria-hidden",
+        "false"
+      );
+    }
+
+    document.body.classList.add(
+      "aiw-modal-open"
+    );
+
+    this._activeModal = modal;
+  },
+
+  closeModal() {
+    if (this._activeModal) {
+      this._activeModal.remove();
+      this._activeModal = null;
+    }
+
+    const root =
+      document.getElementById("modalRoot");
+
+    if (root) {
+      root.setAttribute(
+        "aria-hidden",
+        "true"
+      );
+    }
+
+    document.body.classList.remove(
+      "aiw-modal-open"
+    );
+
+    this._selectedCaseId = null;
+  },
+
+  /* =======================================================
+     Events
+  ======================================================= */
+
+  bindEvents() {
+    if (this._eventsBound) return;
+
+    this._eventsBound = true;
+
+    document.addEventListener(
+      "click",
+      event => {
+        const trigger =
+          event.target.closest(
+            "[data-business-action]"
+          );
+
+        if (!trigger) return;
+
+        const action =
+          trigger.getAttribute(
+            "data-business-action"
+          );
+
+        if (!action) return;
+
+        event.preventDefault();
+
+        const id =
+          trigger.getAttribute(
+            "data-business-case-id"
+          );
+
+        if (action === "create") {
+          this.openCreateModal();
+          return;
+        }
+
+        if (action === "details") {
+          this.openDetailsModal(id);
+          return;
+        }
+
+        if (action === "close-modal") {
+          this.closeModal();
+          return;
+        }
+
+        if (action === "submit") {
+          const result =
+            this.submitForApproval(id);
+
+          this.handleActionResult(
+            result,
+            "تم رفع دراسة الجدوى للاعتماد."
+          );
+
+          return;
+        }
+
+        if (action === "approve") {
+          const result =
+            this.approveCase(id);
+
+          this.handleActionResult(
+            result,
+            "تم اعتماد دراسة الجدوى."
+          );
+
+          return;
+        }
+
+        if (action === "reject") {
+          const result =
+            this.rejectCase(id);
+
+          this.handleActionResult(
+            result,
+            "تم رفض دراسة الجدوى."
+          );
+
+          return;
+        }
+
+        if (action === "delete") {
+          const confirmed =
+            window.confirm(
+              "هل تريد حذف دراسة الجدوى؟"
+            );
+
+          if (!confirmed) return;
+
+          const result =
+            this.removeCase(id);
+
+          this.handleActionResult(
+            result,
+            "تم حذف دراسة الجدوى."
+          );
+
+          return;
+        }
+
+        if (action === "open-project") {
+          const projectId =
+            trigger.getAttribute(
+              "data-project-id"
+            );
+
+          this.closeModal();
+          this.navigateTo(
+            "projects",
+            {
+              selectedProjectId:
+                projectId
+            }
+          );
+
+          return;
+        }
+
+        if (action === "open-idea") {
+          const ideaId =
+            trigger.getAttribute(
+              "data-idea-id"
+            );
+
+          this.closeModal();
+          this.navigateTo(
+            "ideas",
+            {
+              selectedIdeaId:
+                ideaId
+            }
+          );
+        }
+      }
+    );
+
+    document.addEventListener(
+      "submit",
+      event => {
+        const form =
+          event.target.closest(
+            "[data-business-form='create']"
+          );
+
+        if (!form) return;
+
+        event.preventDefault();
+
+        const formData =
+          new FormData(form);
+
+        const source =
+          String(
+            formData.get("source") ||
+            ""
+          );
+
+        const [
+          sourceType,
+          sourceId
+        ] = source.split(":");
+
+        const result =
+          this.createCase({
+            sourceType,
+
+            ideaId:
+              sourceType === "idea"
+                ? sourceId
+                : null,
+
+            projectId:
+              sourceType === "project"
+                ? sourceId
+                : null,
+
+            cost:
+              this.toSafeNumber(
+                formData.get("cost"),
+                0
+              ),
+
+            value:
+              this.toSafeNumber(
+                formData.get("value"),
+                0
+              ),
+
+            dataReadiness:
+              this.normalizePercent(
+                formData.get("dataReadiness"),
+                0
+              ),
+
+            technicalReadiness:
+              this.normalizePercent(
+                formData.get("technicalReadiness"),
+                0
+              ),
+
+            governanceReadiness:
+              this.normalizePercent(
+                formData.get("governanceReadiness"),
+                0
+              ),
+
+            operationalImpact:
+              this.normalizePercent(
+                formData.get("operationalImpact"),
+                50
+              ),
+
+            type:
+              formData.get("type") ||
+              this.TYPE.STRATEGIC,
+
+            description:
+              String(
+                formData.get("description") ||
+                ""
+              ).trim()
+          });
+
+        this.handleActionResult(
+          result,
+          "تم إنشاء دراسة الجدوى."
+        );
+      }
+    );
+
+    window.addEventListener(
+      "aiw:ideaConvertedToProject",
+      event => {
+        const ideaId =
+          event?.detail?.idea?.id;
+
+        const projectId =
+          event?.detail?.project?.id;
+
+        this.linkConvertedProject(
+          ideaId,
+          projectId
+        );
+      }
+    );
+
+    window.addEventListener(
+      "aiw:projectCreatedFromIdea",
+      event => {
+        const ideaId =
+          event?.detail?.idea?.id;
+
+        const projectId =
+          event?.detail?.project?.id;
+
+        this.linkConvertedProject(
+          ideaId,
+          projectId
+        );
+      }
+    );
+  },
+
+  linkConvertedProject(
+    ideaId,
+    projectId
+  ) {
+    if (!ideaId || !projectId) {
+      return false;
+    }
+
+    const item = this.getCases().find(
+      businessCase =>
+        String(businessCase.ideaId) ===
+          String(ideaId) &&
+        !businessCase.projectId
+    );
+
+    if (!item) {
+      return false;
+    }
+
+    return this.updateCase(
+      item.id,
+      {
+        projectId,
+        sourceType: "project"
+      }
+    );
+  },
+
+  handleActionResult(
+    result,
+    successMessage
+  ) {
+    if (result?.success) {
+      this.closeModal();
+      this.notify(
+        successMessage,
+        "success"
+      );
+      this.scheduleRefresh(
+        "business-action"
+      );
+      return true;
+    }
+
+    this.notify(
+      result?.message ||
+      "تعذر إكمال العملية.",
+      "error"
+    );
+
+    return false;
+  },
+
+  navigateTo(route, detail = {}) {
+    const app =
+      window.AIW?.App ||
+      window.ATCApp;
+
+    if (
+      app &&
+      typeof app.go === "function"
+    ) {
+      app.go(route, {
+        updateHash: true,
+        source: "business-center"
+      });
+
+      window.dispatchEvent(
+        new CustomEvent(
+          "aiw:entitySelected",
+          {
+            detail: {
+              route,
+              ...detail
+            }
+          }
+        )
+      );
+
+      return true;
+    }
+
+    window.location.hash = route;
+    return true;
+  },
+
+  /* =======================================================
+     Store Synchronization
+  ======================================================= */
+
+  bindStore() {
+    if (this._unsubscribeStore) {
+      return;
+    }
+
+    const store =
+      this.getStore();
+
+    if (
+      !store ||
+      typeof store.subscribe !==
+        "function"
+    ) {
+      return;
+    }
+
+    this._unsubscribeStore =
+      store.subscribe(change => {
+        const type =
+          change?.type ||
+          "";
+
+        if (
+          type === "aiw:metadataChanged" ||
+          type === "persist" ||
+          type === "settingsPersisted"
+        ) {
+          return;
+        }
+
+        this.scheduleRefresh(
+          type ||
+          "store-change"
+        );
+      });
+  },
+
+  scheduleRefresh(
+    source = "store"
+  ) {
+    window.clearTimeout(
+      this._refreshTimer
+    );
+
+    this._refreshTimer =
+      window.setTimeout(() => {
+        if (
+          !this._container ||
+          !this._container.isConnected
+        ) {
+          return;
+        }
+
+        this.render(
+          this._container
+        );
+      }, 80);
+  },
+
+  destroy() {
+    window.clearTimeout(
+      this._refreshTimer
+    );
+
+    this.closeModal();
+
+    if (
+      typeof this._unsubscribeStore ===
+        "function"
+    ) {
+      try {
+        this._unsubscribeStore();
+      } catch (error) {
+        console.warn(
+          "[AIW.Business] Store unsubscribe failed:",
+          error
+        );
+      }
+    }
+
+    this._unsubscribeStore = null;
+    this._container = null;
   },
 
   /* =======================================================
@@ -1684,48 +2863,53 @@ AIW.Modules.business = {
   ======================================================= */
 
   renderCharts(cases) {
-    if (!window.AIW?.Charts) return;
+    if (
+      !cases.length ||
+      !window.AIW?.Charts
+    ) {
+      return;
+    }
 
     setTimeout(() => {
       const labels =
-        cases.map(
-          (item) =>
-            item.title
-        );
+        cases.map(item => item.title);
 
       const roiValues =
         cases.map(
-          (item) =>
+          item =>
             this.calculateCase(item)
               .roi
         );
 
-      const quick =
+      const strong =
         cases.filter(
-          (item) =>
-            this.isQuickWin(item)
+          item =>
+            this.calculateCase(item)
+              .feasibilityScore >= 75
         ).length;
 
-      const strategic =
-        cases.filter(
-          (item) =>
-            this.normalizeType(
-              item.type
-            ) === "strategic"
-        ).length;
+      const moderate =
+        cases.filter(item => {
+          const score =
+            this.calculateCase(item)
+              .feasibilityScore;
 
-      const transformational =
+          return (
+            score >= 50 &&
+            score < 75
+          );
+        }).length;
+
+      const weak =
         cases.filter(
-          (item) =>
-            this.normalizeType(
-              item.type
-            ) ===
-            "transformational"
+          item =>
+            this.calculateCase(item)
+              .feasibilityScore < 50
         ).length;
 
       if (
-        typeof window.AIW.Charts
-          .bar === "function"
+        typeof window.AIW.Charts.bar ===
+        "function"
       ) {
         window.AIW.Charts.bar(
           "businessRoiChart",
@@ -1736,157 +2920,30 @@ AIW.Modules.business = {
       }
 
       if (
-        typeof window.AIW.Charts
-          .doughnut === "function"
+        typeof window.AIW.Charts.doughnut ===
+        "function"
       ) {
         window.AIW.Charts.doughnut(
           "businessMixChart",
-
           [
-            "Quick Win",
-            "Strategic",
-            "Transformational"
+            "جدوى قوية",
+            "جدوى متوسطة",
+            "تحتاج تطوير"
           ],
-
           [
-            quick,
-            strategic,
-            transformational
+            strong,
+            moderate,
+            weak
           ],
-
-          "Investment Mix"
+          "Feasibility Health"
         );
       }
     }, 50);
   },
 
   /* =======================================================
-     Classification Helpers
-  ======================================================= */
-
-  normalizeType(type) {
-    return String(type || "")
-      .trim()
-      .toLowerCase();
-  },
-
-  isQuickWin(item) {
-    const type =
-      this.normalizeType(
-        item?.type
-      );
-
-    return (
-      type === "quick win" ||
-      type === "quick-win" ||
-      item?.quickWin === true
-    );
-  },
-
-  typeClass(type) {
-    const normalized =
-      this.normalizeType(type);
-
-    if (
-      normalized === "quick win" ||
-      normalized === "quick-win"
-    ) {
-      return "green";
-    }
-
-    if (
-      normalized ===
-      "transformational"
-    ) {
-      return "red";
-    }
-
-    return "orange";
-  },
-
-  isApprovedStatus(status) {
-    const value = String(
-      status || ""
-    )
-      .trim()
-      .toLowerCase();
-
-    return [
-      "approved",
-      "active",
-      "in progress",
-      "قيد التنفيذ",
-      "معتمد",
-      "مفعّل"
-    ].includes(value);
-  },
-
-  isActiveStatus(status) {
-    if (
-      status === undefined ||
-      status === null ||
-      status === ""
-    ) {
-      return true;
-    }
-
-    const value = String(status)
-      .trim()
-      .toLowerCase();
-
-    return ![
-      "archived",
-      "cancelled",
-      "rejected",
-      "inactive",
-      "ملغي",
-      "مرفوض",
-      "مؤرشف"
-    ].includes(value);
-  },
-
-  /* =======================================================
      Shared UI
   ======================================================= */
-
-  renderExecutiveList(items = []) {
-    if (
-      !Array.isArray(items) ||
-      !items.length
-    ) {
-      return this.emptyState(
-        "لا توجد إجراءات مقترحة حالياً."
-      );
-    }
-
-    return `
-      <div class="executive-list">
-        ${items
-          .map(
-            (item, index) => `
-              <div class="executive-item">
-                <strong>
-                  ${String(
-                    index + 1
-                  ).padStart(2, "0")}
-                </strong>
-
-                <span>
-                  ${this.escapeHtml(
-                    typeof item === "string"
-                      ? item
-                      : item?.title ||
-                        item?.description ||
-                        ""
-                  )}
-                </span>
-              </div>
-            `
-          )
-          .join("")}
-      </div>
-    `;
-  },
 
   kpi(label, value, note) {
     if (
@@ -1903,48 +2960,69 @@ AIW.Modules.business = {
 
     return `
       <div class="module-card">
-        <span>
-          ${this.escapeHtml(label)}
-        </span>
-
-        <strong>
-          ${this.escapeHtml(value)}
-        </strong>
-
-        <small>
-          ${this.escapeHtml(note)}
-        </small>
+        <span>${this.escapeHtml(label)}</span>
+        <strong>${this.escapeHtml(value)}</strong>
+        <small>${this.escapeHtml(note)}</small>
       </div>
     `;
   },
 
-  sectionTitle(title, desc) {
+  sectionTitle(title, description) {
     if (
       window.AIW?.Widgets &&
-      typeof window.AIW.Widgets
-        .sectionTitle === "function"
+      typeof window.AIW.Widgets.sectionTitle ===
+        "function"
     ) {
-      return window.AIW.Widgets
-        .sectionTitle(
-          title,
-          desc
-        );
+      return window.AIW.Widgets.sectionTitle(
+        title,
+        description
+      );
     }
 
     return `
       <div class="module-section-title compact">
-        <h2>
-          ${this.escapeHtml(title)}
-        </h2>
-
-        <p>
-          ${this.escapeHtml(desc)}
-        </p>
+        <h2>${this.escapeHtml(title)}</h2>
+        <p>${this.escapeHtml(description)}</p>
       </div>
     `;
   },
 
-  fallbackHero() {
+  renderExecutiveList(items = []) {
+    if (
+      !Array.isArray(items) ||
+      !items.length
+    ) {
+      return this.emptyState(
+        "لا توجد إجراءات مقترحة حالياً."
+      );
+    }
+
+    return `
+      <div class="executive-list">
+        ${items
+          .map((item, index) => `
+            <div class="executive-item">
+              <strong>
+                ${String(index + 1).padStart(2, "0")}
+              </strong>
+
+              <span>
+                ${this.escapeHtml(
+                  typeof item === "string"
+                    ? item
+                    : item?.title ||
+                      item?.description ||
+                      ""
+                )}
+              </span>
+            </div>
+          `)
+          .join("")}
+      </div>
+    `;
+  },
+
+  fallbackHero(summary) {
     return `
       <div class="module-hero">
         <span class="module-kicker">
@@ -1956,8 +3034,22 @@ AIW.Modules.business = {
         </h1>
 
         <p>
-          تحويل مشاريع الأنظمة البيومترية والبوابات الذكية إلى قرارات تنفيذ واضحة.
+          إنشاء واعتماد دراسات الجدوى من الأفكار والمشاريع الحقيقية.
         </p>
+
+        <div class="aiw-chip-row">
+          <span class="aiw-chip">
+            💰 ${summary.totalCases} دراسة
+          </span>
+
+          <span class="aiw-chip">
+            ⏳ ${summary.pending} بانتظار الاعتماد
+          </span>
+
+          <span class="aiw-chip">
+            ✅ ${summary.approved} معتمدة
+          </span>
+        </div>
       </div>
     `;
   },
@@ -1970,110 +3062,202 @@ AIW.Modules.business = {
     `;
   },
 
-  /* =======================================================
-     Automatic Synchronization
-  ======================================================= */
-
-  bindAutomaticSync() {
-    if (this._syncBound) return;
-
-    this._syncBound = true;
-
-    const refreshBusiness = () => {
+  notify(message, type = "info") {
+    try {
       if (
-        !this._container ||
-        !this._container.isConnected
+        window.AIW?.Notifications &&
+        typeof window.AIW.Notifications.show ===
+          "function"
       ) {
+        window.AIW.Notifications.show({
+          message,
+          type
+        });
+
         return;
       }
 
-      this.render(
-        this._container
+      if (
+        window.AIW?.Notifications &&
+        typeof window.AIW.Notifications.notify ===
+          "function"
+      ) {
+        window.AIW.Notifications.notify(
+          message,
+          type
+        );
+
+        return;
+      }
+    } catch (error) {
+      console.warn(
+        "[AIW.Business] Notification engine failed:",
+        error
       );
+    }
+
+    console.info(
+      `[AIW.Business:${type}] ${message}`
+    );
+  },
+
+  emit(name, detail = {}) {
+    try {
+      window.dispatchEvent(
+        new CustomEvent(name, {
+          detail
+        })
+      );
+    } catch (error) {
+      console.warn(
+        `[AIW.Business] Event ${name} failed:`,
+        error
+      );
+    }
+  },
+
+  /* =======================================================
+     Labels and Classification
+  ======================================================= */
+
+  normalizeStatus(status) {
+    const value = String(
+      status || ""
+    )
+      .trim()
+      .toLowerCase();
+
+    const aliases = {
+      proposed: this.STATUS.DRAFT,
+      planned: this.STATUS.DRAFT,
+      pending: this.STATUS.UNDER_REVIEW,
+      "pending-approval":
+        this.STATUS.UNDER_REVIEW,
+      approved:
+        this.STATUS.APPROVED,
+      rejected:
+        this.STATUS.REJECTED,
+      archived:
+        this.STATUS.ARCHIVED
     };
 
-    const syncEvents = [
-      "aiw:dataChanged",
-      "aiw:dataUpdated",
-      "aiw:dataImported",
-      "aiw:dataRestored",
-      "aiw:dataReset",
-      "aiw:storeChanged",
-
-      "aiw:businessChanged",
-      "aiw:businessUpdated",
-
-      "aiw:projectsChanged",
-      "aiw:projectsUpdated",
-
-      "aiw:ideasChanged",
-      "aiw:ideasUpdated",
-
-      "aiw:kpisChanged",
-      "aiw:kpisUpdated",
-
-      "aiw:governanceChanged",
-      "aiw:governanceUpdated",
-
-      "aiw:maturityChanged",
-      "aiw:maturityUpdated",
-
-      "aiw:risksChanged",
-      "aiw:risksUpdated"
-    ];
-
-    syncEvents.forEach(
-      (eventName) => {
-        window.addEventListener(
-          eventName,
-          refreshBusiness
-        );
-      }
+    return aliases[value] || (
+      Object.values(this.STATUS).includes(value)
+        ? value
+        : this.STATUS.DRAFT
     );
+  },
 
-    window.addEventListener(
-      "storage",
-      (event) => {
-        const supportedKeys = [
-          "aiwDataV1",
-          "aiwData",
-          "AIW_DATA"
-        ];
+  statusLabel(status) {
+    const labels = {
+      [this.STATUS.DRAFT]:
+        "مسودة",
 
-        if (
-          !event.key ||
-          supportedKeys.includes(
-            event.key
-          )
-        ) {
-          refreshBusiness();
-        }
-      }
-    );
+      [this.STATUS.UNDER_REVIEW]:
+        "قيد الاعتماد",
+
+      [this.STATUS.APPROVED]:
+        "معتمدة",
+
+      [this.STATUS.REJECTED]:
+        "مرفوضة",
+
+      [this.STATUS.ARCHIVED]:
+        "مؤرشفة"
+    };
+
+    return labels[
+      this.normalizeStatus(status)
+    ] || "مسودة";
+  },
+
+  statusClass(status) {
+    const value =
+      this.normalizeStatus(status);
+
+    if (
+      value === this.STATUS.APPROVED
+    ) {
+      return "green";
+    }
+
+    if (
+      value === this.STATUS.REJECTED
+    ) {
+      return "red";
+    }
+
+    return "orange";
+  },
+
+  normalizeType(type) {
+    const value = String(
+      type || ""
+    )
+      .trim()
+      .toLowerCase();
+
+    if (
+      value === "quick win" ||
+      value === "quick-win"
+    ) {
+      return this.TYPE.QUICK_WIN;
+    }
+
+    if (
+      value === "transformational"
+    ) {
+      return this.TYPE.TRANSFORMATIONAL;
+    }
+
+    return this.TYPE.STRATEGIC;
+  },
+
+  riskLabel(level) {
+    const value = String(
+      level || ""
+    )
+      .trim()
+      .toLowerCase();
+
+    if (
+      value.includes("عال") ||
+      value === "high" ||
+      value === "critical"
+    ) {
+      return "عالية";
+    }
+
+    if (
+      value.includes("منخفض") ||
+      value === "low"
+    ) {
+      return "منخفضة";
+    }
+
+    return "متوسطة";
   },
 
   /* =======================================================
      Utilities
   ======================================================= */
 
-  average(values) {
-    if (
-      !Array.isArray(values) ||
-      !values.length
-    ) {
+  average(values = []) {
+    const numbers =
+      values
+        .map(value => Number(value))
+        .filter(Number.isFinite);
+
+    if (!numbers.length) {
       return 0;
     }
 
     return Math.round(
-      values.reduce(
-        (total, value) =>
-          total +
-          this.toSafeNumber(
-            value,
-            0
-          ),
+      numbers.reduce(
+        (sum, value) =>
+          sum + value,
         0
-      ) / values.length
+      ) / numbers.length
     );
   },
 
@@ -2084,54 +3268,30 @@ AIW.Modules.business = {
         0
       );
 
-    const absoluteNumber =
+    const absolute =
       Math.abs(number);
 
     const sign =
       number < 0 ? "-" : "";
 
-    if (
-      absoluteNumber >= 1000000000
-    ) {
+    if (absolute >= 1000000000) {
       return `${sign}${(
-        absoluteNumber /
-        1000000000
+        absolute / 1000000000
       ).toFixed(1)}B AED`;
     }
 
-    if (
-      absoluteNumber >= 1000000
-    ) {
+    if (absolute >= 1000000) {
       const millions =
-        absoluteNumber / 1000000;
+        absolute / 1000000;
 
       return `${sign}${millions.toFixed(
         millions % 1 ? 1 : 0
       )}M AED`;
     }
 
-    return `${sign}${absoluteNumber.toLocaleString(
+    return `${sign}${absolute.toLocaleString(
       "ar-AE"
     )} AED`;
-  },
-
-  getNextId(items = []) {
-    if (!Array.isArray(items)) {
-      return 1;
-    }
-
-    const ids = items
-      .map((item) =>
-        this.toSafeNumber(
-          item?.id,
-          0
-        )
-      )
-      .filter((id) => id > 0);
-
-    return ids.length
-      ? Math.max(...ids) + 1
-      : 1;
   },
 
   toSafeNumber(value, fallback = 0) {
@@ -2140,22 +3300,6 @@ AIW.Modules.business = {
     return Number.isFinite(number)
       ? number
       : fallback;
-  },
-
-  toNullableNumber(value) {
-    if (
-      value === null ||
-      value === undefined ||
-      value === ""
-    ) {
-      return null;
-    }
-
-    const number = Number(value);
-
-    return Number.isFinite(number)
-      ? number
-      : null;
   },
 
   normalizePercent(value, fallback = 0) {
@@ -2173,6 +3317,31 @@ AIW.Modules.business = {
     );
   },
 
+  toArray(value) {
+    if (Array.isArray(value)) {
+      return value;
+    }
+
+    if (
+      value === undefined ||
+      value === null ||
+      value === ""
+    ) {
+      return [];
+    }
+
+    return [value];
+  },
+
+  generateId(prefix = "business") {
+    const random =
+      Math.random()
+        .toString(36)
+        .slice(2, 9);
+
+    return `${prefix}-${Date.now()}-${random}`;
+  },
+
   escapeHtml(value) {
     return String(value ?? "")
       .replace(/&/g, "&amp;")
@@ -2184,22 +3353,5 @@ AIW.Modules.business = {
 
   escapeAttribute(value) {
     return this.escapeHtml(value);
-  },
-
-  clone(value) {
-    if (
-      typeof structuredClone ===
-      "function"
-    ) {
-      try {
-        return structuredClone(value);
-      } catch (error) {
-        // JSON fallback below.
-      }
-    }
-
-    return JSON.parse(
-      JSON.stringify(value)
-    );
   }
 };
