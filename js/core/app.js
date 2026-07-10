@@ -1,20 +1,26 @@
 /* =========================================================
-   AI Work - Core App Bootstrap V3.1
+   AI Work - Core App Bootstrap V5.0
    Enterprise Biometric Intelligence Platform
+   Store V2.2 Native Architecture
+
+   File Path:
+   js/core/app.js
 
    Features:
-   - Unified AIW.App Bootstrap
-   - ATCApp Legacy Compatibility
-   - AIW.Store Integration
-   - Route Validation
-   - Hash Navigation
-   - Current Module Persistence
-   - Module Lifecycle Management
-   - Automatic Module Refresh
-   - Dynamic Navigation Binding
-   - Global Platform Events
-   - Safe Error Handling
-   - No UI Design Changes
+   - Unified AIW.App bootstrap
+   - Dynamic route registry from AIW.Config
+   - AIW.Router integration without navigation loops
+   - ATCApp legacy compatibility
+   - AIW.Store V2.2 initialization and subscription
+   - Current and previous route persistence
+   - Safe module lifecycle management
+   - Duplicate render prevention
+   - Deferred refresh queue
+   - Dynamic navigation binding
+   - Global platform events
+   - Platform metadata registration
+   - Safe error and missing-module states
+   - No UI design changes
 ========================================================= */
 
 (function () {
@@ -25,12 +31,10 @@
 
   const App = {
     id: "app",
-    version: "3.1.0",
+    version: "5.0.0",
 
-    defaultRoute: "dashboard",
     currentRoute: null,
     previousRoute: null,
-
     main: null,
 
     _initialized: false,
@@ -39,64 +43,56 @@
     _storeUnsubscribe: null,
     _refreshTimer: null,
     _isRendering: false,
-    _pendingRoute: null,
+    _isNavigating: false,
+    _pendingRender: null,
+    _lastRenderKey: null,
+    _lastStoreRevision: null,
 
-    routes: {
+    fallbackRoutes: {
       dashboard: {
         id: "dashboard",
         title: "الرئيسية"
       },
-
       strategy: {
         id: "strategy",
         title: "الاستراتيجية"
       },
-
       projects: {
         id: "projects",
         title: "المشاريع"
       },
-
       ideas: {
         id: "ideas",
         title: "الأفكار"
       },
-
       governance: {
         id: "governance",
         title: "الحوكمة"
       },
-
       maturity: {
         id: "maturity",
         title: "النضج"
       },
-
       reports: {
         id: "reports",
         title: "التقارير"
       },
-
       kpis: {
         id: "kpis",
         title: "المؤشرات"
       },
-
       business: {
         id: "business",
         title: "الجدوى"
       },
-
       automation: {
         id: "automation",
         title: "الأتمتة"
       },
-
       decision: {
         id: "decision",
         title: "القرار"
       },
-
       settings: {
         id: "settings",
         title: "المزيد"
@@ -107,56 +103,180 @@
       home: "dashboard",
       index: "dashboard",
       overview: "dashboard",
+      main: "dashboard",
 
       project: "projects",
+      initiative: "projects",
       initiatives: "projects",
+      portfolio: "projects",
 
       idea: "ideas",
+      opportunity: "ideas",
       opportunities: "ideas",
 
       risk: "governance",
       risks: "governance",
+      controls: "governance",
 
       performance: "kpis",
+      indicator: "kpis",
       indicators: "kpis",
+      metrics: "kpis",
+
+      report: "reports",
+      analytics: "reports",
 
       businesscase: "business",
       "business-case": "business",
       businesscases: "business",
+      feasibility: "business",
+
+      workflow: "automation",
+      workflows: "automation",
 
       decisions: "decision",
       decisioncenter: "decision",
       "decision-center": "decision",
 
-      more: "settings"
+      more: "settings",
+      tools: "settings",
+      preferences: "settings"
     },
 
     /* =========================================================
-       INITIALIZATION
+       Configuration and Route Registry
     ========================================================= */
 
-    init() {
+    getConfig() {
+      return (
+        window.AIW?.Config ||
+        window.AIW_CONFIG ||
+        window.ATC_CONFIG ||
+        {}
+      );
+    },
+
+    getRouter() {
+      return window.AIW?.Router || window.ATCRouter || null;
+    },
+
+    getRoutes() {
+      const configured =
+        this.getConfig()
+          ?.navigation
+          ?.modules;
+
+      if (Array.isArray(configured)) {
+        const routes = {};
+
+        configured
+          .filter(item =>
+            item &&
+            item.id &&
+            item.enabled !== false
+          )
+          .sort(
+            (first, second) =>
+              Number(first.order || 0) -
+              Number(second.order || 0)
+          )
+          .forEach(item => {
+            const id =
+              this.normalizeRoute(item.id);
+
+            if (!id) return;
+
+            routes[id] = {
+              ...item,
+              id
+            };
+          });
+
+        if (Object.keys(routes).length) {
+          return routes;
+        }
+      }
+
+      return {
+        ...this.fallbackRoutes
+      };
+    },
+
+    get routes() {
+      return this.getRoutes();
+    },
+
+    getDefaultRoute() {
+      const configured =
+        this.getConfig()
+          ?.navigation
+          ?.defaultModule;
+
+      const resolved =
+        this.resolveRoute(configured);
+
+      return resolved || "dashboard";
+    },
+
+    get defaultRoute() {
+      return this.getDefaultRoute();
+    },
+
+    getCurrentModuleKey() {
+      return (
+        this.getConfig()
+          ?.storage
+          ?.currentModule ||
+        window.AIW?.KEYS?.currentModule ||
+        "aiwCurrentModule"
+      );
+    },
+
+    /* =========================================================
+       Initialization
+    ========================================================= */
+
+    init(options = {}) {
       if (this._initialized) {
         return this;
       }
 
       this._initialized = true;
 
-      this.main =
-        document.getElementById("appMain") ||
-        document.querySelector("[data-app-main]") ||
-        document.querySelector("main");
-
+      this.resolveMainContainer();
       this.initializeStore();
       this.bindNavigation();
       this.bindGlobalEvents();
       this.bindStore();
       this.registerPlatformMetadata();
-      this.loadInitialRoute();
+
+      const router =
+        this.getRouter();
+
+      if (
+        router &&
+        typeof router.init === "function"
+      ) {
+        try {
+          router.init({
+            navigate: false
+          });
+        } catch (error) {
+          console.warn(
+            "[AIW.App V5.0] Router initialization skipped:",
+            error
+          );
+        }
+      }
+
+      if (options.navigate !== false) {
+        this.loadInitialRoute();
+      }
 
       this.emit("aiw:appReady", {
         version: this.version,
-        route: this.currentRoute
+        route: this.currentRoute,
+        timestamp: new Date().toISOString()
       });
 
       console.info(
@@ -166,34 +286,71 @@
       return this;
     },
 
+    resolveMainContainer() {
+      this.main =
+        document.getElementById("appMain") ||
+        document.querySelector("[data-app-main]") ||
+        document.querySelector("main") ||
+        null;
+
+      return this.main;
+    },
+
     initializeStore() {
+      const store =
+        window.AIW?.Store;
+
+      if (!store) {
+        console.warn(
+          "[AIW.App V5.0] AIW.Store is not available during bootstrap."
+        );
+
+        return false;
+      }
+
       try {
         if (
-          window.AIW?.Store &&
-          typeof AIW.Store.init === "function"
+          typeof store.init === "function"
         ) {
-          AIW.Store.init();
+          store.init();
         }
+
+        return true;
       } catch (error) {
         console.error(
-          "[AIW.App] Store initialization failed:",
+          "[AIW.App V5.0] Store initialization failed:",
           error
         );
+
+        return false;
       }
     },
 
     registerPlatformMetadata() {
-      const store = window.AIW?.Store;
+      const store =
+        window.AIW?.Store;
 
-      if (!store) {
-        return;
-      }
+      if (!store) return false;
+
+      const config =
+        this.getConfig();
 
       const metadata = {
-        appVersion: this.version,
-        bootstrapVersion: this.version,
+        appVersion:
+          config?.app?.version ||
+          this.version,
+
+        bootstrapVersion:
+          this.version,
+
+        architectureVersion:
+          config?.app?.architectureVersion ||
+          "2.2",
+
         currentModule:
-          this.currentRoute || this.defaultRoute,
+          this.currentRoute ||
+          this.getDefaultRoute(),
+
         lastApplicationStart:
           new Date().toISOString()
       };
@@ -203,24 +360,148 @@
           typeof store.setMetadata === "function"
         ) {
           store.setMetadata(metadata);
-          return;
+          return true;
         }
 
         if (
           typeof store.updateMetadata === "function"
         ) {
           store.updateMetadata(metadata);
+          return true;
         }
       } catch (error) {
         console.warn(
-          "[AIW.App] Metadata registration skipped:",
+          "[AIW.App V5.0] Metadata registration skipped:",
           error
         );
       }
+
+      return false;
     },
 
     /* =========================================================
-       ROUTING
+       Route Resolution
+    ========================================================= */
+
+    normalizeRoute(route) {
+      return String(route ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/^#+/, "")
+        .replace(/^\/+/, "")
+        .split("?")[0]
+        .split("&")[0]
+        .split("/")[0]
+        .trim();
+    },
+
+    resolveRoute(route) {
+      const router =
+        this.getRouter();
+
+      if (
+        router &&
+        typeof router.resolve === "function"
+      ) {
+        try {
+          return router.resolve(route);
+        } catch (error) {
+          console.warn(
+            "[AIW.App V5.0] Router resolution failed:",
+            error
+          );
+        }
+      }
+
+      let value =
+        this.normalizeRoute(route);
+
+      if (!value) {
+        value =
+          this.normalizeRoute(
+            this.getConfig()
+              ?.navigation
+              ?.defaultModule
+          ) || "dashboard";
+      }
+
+      if (this.routeAliases[value]) {
+        value =
+          this.routeAliases[value];
+      }
+
+      const routes =
+        this.getRoutes();
+
+      return routes[value]
+        ? value
+        : (
+            this.normalizeRoute(
+              this.getConfig()
+                ?.navigation
+                ?.defaultModule
+            ) || "dashboard"
+          );
+    },
+
+    hasRoute(route) {
+      const router =
+        this.getRouter();
+
+      if (
+        router &&
+        typeof router.has === "function"
+      ) {
+        try {
+          return router.has(route);
+        } catch (error) {
+          // Local validation below.
+        }
+      }
+
+      const value =
+        this.normalizeRoute(route);
+
+      return Boolean(
+        this.getRoutes()[value] ||
+        this.routeAliases[value]
+      );
+    },
+
+    getRoute(route) {
+      const resolved =
+        this.resolveRoute(route);
+
+      return (
+        this.getRoutes()[resolved] ||
+        null
+      );
+    },
+
+    getCurrentRoute() {
+      return (
+        this.currentRoute ||
+        this.getDefaultRoute()
+      );
+    },
+
+    getPreviousRoute() {
+      return this.previousRoute;
+    },
+
+    getRouteFromHash() {
+      const hash =
+        this.normalizeRoute(
+          window.location.hash
+        );
+
+      if (!hash) return null;
+
+      return this.resolveRoute(hash);
+    },
+
+    /* =========================================================
+       Initial Route
     ========================================================= */
 
     loadInitialRoute() {
@@ -231,207 +512,172 @@
         this.getSavedRoute();
 
       const initialRoute =
-        hashRoute ||
-        savedRoute ||
-        this.defaultRoute;
+        this.resolveRoute(
+          hashRoute ||
+          savedRoute ||
+          this.getDefaultRoute()
+        );
 
-      this.go(initialRoute, {
-        updateHash: !hashRoute,
-        replaceHash: !hashRoute,
-        source: "initial"
-      });
+      return this.go(
+        initialRoute,
+        {
+          updateHash: true,
+          replaceHash: true,
+          force: true,
+          scrollToTop: false,
+          source: "app-initial"
+        }
+      );
     },
 
+    /* =========================================================
+       Navigation
+    ========================================================= */
+
     go(route, options = {}) {
-      const normalizedOptions =
-        this.normalizeNavigationOptions(options);
+      const config =
+        this.normalizeNavigationOptions(
+          options
+        );
 
       const resolvedRoute =
         this.resolveRoute(route);
 
-      if (
-        this._isRendering &&
-        resolvedRoute === this.currentRoute
-      ) {
+      if (this._isNavigating) {
         return false;
       }
 
       const routeChanged =
-        resolvedRoute !== this.currentRoute;
+        resolvedRoute !==
+        this.currentRoute;
 
-      if (routeChanged) {
-        this.previousRoute =
-          this.currentRoute;
-
-        this.destroyModule(
-          this.currentRoute
+      if (
+        !routeChanged &&
+        !config.force &&
+        this._lastRenderKey ===
+          resolvedRoute
+      ) {
+        this.updateNavigationState(
+          resolvedRoute
         );
 
-        this.currentRoute =
-          resolvedRoute;
+        return true;
       }
 
-      this.updateNavigationState(
-        resolvedRoute
-      );
+      this._isNavigating = true;
 
-      if (normalizedOptions.updateHash) {
-        this.updateHash(
-          resolvedRoute,
-          normalizedOptions.replaceHash
-        );
-      }
+      try {
+        if (routeChanged) {
+          this.previousRoute =
+            this.currentRoute;
 
-      this.saveCurrentRoute(
-        resolvedRoute
-      );
+          this.destroyModule(
+            this.currentRoute
+          );
 
-      this.renderModule(
-        resolvedRoute,
-        {
-          force:
-            normalizedOptions.force ||
-            !routeChanged,
-
-          source:
-            normalizedOptions.source
+          this.currentRoute =
+            resolvedRoute;
+        } else if (!this.currentRoute) {
+          this.currentRoute =
+            resolvedRoute;
         }
-      );
 
-      this.updateDocumentTitle(
-        resolvedRoute
-      );
+        this.updateNavigationState(
+          resolvedRoute
+        );
 
-      if (normalizedOptions.scrollToTop) {
-        this.scrollToTop();
-      }
+        this.saveCurrentRoute(
+          resolvedRoute
+        );
 
-      const detail = {
-        route: resolvedRoute,
-        previousRoute:
-          this.previousRoute,
-        source:
-          normalizedOptions.source,
-        timestamp:
-          new Date().toISOString()
-      };
+        const rendered =
+          this.renderModule(
+            resolvedRoute,
+            {
+              force:
+                config.force ||
+                routeChanged,
+              source:
+                config.source
+            }
+          );
 
-      this.emit(
-        "aiw:routeChanged",
-        detail
-      );
+        if (config.updateHash) {
+          this.updateHash(
+            resolvedRoute,
+            config.replaceHash
+          );
+        }
 
-      this.emit(
-        "atc:routeChanged",
-        detail
-      );
+        this.updateDocumentTitle(
+          resolvedRoute
+        );
 
-      document.dispatchEvent(
-        new CustomEvent(
+        if (config.scrollToTop) {
+          this.scrollToTop();
+        }
+
+        const detail = {
+          route: resolvedRoute,
+          previousRoute:
+            this.previousRoute,
+          routeInfo:
+            this.getRoute(
+              resolvedRoute
+            ),
+          rendered,
+          source:
+            config.source,
+          timestamp:
+            new Date().toISOString()
+        };
+
+        this.emit(
           "aiw:routeChanged",
-          {
-            detail
-          }
-        )
-      );
+          detail
+        );
 
-      document.dispatchEvent(
-        new CustomEvent(
-          "atc:routeChanged",
-          {
-            detail
-          }
-        )
-      );
+        this.emit(
+          "aiw:navigationCompleted",
+          detail
+        );
 
-      return true;
+        document.dispatchEvent(
+          new CustomEvent(
+            "aiw:routeChanged",
+            {
+              detail
+            }
+          )
+        );
+
+        return rendered;
+      } finally {
+        this._isNavigating = false;
+      }
     },
 
     navigate(route, options = {}) {
-      return this.go(route, options);
+      return this.go(
+        route,
+        options
+      );
     },
 
     refresh(route = this.currentRoute) {
       const resolvedRoute =
         this.resolveRoute(
-          route || this.defaultRoute
+          route ||
+          this.getDefaultRoute()
         );
 
       return this.renderModule(
         resolvedRoute,
         {
           force: true,
-          source: "refresh"
+          source: "app-refresh"
         }
       );
-    },
-
-    resolveRoute(route) {
-      let value = String(
-        route || ""
-      )
-        .trim()
-        .toLowerCase();
-
-      value = value
-        .replace(/^#/, "")
-        .replace(/^\/+/, "")
-        .split("?")[0]
-        .split("/")[0];
-
-      if (this.routeAliases[value]) {
-        value =
-          this.routeAliases[value];
-      }
-
-      if (!this.routes[value]) {
-        return this.defaultRoute;
-      }
-
-      return value;
-    },
-
-    hasRoute(route) {
-      const value = String(
-        route || ""
-      )
-        .trim()
-        .toLowerCase()
-        .replace(/^#/, "");
-
-      return Boolean(
-        this.routes[value] ||
-        this.routeAliases[value]
-      );
-    },
-
-    getRoute(route) {
-      const resolved =
-        this.resolveRoute(route);
-
-      return this.routes[resolved] || null;
-    },
-
-    getCurrentRoute() {
-      return this.currentRoute;
-    },
-
-    getPreviousRoute() {
-      return this.previousRoute;
-    },
-
-    getRouteFromHash() {
-      const hash = String(
-        window.location.hash || ""
-      )
-        .replace(/^#/, "")
-        .trim();
-
-      if (!hash) {
-        return null;
-      }
-
-      return this.resolveRoute(hash);
     },
 
     normalizeNavigationOptions(options) {
@@ -443,7 +689,7 @@
           replaceHash: false,
           force: false,
           scrollToTop: true,
-          source: "navigation"
+          source: "app-navigation"
         };
       }
 
@@ -468,46 +714,62 @@
 
         source:
           config.source ||
-          "navigation"
+          "app-navigation"
       };
     },
 
     updateHash(route, replace = false) {
+      const resolvedRoute =
+        this.resolveRoute(route);
+
       const nextHash =
-        `#${route}`;
+        `#${resolvedRoute}`;
 
       if (
         window.location.hash === nextHash
       ) {
-        return;
+        return resolvedRoute;
       }
 
       try {
         if (
           replace &&
           window.history &&
-          typeof history.replaceState ===
+          typeof window.history.replaceState ===
             "function"
         ) {
-          history.replaceState(
-            null,
+          const nextUrl =
+            `${window.location.pathname}${window.location.search}${nextHash}`;
+
+          window.history.replaceState(
+            {
+              route:
+                resolvedRoute
+            },
             "",
-            nextHash
+            nextUrl
           );
 
-          return;
+          return resolvedRoute;
         }
 
         window.location.hash =
-          route;
+          resolvedRoute;
       } catch (error) {
+        console.warn(
+          "[AIW.App V5.0] Hash update failed:",
+          error
+        );
+
         window.location.hash =
-          route;
+          resolvedRoute;
       }
+
+      return resolvedRoute;
     },
 
     /* =========================================================
-       NAVIGATION
+       Navigation Binding
     ========================================================= */
 
     bindNavigation() {
@@ -520,29 +782,33 @@
       document.addEventListener(
         "click",
         event => {
-          const routeElement =
-            event.target.closest(
-              "[data-route]"
+          const element =
+            event.target.closest?.(
+              "[data-route], [data-module]"
             );
 
-          if (!routeElement) {
-            return;
-          }
+          if (!element) return;
 
           const route =
-            routeElement.getAttribute(
+            element.getAttribute(
               "data-route"
+            ) ||
+            element.getAttribute(
+              "data-module"
             );
 
-          if (!route) {
-            return;
-          }
+          if (!route) return;
 
           event.preventDefault();
 
           this.go(route, {
             updateHash: true,
-            source: "navigation-click"
+            source:
+              element.hasAttribute(
+                "data-module"
+              )
+                ? "module-link-click"
+                : "navigation-click"
           });
         }
       );
@@ -550,15 +816,6 @@
       document.addEventListener(
         "keydown",
         event => {
-          const routeElement =
-            event.target.closest?.(
-              "[data-route]"
-            );
-
-          if (!routeElement) {
-            return;
-          }
-
           if (
             event.key !== "Enter" &&
             event.key !== " "
@@ -566,18 +823,30 @@
             return;
           }
 
+          const element =
+            event.target.closest?.(
+              "[data-route], [data-module]"
+            );
+
+          if (!element) return;
+
+          const route =
+            element.getAttribute(
+              "data-route"
+            ) ||
+            element.getAttribute(
+              "data-module"
+            );
+
+          if (!route) return;
+
           event.preventDefault();
 
-          this.go(
-            routeElement.getAttribute(
-              "data-route"
-            ),
-            {
-              updateHash: true,
-              source:
-                "navigation-keyboard"
-            }
-          );
+          this.go(route, {
+            updateHash: true,
+            source:
+              "navigation-keyboard"
+          });
         }
       );
     },
@@ -585,14 +854,20 @@
     updateNavigationState(route) {
       document
         .querySelectorAll(
-          "[data-route]"
+          "[data-route], [data-module]"
         )
         .forEach(item => {
+          const rawRoute =
+            item.getAttribute(
+              "data-route"
+            ) ||
+            item.getAttribute(
+              "data-module"
+            );
+
           const itemRoute =
             this.resolveRoute(
-              item.getAttribute(
-                "data-route"
-              )
+              rawRoute
             );
 
           const isActive =
@@ -622,26 +897,17 @@
     },
 
     /* =========================================================
-       MODULE RENDERING
+       Module Rendering
     ========================================================= */
 
     renderModule(route, options = {}) {
       if (!this.main) {
-        this.main =
-          document.getElementById(
-            "appMain"
-          ) ||
-          document.querySelector(
-            "[data-app-main]"
-          ) ||
-          document.querySelector(
-            "main"
-          );
+        this.resolveMainContainer();
       }
 
       if (!this.main) {
         console.error(
-          "[AIW.App] Main application container was not found."
+          "[AIW.App V5.0] Main application container was not found."
         );
 
         return false;
@@ -654,6 +920,33 @@
         window.AIW?.Modules?.[
           resolvedRoute
         ];
+
+      const renderKey =
+        `${resolvedRoute}|${options.force === true}`;
+
+      if (
+        this._isRendering
+      ) {
+        this._pendingRender = {
+          route:
+            resolvedRoute,
+          options:
+            {
+              ...options,
+              force: true
+            }
+        };
+
+        return false;
+      }
+
+      if (
+        options.force !== true &&
+        this._lastRenderKey ===
+          resolvedRoute
+      ) {
+        return true;
+      }
 
       this._isRendering = true;
 
@@ -676,29 +969,50 @@
           module.render(
             this.main,
             {
-              route: resolvedRoute,
-              app: this,
+              route:
+                resolvedRoute,
+
+              app:
+                this,
+
+              router:
+                this.getRouter(),
+
               store:
                 window.AIW?.Store ||
                 null,
+
               data:
                 this.getPlatformData(),
+
               force:
                 options.force === true,
+
               source:
                 options.source ||
-                "route"
+                "app-render"
             }
           );
+
+          this._lastRenderKey =
+            resolvedRoute;
 
           this.emit(
             "aiw:moduleRendered",
             {
               route:
                 resolvedRoute,
+
               moduleId:
                 module.id ||
                 resolvedRoute,
+
+              moduleVersion:
+                module.version ||
+                null,
+
+              renderKey,
+
               timestamp:
                 new Date().toISOString()
             }
@@ -707,14 +1021,20 @@
           return true;
         }
 
+        this._lastRenderKey =
+          null;
+
         this.renderMissingModule(
           resolvedRoute
         );
 
         return false;
       } catch (error) {
+        this._lastRenderKey =
+          null;
+
         console.error(
-          `[AIW.App] Failed to render module "${resolvedRoute}":`,
+          `[AIW.App V5.0] Failed to render module "${resolvedRoute}":`,
           error
         );
 
@@ -728,9 +1048,11 @@
           {
             route:
               resolvedRoute,
+
             message:
               error?.message ||
               String(error),
+
             timestamp:
               new Date().toISOString()
           }
@@ -743,16 +1065,34 @@
         this.main.removeAttribute(
           "aria-busy"
         );
+
+        if (this._pendingRender) {
+          const pending =
+            this._pendingRender;
+
+          this._pendingRender =
+            null;
+
+          window.setTimeout(
+            () => {
+              this.renderModule(
+                pending.route,
+                pending.options
+              );
+            },
+            0
+          );
+        }
       }
     },
 
     destroyModule(route) {
-      if (!route) {
-        return;
-      }
+      if (!route) return;
 
       const module =
-        window.AIW?.Modules?.[route];
+        window.AIW?.Modules?.[
+          route
+        ];
 
       if (
         !module ||
@@ -763,10 +1103,13 @@
       }
 
       try {
-        module.destroy();
+        module.destroy({
+          route,
+          app: this
+        });
       } catch (error) {
         console.warn(
-          `[AIW.App] Module cleanup failed for "${route}":`,
+          `[AIW.App V5.0] Module cleanup failed for "${route}":`,
           error
         );
       }
@@ -774,7 +1117,7 @@
 
     renderMissingModule(route) {
       const routeInfo =
-        this.routes[route] || {};
+        this.getRoute(route) || {};
 
       this.main.innerHTML = `
         <section class="module-page">
@@ -782,27 +1125,25 @@
             <div class="module-section-title compact">
               <h2>قيد التطوير</h2>
               <p>
-                وحدة ${
-                  this.escapeHTML(
-                    routeInfo.title ||
-                    route
-                  )
-                } غير متاحة حالياً.
+                وحدة
+                ${this.escapeHTML(
+                  routeInfo.title ||
+                  route
+                )}
+                غير متاحة حالياً.
               </p>
             </div>
 
             <div class="settings-action-card executive-about-card">
               <strong>
-                ${
-                  this.escapeHTML(
-                    routeInfo.title ||
-                    route
-                  )
-                }
+                ${this.escapeHTML(
+                  routeInfo.title ||
+                  route
+                )}
               </strong>
 
               <p>
-                لم يتم العثور على دالة العرض الخاصة بهذه الوحدة داخل
+                لم يتم العثور على دالة العرض داخل
                 <code>AIW.Modules.${this.escapeHTML(
                   route
                 )}</code>.
@@ -815,22 +1156,19 @@
 
     renderModuleError(route, error) {
       const routeInfo =
-        this.routes[route] || {};
+        this.getRoute(route) || {};
 
       this.main.innerHTML = `
         <section class="module-page">
           <div class="module-panel">
             <div class="module-section-title compact">
               <h2>تعذر فتح الصفحة</h2>
-
               <p>
                 حدث خطأ أثناء تحميل وحدة
-                ${
-                  this.escapeHTML(
-                    routeInfo.title ||
-                    route
-                  )
-                }.
+                ${this.escapeHTML(
+                  routeInfo.title ||
+                  route
+                )}.
               </p>
             </div>
 
@@ -840,12 +1178,10 @@
               </strong>
 
               <p>
-                ${
-                  this.escapeHTML(
-                    error?.message ||
-                    "تعذر إكمال عملية العرض."
-                  )
-                }
+                ${this.escapeHTML(
+                  error?.message ||
+                  "تعذر إكمال عملية العرض."
+                )}
               </p>
             </div>
           </div>
@@ -861,26 +1197,42 @@
       );
 
       this._refreshTimer =
-        window.setTimeout(() => {
-          if (
-            !this.currentRoute ||
-            this._isRendering
-          ) {
-            return;
-          }
-
-          this.renderModule(
-            this.currentRoute,
-            {
-              force: true,
-              source
+        window.setTimeout(
+          () => {
+            if (
+              !this.currentRoute
+            ) {
+              return;
             }
-          );
-        }, 100);
+
+            if (this._isRendering) {
+              this._pendingRender = {
+                route:
+                  this.currentRoute,
+
+                options: {
+                  force: true,
+                  source
+                }
+              };
+
+              return;
+            }
+
+            this.renderModule(
+              this.currentRoute,
+              {
+                force: true,
+                source
+              }
+            );
+          },
+          100
+        );
     },
 
     /* =========================================================
-       STORE CONNECTION
+       Store Connection
     ========================================================= */
 
     bindStore() {
@@ -897,22 +1249,48 @@
       const onStoreChange =
         change => {
           const type =
-            change?.type || "";
+            String(
+              change?.type ||
+              change?.event ||
+              change?.action ||
+              ""
+            );
 
-          const ignoredEvents = [
+          const revision =
+            change?.revision ??
+            change?.meta?.revision ??
+            null;
+
+          if (
+            revision !== null &&
+            revision ===
+              this._lastStoreRevision
+          ) {
+            return;
+          }
+
+          if (revision !== null) {
+            this._lastStoreRevision =
+              revision;
+          }
+
+          const ignoredTypes = [
             "aiw:metadataChanged",
+            "metadata",
             "persist",
-            "settingsPersisted"
+            "settingsPersisted",
+            "routeChanged"
           ];
 
           if (
-            ignoredEvents.includes(type)
+            ignoredTypes.includes(type)
           ) {
             return;
           }
 
           this.scheduleRefresh(
-            type || "store-change"
+            type ||
+            "store-change"
           );
         };
 
@@ -940,7 +1318,7 @@
         }
       } catch (error) {
         console.warn(
-          "[AIW.App] Store subscription failed:",
+          "[AIW.App V5.0] Store subscription failed:",
           error
         );
       }
@@ -956,7 +1334,10 @@
           typeof store.getState ===
             "function"
         ) {
-          return store.getState();
+          return (
+            store.getState() ||
+            {}
+          );
         }
 
         if (
@@ -964,17 +1345,24 @@
           typeof store.getData ===
             "function"
         ) {
-          return store.getData();
+          return (
+            store.getData() ||
+            {}
+          );
         }
       } catch (error) {
         console.warn(
-          "[AIW.App] Unable to read Store data:",
+          "[AIW.App V5.0] Unable to read Store data:",
           error
         );
       }
 
-      return window.AIW?.Data || {};
+      return {};
     },
+
+    /* =========================================================
+       Route Persistence
+    ========================================================= */
 
     saveCurrentRoute(route) {
       const resolvedRoute =
@@ -982,13 +1370,12 @@
 
       try {
         window.localStorage.setItem(
-          AIW.KEYS?.CURRENT_MODULE ||
-            "aiwCurrentModule",
+          this.getCurrentModuleKey(),
           resolvedRoute
         );
       } catch (error) {
         console.warn(
-          "[AIW.App] Unable to save current module:",
+          "[AIW.App V5.0] Unable to save current module:",
           error
         );
       }
@@ -1005,40 +1392,43 @@
           store.setMetadata({
             currentModule:
               resolvedRoute,
+
+            previousModule:
+              this.previousRoute,
+
             lastRouteChange:
               new Date().toISOString()
           });
         }
       } catch (error) {
         console.warn(
-          "[AIW.App] Route metadata update skipped:",
+          "[AIW.App V5.0] Route metadata update skipped:",
           error
         );
       }
+
+      return resolvedRoute;
     },
 
     getSavedRoute() {
       try {
         const savedRoute =
           window.localStorage.getItem(
-            AIW.KEYS?.CURRENT_MODULE ||
-              "aiwCurrentModule"
+            this.getCurrentModuleKey()
           );
 
-        if (!savedRoute) {
-          return null;
-        }
-
-        return this.resolveRoute(
-          savedRoute
-        );
+        return savedRoute
+          ? this.resolveRoute(
+              savedRoute
+            )
+          : null;
       } catch (error) {
         return null;
       }
     },
 
     /* =========================================================
-       GLOBAL EVENTS
+       Global Events
     ========================================================= */
 
     bindGlobalEvents() {
@@ -1053,17 +1443,19 @@
         () => {
           const route =
             this.getRouteFromHash() ||
-            this.defaultRoute;
+            this.getDefaultRoute();
 
           if (
-            route === this.currentRoute
+            route ===
+            this.currentRoute
           ) {
             return;
           }
 
           this.go(route, {
             updateHash: false,
-            source: "hashchange"
+            source:
+              "app-hashchange"
           });
         }
       );
@@ -1073,17 +1465,19 @@
         () => {
           const route =
             this.getRouteFromHash() ||
-            this.defaultRoute;
+            this.getDefaultRoute();
 
           if (
-            route === this.currentRoute
+            route ===
+            this.currentRoute
           ) {
             return;
           }
 
           this.go(route, {
             updateHash: false,
-            source: "history"
+            source:
+              "app-history"
           });
         }
       );
@@ -1094,7 +1488,16 @@
           const route =
             event?.detail?.route;
 
-          if (!route) {
+          if (!route) return;
+
+          if (
+            event.detail?.source ===
+              "router" ||
+            event.detail?.source ===
+              "router-push" ||
+            event.detail?.source ===
+              "router-replace"
+          ) {
             return;
           }
 
@@ -1102,17 +1505,28 @@
             updateHash:
               event.detail
                 .updateHash !== false,
+
+            replaceHash:
+              event.detail
+                .replaceHash === true,
+
+            force:
+              event.detail
+                .force === true,
+
             source:
-              event.detail.source ||
-              "custom-event"
+              event.detail
+                .source ||
+              "app-custom-event"
           });
         }
       );
 
       window.addEventListener(
         "aiw:refreshCurrentModule",
-        () => {
+        event => {
           this.scheduleRefresh(
+            event?.detail?.source ||
             "manual-refresh"
           );
         }
@@ -1154,17 +1568,20 @@
     },
 
     /* =========================================================
-       PAGE HELPERS
+       Page Helpers
     ========================================================= */
 
     updateDocumentTitle(route) {
       const routeInfo =
-        this.routes[route];
+        this.getRoute(route);
 
       const platformName =
-        window.ATC_CONFIG?.app?.name ||
-        window.AIW?.Config?.app?.name ||
-        window.AIW?.CONFIG?.app?.name ||
+        this.getConfig()
+          ?.app
+          ?.shortName ||
+        this.getConfig()
+          ?.app
+          ?.name ||
         "AI Work";
 
       const pageTitle =
@@ -1180,7 +1597,7 @@
         window.scrollTo({
           top: 0,
           left: 0,
-          behavior: "smooth"
+          behavior: "auto"
         });
       } catch (error) {
         window.scrollTo(0, 0);
@@ -1194,7 +1611,8 @@
         try {
           this.main.scrollTo({
             top: 0,
-            behavior: "smooth"
+            left: 0,
+            behavior: "auto"
           });
         } catch (error) {
           this.main.scrollTop = 0;
@@ -1203,21 +1621,26 @@
     },
 
     emit(name, detail = {}) {
-      if (!name) {
-        return;
-      }
+      if (!name) return false;
 
       try {
         window.dispatchEvent(
-          new CustomEvent(name, {
-            detail
-          })
+          new CustomEvent(
+            name,
+            {
+              detail
+            }
+          )
         );
+
+        return true;
       } catch (error) {
         console.warn(
-          `[AIW.App] Event "${name}" failed:`,
+          `[AIW.App V5.0] Event "${name}" failed:`,
           error
         );
+
+        return false;
       }
     },
 
@@ -1231,7 +1654,7 @@
     },
 
     /* =========================================================
-       APPLICATION CLEANUP
+       Cleanup
     ========================================================= */
 
     destroy() {
@@ -1251,33 +1674,35 @@
           this._storeUnsubscribe();
         } catch (error) {
           console.warn(
-            "[AIW.App] Store unsubscribe failed:",
+            "[AIW.App V5.0] Store unsubscribe failed:",
             error
           );
         }
       }
 
       this._storeUnsubscribe = null;
+      this._refreshTimer = null;
+      this._pendingRender = null;
+      this._lastRenderKey = null;
+      this._lastStoreRevision = null;
       this._initialized = false;
+      this._isRendering = false;
+      this._isNavigating = false;
       this.currentRoute = null;
       this.previousRoute = null;
+      this.main = null;
     }
   };
 
   /* =========================================================
-     GLOBAL REFERENCES
+     Global References
   ========================================================= */
 
   AIW.App = App;
-
-  /*
-   * Legacy compatibility:
-   * Existing modules may still call ATCApp.go().
-   */
   window.ATCApp = App;
 
   /* =========================================================
-     BOOTSTRAP
+     Bootstrap
   ========================================================= */
 
   const bootstrap = () => {
