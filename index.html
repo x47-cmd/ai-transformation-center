@@ -44,12 +44,12 @@
 
   <link
     rel="stylesheet"
-    href="css/style.css?v=5.0.0"
+    href="css/style.css?v=5.0.1"
   />
 
   <link
     rel="stylesheet"
-    href="css/enterprise.css?v=5.0.0"
+    href="css/enterprise.css?v=5.0.1"
   />
 </head>
 
@@ -74,7 +74,7 @@
     id="app"
     class="aiw-app enterprise-app"
     data-aiw-root
-    data-version="5.0.0"
+    data-version="5.0.1"
   >
     <header
       id="appHeader"
@@ -224,28 +224,27 @@
   <!-- 1. Global Configuration                              -->
   <!-- ===================================================== -->
 
-  <script src="js/config/config.js?v=5.0.0"></script>
+  <script src="js/config/config.js?v=5.0.1"></script>
 
   <!-- ===================================================== -->
-  <!-- 2. Initial Data Blueprint                            -->
-  <!-- Must load before Store so Store V2.2 can normalize   -->
-  <!-- and persist the complete initial platform state.     -->
+  <!-- 2. Central Store V2.2                                -->
+  <!-- Store must load before Enterprise Seed Data.         -->
   <!-- ===================================================== -->
 
-  <script src="js/data/aiw-data.js?v=5.0.0"></script>
+  <script src="js/store.js?v=5.0.1"></script>
 
   <!-- ===================================================== -->
-  <!-- 3. Central Store V2.2                                -->
-  <!-- Single Source of Truth                               -->
+  <!-- 3. Enterprise Seed Data                              -->
+  <!-- Seeds and migrates the biometric AI opportunities.   -->
   <!-- ===================================================== -->
 
-  <script src="js/store.js?v=5.0.0"></script>
+  <script src="js/data/aiw-data.js?v=5.0.1"></script>
 
   <!-- ===================================================== -->
   <!-- 4. Localization                                      -->
   <!-- ===================================================== -->
 
-  <script src="js/localization/translations.js?v=5.0.0"></script>
+  <script src="js/localization/translations.js?v=5.0.1"></script>
 
   <!-- ===================================================== -->
   <!-- 5. External Libraries                                -->
@@ -260,22 +259,22 @@
   <!-- 6. Shared UI and Analytics Engines                   -->
   <!-- ===================================================== -->
 
-  <script src="js/core/widgets.js?v=5.0.0"></script>
-  <script src="js/core/charts.js?v=5.0.0"></script>
-  <script src="js/core/analytics.js?v=5.0.0"></script>
-  <script src="js/core/biometric-analytics.js?v=5.0.0"></script>
+  <script src="js/core/widgets.js?v=5.0.1"></script>
+  <script src="js/core/charts.js?v=5.0.1"></script>
+  <script src="js/core/analytics.js?v=5.0.1"></script>
+  <script src="js/core/biometric-analytics.js?v=5.0.1"></script>
 
   <!-- ===================================================== -->
   <!-- 7. Operational Engines                               -->
   <!-- ===================================================== -->
 
-  <script src="js/core/automation.js?v=5.0.0"></script>
-  <script src="js/core/ai-engine.js?v=5.0.0"></script>
-  <script src="js/core/decision-engine.js?v=5.0.0"></script>
-  <script src="js/core/recommendation-engine.js?v=5.0.0"></script>
-  <script src="js/core/export.js?v=5.0.0"></script>
-  <script src="js/core/notifications.js?v=5.0.0"></script>
-  <script src="js/core/permissions.js?v=5.0.0"></script>
+  <script src="js/core/automation.js?v=5.0.1"></script>
+  <script src="js/core/ai-engine.js?v=5.0.1"></script>
+  <script src="js/core/decision-engine.js?v=5.0.1"></script>
+  <script src="js/core/recommendation-engine.js?v=5.0.1"></script>
+  <script src="js/core/export.js?v=5.0.1"></script>
+  <script src="js/core/notifications.js?v=5.0.1"></script>
+  <script src="js/core/permissions.js?v=5.0.1"></script>
 
   <!-- ===================================================== -->
   <!-- 8. Core Navigation and Shell                         -->
@@ -283,8 +282,8 @@
   <!-- Shell loads before modules and App.                  -->
   <!-- ===================================================== -->
 
-  <script src="js/core/router.js?v=5.0.0"></script>
-  <script src="js/core/shell.js?v=5.0.0"></script>
+  <script src="js/core/router.js?v=5.0.1"></script>
+  <script src="js/core/shell.js?v=5.0.1"></script>
 
   <!-- Register Shell initialization before App bootstrap. -->
   <script>
@@ -321,18 +320,18 @@
   <!-- All modules register themselves before App starts.   -->
   <!-- ===================================================== -->
 
-  <script src="js/modules/dashboard/dashboard.js?v=5.0.0"></script>
-  <script src="js/modules/strategy/strategy.js?v=5.0.0"></script>
-  <script src="js/modules/projects/projects.js?v=5.0.0"></script>
-  <script src="js/modules/ideas/ideas.js?v=5.0.0"></script>
-  <script src="js/modules/governance/governance.js?v=5.0.0"></script>
-  <script src="js/modules/maturity/maturity.js?v=5.0.0"></script>
-  <script src="js/modules/reports/reports.js?v=5.0.0"></script>
-  <script src="js/modules/kpis/kpis.js?v=5.0.0"></script>
-  <script src="js/modules/business/business.js?v=5.0.0"></script>
-  <script src="js/modules/automation/automation.js?v=5.0.0"></script>
-  <script src="js/modules/decision/decision.js?v=5.0.0"></script>
-  <script src="js/modules/settings/settings.js?v=5.0.0"></script>
+  <script src="js/modules/dashboard/dashboard.js?v=5.0.1"></script>
+  <script src="js/modules/strategy/strategy.js?v=5.0.1"></script>
+  <script src="js/modules/projects/projects.js?v=5.0.1"></script>
+  <script src="js/modules/ideas/ideas.js?v=5.1.0"></script>
+  <script src="js/modules/governance/governance.js?v=5.0.1"></script>
+  <script src="js/modules/maturity/maturity.js?v=5.0.1"></script>
+  <script src="js/modules/reports/reports.js?v=5.0.1"></script>
+  <script src="js/modules/kpis/kpis.js?v=5.0.1"></script>
+  <script src="js/modules/business/business.js?v=5.0.1"></script>
+  <script src="js/modules/automation/automation.js?v=5.0.1"></script>
+  <script src="js/modules/decision/decision.js?v=5.0.1"></script>
+  <script src="js/modules/settings/settings.js?v=5.0.1"></script>
 
   <!-- ===================================================== -->
   <!-- 10. Application Bootstrap                            -->
@@ -340,6 +339,6 @@
   <!-- Do not add a second window.load navigation call.     -->
   <!-- ===================================================== -->
 
-  <script src="js/core/app.js?v=5.0.0"></script>
+  <script src="js/core/app.js?v=5.0.1"></script>
 </body>
 </html>
