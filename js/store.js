@@ -1933,6 +1933,13 @@ if (
 }
 
   reset(options = {}) {
+    if (
+  options.backupBeforeReset !== false
+) {
+  this.backup(
+    this.getState()
+  );
+}
     const fresh =
       this.clone(
         AIW.DEFAULT_DATA
