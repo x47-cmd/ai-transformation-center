@@ -1,15 +1,23 @@
 /* =========================================================
-   AI Work - Executive Reports Center V2.3
-   Biometric Executive Analytics
+   AI Work - Executive Reports Center V5.0
+   Enterprise Biometric Executive Analytics
+   Store V2.2 Native Architecture
 
-   Updates:
-   - Central AIW.Store Integration
-   - Live Cross-Page Synchronization
-   - Dynamic Ideas, Projects, KPI and Governance Data
-   - Dynamic Portfolio Distribution
-   - Persistent Report Settings
-   - Safe Analytics Fallbacks
-   - No UI Design Changes
+   File Path:
+   js/modules/reports/reports.js
+
+   Features:
+   - AIW.Store V2.2 as Single Source of Truth
+   - No internal default report seeding
+   - Native reports object integration
+   - Persistent report settings and generation history
+   - Live Ideas, Projects, KPIs, Decisions and Automation data
+   - Decision History and KPI History analytics
+   - Governance and Risk integration
+   - Dynamic Executive Summary, Highlights and Recommendations
+   - Live charts and portfolio distribution
+   - Cross-page Store synchronization
+   - Existing core UI design preserved
 ========================================================= */
 
 window.AIW = window.AIW || {};
@@ -19,178 +27,246 @@ AIW.Modules.reports = {
   id: "reports",
   title: "التقارير",
   icon: "📊",
+  version: "5.0.0",
 
   _container: null,
+  _unsubscribeStore: null,
+  _refreshTimer: null,
+  _eventsBound: false,
   _syncBound: false,
-  _seedChecked: false,
+  _isRendering: false,
+  _isGenerating: false,
+  _detailsModal: null,
 
-  /* =======================================================
-     Default Reports Configuration
-  ======================================================= */
-
-  defaultReportsCenter: {
-    settings: {
-      title: "مركز التقارير والتحليلات التنفيذية",
-      reportingCycle: "شهري",
-      topDecisionLimit: 5,
-      showCharts: true
-    },
-
-    executiveSummary: {
-      title:
-        "المبادرة تمتلك أساساً جيداً للانتقال إلى القياس والتشغيل الذكي",
-
-      description:
-        "التركيز الحالي هو بناء خط أساس واضح لجودة التسجيلات، مراقبة استخدام الصلاحيات، متابعة أداء البوابات الذكية، ثم تفعيل التنبيهات والتحليلات المتقدمة بشكل تدريجي وتحت إشراف بشري."
-    },
-
-    executiveHighlight: {
-      title: "الأولوية الحالية: قياس قبل التوسع",
-
-      description:
-        "أفضل مسار الآن هو تشغيل لوحات Power BI أولاً لقياس أخطاء التسجيل، الجلسات الطويلة، استخدام الصلاحيات، وجاهزية البوابات قبل تشغيل نماذج ذكاء اصطناعي متقدمة."
-    },
-
-    finalRecommendation: {
-      title:
-        "البدء بثلاث لوحات قياس تشغيلية قبل أي تكامل متقدم",
-
-      description:
-        "التوصية هي البدء بلوحة جودة التسجيلات، لوحة استخدام الصلاحيات والجلسات، ولوحة أداء البوابات الذكية. هذه الخطوة تعطي الإدارة رؤية واضحة وتوفر أساساً آمناً لبناء التنبيهات ونماذج كشف الشذوذ لاحقاً."
-    },
-
-    meta: {
-      createdAt: null,
-      updatedAt: null
-    }
+  config: {
+    refreshDelay: 90,
+    chartDelay: 80,
+    maximumHistoryRows: 20,
+    styleId: "aiw-reports-v50-styles",
+    defaultTitle: "مركز التقارير والتحليلات التنفيذية",
+    defaultCycle: "شهري",
+    defaultTopDecisionLimit: 5
   },
 
   /* =======================================================
-     Shared Data Reader
+     Store Access
   ======================================================= */
 
-  getSharedData() {
+  getStore() {
+    return window.AIW?.Store || null;
+  },
+
+  getState() {
+    const store = this.getStore();
+
+    if (!store) {
+      console.error("AI Work Reports V5.0: AIW.Store is unavailable.");
+      return {};
+    }
+
     try {
-      if (
-        window.AIW?.Store &&
-        typeof window.AIW.Store.getState === "function"
-      ) {
-        return window.AIW.Store.getState() || {};
+      if (typeof store.getState === "function") {
+        const state = store.getState();
+        return state && typeof state === "object" ? state : {};
       }
 
-      if (
-        window.AIW?.Store &&
-        typeof window.AIW.Store.getData === "function"
-      ) {
-        return window.AIW.Store.getData() || {};
+      if (typeof store.getData === "function") {
+        const state = store.getData();
+        return state && typeof state === "object" ? state : {};
       }
-
-      return window.AIW?.Data || {};
     } catch (error) {
-      console.warn(
-        "AI Work Reports: Unable to read shared data.",
+      console.error(
+        "AI Work Reports V5.0: Unable to read Store state.",
         error
       );
-
-      return window.AIW?.Data || {};
     }
+
+    return {};
+  },
+
+  getCollection(name) {
+    const value = this.getState()?.[name];
+    return Array.isArray(value) ? value : [];
   },
 
   /* =======================================================
-     Reports Center Initialization
+     Reports Object
   ======================================================= */
 
-  ensureReportsCenterSeeded() {
-    if (this._seedChecked) return;
-
-    this._seedChecked = true;
-
-    const sharedData = this.getSharedData();
-
-    const hasReportsCenter =
-      sharedData.reportsCenter &&
-      typeof sharedData.reportsCenter === "object";
-
-    if (hasReportsCenter) {
-      return;
-    }
-
-    const reportsCenter = this.clone(
-      this.defaultReportsCenter
-    );
-
-    const now = new Date().toISOString();
-
-    reportsCenter.meta.createdAt = now;
-    reportsCenter.meta.updatedAt = now;
+  getReportsSource() {
+    const state = this.getState();
 
     if (
-      window.AIW?.Store &&
-      typeof window.AIW.Store.update === "function"
+      state.reports &&
+      typeof state.reports === "object" &&
+      !Array.isArray(state.reports)
     ) {
-      window.AIW.Store.update(
-        "reportsCenter",
-        reportsCenter,
-        {
-          event: "aiw:reportsUpdated"
-        }
-      );
-
-      return;
+      return state.reports;
     }
 
-    if (window.AIW?.Data) {
-      window.AIW.Data.reportsCenter =
-        reportsCenter;
+    if (
+      state.reportsCenter &&
+      typeof state.reportsCenter === "object"
+    ) {
+      return state.reportsCenter;
     }
+
+    return {};
   },
 
   getReportsCenter() {
-    const sharedData = this.getSharedData();
-
-    const source =
-      sharedData.reportsCenter &&
-      typeof sharedData.reportsCenter === "object"
-        ? sharedData.reportsCenter
-        : this.defaultReportsCenter;
+    const source = this.getReportsSource();
 
     return {
       settings: {
-        ...this.defaultReportsCenter.settings,
-        ...(source.settings || {})
+        title:
+          source.settings?.title ||
+          this.config.defaultTitle,
+
+        reportingCycle:
+          source.settings?.reportingCycle ||
+          this.config.defaultCycle,
+
+        topDecisionLimit:
+          Math.max(
+            1,
+            this.toSafeNumber(
+              source.settings?.topDecisionLimit,
+              this.config.defaultTopDecisionLimit
+            )
+          ),
+
+        showCharts:
+          source.settings?.showCharts !== false,
+
+        includeAutomation:
+          source.settings?.includeAutomation !== false,
+
+        includeDecisionHistory:
+          source.settings?.includeDecisionHistory !== false,
+
+        includeKpiHistory:
+          source.settings?.includeKpiHistory !== false
       },
 
-      executiveSummary: {
-        ...this.defaultReportsCenter.executiveSummary,
-        ...(source.executiveSummary || {})
-      },
+      history: Array.isArray(source.history)
+        ? source.history
+            .map((entry, index) =>
+              this.normalizeReportHistory(entry, index)
+            )
+            .filter(Boolean)
+        : [],
 
-      executiveHighlight: {
-        ...this.defaultReportsCenter.executiveHighlight,
-        ...(source.executiveHighlight || {})
-      },
+      executiveSummary:
+        source.executiveSummary &&
+        typeof source.executiveSummary === "object"
+          ? source.executiveSummary
+          : {},
 
-      finalRecommendation: {
-        ...this.defaultReportsCenter.finalRecommendation,
-        ...(source.finalRecommendation || {})
-      },
+      executiveHighlight:
+        source.executiveHighlight &&
+        typeof source.executiveHighlight === "object"
+          ? source.executiveHighlight
+          : {},
+
+      finalRecommendation:
+        source.finalRecommendation &&
+        typeof source.finalRecommendation === "object"
+          ? source.finalRecommendation
+          : {},
 
       meta: {
-        ...this.defaultReportsCenter.meta,
-        ...(source.meta || {})
+        createdAt:
+          source.meta?.createdAt || null,
+
+        updatedAt:
+          source.meta?.updatedAt || null
       }
     };
   },
 
-  updateReportsCenter(changes = {}) {
-    if (
-      !changes ||
-      typeof changes !== "object"
-    ) {
-      return false;
+  normalizeReportHistory(entry, index = 0) {
+    if (!entry || typeof entry !== "object") {
+      return null;
     }
 
+    return {
+      ...entry,
+
+      id:
+        entry.id ??
+        entry.reportId ??
+        `report-${index + 1}`,
+
+      title:
+        entry.title ||
+        entry.name ||
+        "تقرير تنفيذي",
+
+      cycle:
+        entry.cycle ||
+        entry.reportingCycle ||
+        this.config.defaultCycle,
+
+      executiveScore:
+        this.normalizePercent(
+          entry.executiveScore,
+          0
+        ),
+
+      ideasCount:
+        this.toSafeNumber(
+          entry.ideasCount,
+          0
+        ),
+
+      projectsCount:
+        this.toSafeNumber(
+          entry.projectsCount,
+          0
+        ),
+
+      kpisCount:
+        this.toSafeNumber(
+          entry.kpisCount,
+          0
+        ),
+
+      risksCount:
+        this.toSafeNumber(
+          entry.risksCount,
+          0
+        ),
+
+      generatedBy:
+        entry.generatedBy ||
+        entry.actor ||
+        "الإدارة",
+
+      createdAt:
+        entry.createdAt ||
+        entry.generatedAt ||
+        null
+    };
+  },
+
+  updateReportsCenter(changes = {}) {
+    if (!changes || typeof changes !== "object") {
+      return {
+        success: false,
+        message: "بيانات تحديث التقارير غير صالحة."
+      };
+    }
+
+    const store = this.getStore();
     const current = this.getReportsCenter();
+
+    if (!store) {
+      return {
+        success: false,
+        message: "مخزن البيانات غير متاح."
+      };
+    }
 
     const updated = {
       ...current,
@@ -222,37 +298,76 @@ AIW.Modules.reports = {
       }
     };
 
-    if (
-      window.AIW?.Store &&
-      typeof window.AIW.Store.update === "function"
-    ) {
-      return window.AIW.Store.update(
-        "reportsCenter",
-        updated,
-        {
-          event: "aiw:reportsUpdated"
-        }
-      );
-    }
-
-    if (window.AIW?.Data) {
-      window.AIW.Data.reportsCenter = updated;
-
-      window.dispatchEvent(
-        new CustomEvent(
-          "aiw:reportsUpdated",
+    try {
+      if (typeof store.set === "function") {
+        const result = store.set(
+          "reports",
+          updated,
           {
-            detail: {
-              reportsCenter: updated
-            }
+            event: "aiw:reportsUpdated"
           }
-        )
+        );
+
+        return this.normalizeStoreResult(result, updated);
+      }
+
+      if (typeof store.update === "function") {
+        const result = store.update(
+          "reports",
+          updated,
+          {
+            event: "aiw:reportsUpdated"
+          }
+        );
+
+        return this.normalizeStoreResult(result, updated);
+      }
+
+      if (typeof store.patch === "function") {
+        const result = store.patch(
+          "reports",
+          updated,
+          {
+            event: "aiw:reportsUpdated"
+          }
+        );
+
+        return this.normalizeStoreResult(result, updated);
+      }
+    } catch (error) {
+      console.error(
+        "AI Work Reports V5.0: updateReportsCenter failed.",
+        error
       );
 
-      return true;
+      return {
+        success: false,
+        message: "تعذر تحديث مركز التقارير.",
+        error
+      };
     }
 
-    return false;
+    return {
+      success: false,
+      message: "Store V2.2 لا يدعم تحديث التقارير."
+    };
+  },
+
+  normalizeStoreResult(result, data = null) {
+    if (result?.success === false) return result;
+
+    if (result === false || result === null) {
+      return {
+        success: false,
+        message: "تعذر حفظ بيانات التقرير."
+      };
+    }
+
+    return {
+      success: true,
+      result,
+      data
+    };
   },
 
   /* =======================================================
@@ -260,125 +375,229 @@ AIW.Modules.reports = {
   ======================================================= */
 
   getIdeas() {
-    const data = this.getSharedData();
-
-    const ideas = Array.isArray(data.ideas)
-      ? data.ideas
-      : [];
+    const store = this.getStore();
 
     try {
-      if (
-        window.AIW?.BiometricAnalytics &&
-        typeof window.AIW.BiometricAnalytics
-          .enrichIdeas === "function"
-      ) {
-        const enriched =
-          window.AIW.BiometricAnalytics
-            .enrichIdeas(ideas);
-
-        if (Array.isArray(enriched)) {
-          return enriched;
-        }
+      if (typeof store?.getIdeas === "function") {
+        const ideas = store.getIdeas();
+        if (Array.isArray(ideas)) return ideas;
       }
     } catch (error) {
-      console.warn(
-        "AI Work Reports: Idea enrichment failed.",
-        error
-      );
+      console.warn("AI Work Reports V5.0: getIdeas failed.", error);
     }
 
-    return ideas;
+    return this.getCollection("ideas");
   },
 
   getProjects() {
-    const data = this.getSharedData();
+    const store = this.getStore();
 
-    return Array.isArray(data.projects)
-      ? data.projects
-      : [];
+    try {
+      if (typeof store?.getProjects === "function") {
+        const projects = store.getProjects();
+        if (Array.isArray(projects)) return projects;
+      }
+    } catch (error) {
+      console.warn("AI Work Reports V5.0: getProjects failed.", error);
+    }
+
+    return this.getCollection("projects");
   },
 
   getRoadmap() {
-    const data = this.getSharedData();
+    const state = this.getState();
 
-    return Array.isArray(data.roadmap)
-      ? data.roadmap
-      : [];
-  },
-
-  getRisks() {
-    const data = this.getSharedData();
-
-    if (
-      data.governanceCenter &&
-      Array.isArray(
-        data.governanceCenter.risks
-      )
-    ) {
-      return data.governanceCenter.risks;
+    if (Array.isArray(state.roadmap)) {
+      return state.roadmap;
     }
 
-    return Array.isArray(data.risks)
-      ? data.risks
-      : [];
-  },
-
-  getKpis() {
-    const data = this.getSharedData();
-
-    if (
-      data.kpiCenter &&
-      Array.isArray(data.kpiCenter.items)
-    ) {
-      return data.kpiCenter.items;
+    if (Array.isArray(state.strategy?.roadmap)) {
+      return state.strategy.roadmap;
     }
 
     return [];
   },
 
+  getRisks() {
+    const state = this.getState();
+    const risks = [];
+
+    [
+      state.risks,
+      state.riskRegister,
+      state.governance?.risks,
+      state.governanceCenter?.risks
+    ].forEach(source => {
+      if (Array.isArray(source)) risks.push(...source);
+    });
+
+    return this.uniqueBy(
+      risks,
+      risk =>
+        risk?.id ??
+        `${risk?.title || risk?.name || "risk"}-${risk?.level || ""}`
+    );
+  },
+
+  getGovernanceControls() {
+    const state = this.getState();
+
+    const sources = [
+      state.governance,
+      state.controls,
+      state.governanceControls,
+      state.governance?.controls,
+      state.governanceCenter?.controls
+    ];
+
+    for (const source of sources) {
+      if (Array.isArray(source)) return source;
+    }
+
+    return [];
+  },
+
+  getKpiCenter() {
+    const state = this.getState();
+    const source =
+      state.kpis &&
+      typeof state.kpis === "object" &&
+      !Array.isArray(state.kpis)
+        ? state.kpis
+        : state.kpiCenter &&
+          typeof state.kpiCenter === "object"
+          ? state.kpiCenter
+          : {};
+
+    return {
+      items: Array.isArray(source.items)
+        ? source.items
+        : Array.isArray(source.kpis)
+          ? source.kpis
+          : [],
+
+      history: Array.isArray(source.history)
+        ? source.history
+        : Array.isArray(source.kpiHistory)
+          ? source.kpiHistory
+          : []
+    };
+  },
+
+  getDecisionCenter() {
+    const state = this.getState();
+
+    const source =
+      state.decision &&
+      typeof state.decision === "object"
+        ? state.decision
+        : state.decisionCenter &&
+          typeof state.decisionCenter === "object"
+          ? state.decisionCenter
+          : {};
+
+    return {
+      scenarios: Array.isArray(source.scenarios)
+        ? source.scenarios
+        : [],
+
+      decisionHistory:
+        Array.isArray(source.decisionHistory)
+          ? source.decisionHistory
+          : []
+    };
+  },
+
+  getAutomationCenter() {
+    const state = this.getState();
+
+    const source =
+      state.automation &&
+      typeof state.automation === "object"
+        ? state.automation
+        : state.automationCenter &&
+          typeof state.automationCenter === "object"
+          ? state.automationCenter
+          : {};
+
+    return {
+      workflows: Array.isArray(source.workflows)
+        ? source.workflows
+        : [],
+
+      approvals: Array.isArray(source.approvals)
+        ? source.approvals
+        : [],
+
+      executionHistory:
+        Array.isArray(source.executionHistory)
+          ? source.executionHistory
+          : []
+    };
+  },
+
   getDepartments(ideas = []) {
-    const data = this.getSharedData();
+    const state = this.getState();
 
     const configuredDepartments =
-      Array.isArray(data.departments)
-        ? data.departments
+      Array.isArray(state.departments)
+        ? state.departments
         : [];
 
     const names = new Set(
       configuredDepartments
-        .map((department) =>
+        .map(department =>
           department?.name
         )
         .filter(Boolean)
     );
 
-    ideas.forEach((idea) => {
+    ideas.forEach(idea => {
       if (idea?.department) {
         names.add(idea.department);
       }
     });
 
-    return [...names].map((name) => {
+    this.getProjects().forEach(project => {
+      if (project?.department) {
+        names.add(project.department);
+      }
+    });
+
+    return [...names].map(name => {
       const configured =
         configuredDepartments.find(
-          (department) =>
+          department =>
             department?.name === name
         ) || {};
 
-      const count = ideas.filter(
-        (idea) =>
-          idea?.department === name
-      ).length;
+      const ideaCount =
+        ideas.filter(
+          idea =>
+            idea?.department === name
+        ).length;
+
+      const projectCount =
+        this.getProjects().filter(
+          project =>
+            project?.department === name
+        ).length;
+
+      const maturity =
+        this.normalizePercent(
+          configured.maturity ??
+          configured.readiness,
+          0
+        );
 
       return {
         ...configured,
         name,
-        count,
-        maturity:
-          this.normalizePercent(
-            configured.maturity,
-            0
-          )
+        ideaCount,
+        projectCount,
+        totalCount:
+          ideaCount + projectCount,
+        maturity
       };
     });
   },
@@ -387,97 +606,172 @@ AIW.Modules.reports = {
      Classification
   ======================================================= */
 
-  isHighPriority(idea) {
-    const value = String(
-      idea?.priority || ""
-    )
-      .trim()
-      .toLowerCase();
+  isHighPriority(item = {}) {
+    const value =
+      this.normalizeStatus(
+        item.priority ??
+        item.priorityLevel ??
+        item.level ??
+        ""
+      );
 
     return (
-      value === "عالية" ||
-      value === "عالي" ||
-      value === "high" ||
-      value === "critical"
+      value.includes("عال") ||
+      [
+        "high",
+        "critical",
+        "strategic",
+        "استراتيجي"
+      ].includes(value)
     );
   },
 
-  isMediumPriority(idea) {
-    const value = String(
-      idea?.priority || ""
-    )
-      .trim()
-      .toLowerCase();
+  isMediumPriority(item = {}) {
+    const value =
+      this.normalizeStatus(
+        item.priority ??
+        item.priorityLevel ??
+        item.level ??
+        ""
+      );
 
     return (
-      value === "متوسطة" ||
-      value === "متوسط" ||
+      value.includes("متوسط") ||
       value === "medium"
     );
   },
 
-  isLowPriority(idea) {
-    const value = String(
-      idea?.priority || ""
-    )
-      .trim()
-      .toLowerCase();
+  isLowPriority(item = {}) {
+    const value =
+      this.normalizeStatus(
+        item.priority ??
+        item.priorityLevel ??
+        item.level ??
+        ""
+      );
 
     return (
-      value === "منخفضة" ||
-      value === "منخفض" ||
+      value.includes("منخفض") ||
       value === "low"
     );
   },
 
-  isQuickWin(idea) {
-    if (idea?.quickWin === true) {
+  isQuickWin(item = {}) {
+    if (
+      item.quickWin === true ||
+      item.isQuickWin === true
+    ) {
       return true;
     }
 
-    const ease = String(
-      idea?.ease || ""
-    )
-      .trim()
-      .toLowerCase();
+    const status =
+      this.normalizeStatus(item.status);
 
-    const cost = String(
-      idea?.cost || ""
-    )
-      .trim()
-      .toLowerCase();
+    if (
+      [
+        "quick-win",
+        "quickwin"
+      ].includes(status)
+    ) {
+      return true;
+    }
+
+    const ease =
+      this.normalizeStatus(
+        item.ease ??
+        item.difficulty ??
+        item.complexity ??
+        ""
+      );
+
+    const cost =
+      this.normalizeStatus(
+        item.cost ??
+        item.costLevel ??
+        ""
+      );
 
     return (
-      ["سهلة", "سهل", "easy"].includes(ease) &&
-      ["منخفضة", "منخفض", "low"].includes(cost)
+      [
+        "easy",
+        "low",
+        "سهلة",
+        "سهل",
+        "منخفضة",
+        "منخفض"
+      ].includes(ease) &&
+      [
+        "low",
+        "منخفضة",
+        "منخفض"
+      ].includes(cost)
     );
   },
 
-  getQuickWins(ideas) {
-    try {
-      if (
-        window.AIW?.Decision &&
-        typeof window.AIW.Decision.quickWins ===
-          "function"
-      ) {
-        const result =
-          window.AIW.Decision.quickWins(
-            ideas
-          );
+  isPendingIdea(idea = {}) {
+    return [
+      "pending",
+      "submitted",
+      "pending-approval"
+    ].includes(
+      this.normalizeStatus(
+        idea.lifecycleStatus ??
+        idea.ideaStatus ??
+        idea.approval?.status ??
+        ""
+      )
+    );
+  },
 
-        if (Array.isArray(result)) {
-          return result;
-        }
-      }
-    } catch (error) {
-      console.warn(
-        "AI Work Reports: Quick Win engine failed.",
-        error
-      );
+  isConvertedIdea(idea = {}) {
+    if (
+      idea.convertedToProject === true ||
+      idea.conversion?.converted === true ||
+      idea.projectId
+    ) {
+      return true;
     }
 
-    return ideas.filter(
-      (idea) => this.isQuickWin(idea)
+    return [
+      "converted",
+      "converted-to-project"
+    ].includes(
+      this.normalizeStatus(
+        idea.lifecycleStatus ??
+        idea.ideaStatus ??
+        ""
+      )
+    );
+  },
+
+  isClosedStatus(status) {
+    return [
+      "closed",
+      "resolved",
+      "completed",
+      "approved",
+      "cancelled",
+      "مغلق",
+      "تم-الحل",
+      "مكتمل",
+      "معتمد",
+      "ملغي"
+    ].includes(
+      this.normalizeStatus(status)
+    );
+  },
+
+  isHighRisk(level) {
+    const value =
+      this.normalizeStatus(level);
+
+    return (
+      value.includes("عال") ||
+      [
+        "high",
+        "critical",
+        "حرج"
+      ].includes(value)
     );
   },
 
@@ -485,52 +779,304 @@ AIW.Modules.reports = {
      Scores
   ======================================================= */
 
-  getScores(context) {
-    let analyticsScores = {};
-
+  getKpiProgress(kpi) {
     try {
       if (
-        window.AIW?.Analytics &&
-        typeof window.AIW.Analytics.score ===
-          "function"
+        typeof window.AIW?.Modules?.kpis?.progress ===
+        "function"
       ) {
-        analyticsScores =
-          window.AIW.Analytics.score() || {};
+        return this.normalizePercent(
+          window.AIW.Modules.kpis.progress(kpi),
+          0
+        );
       }
     } catch (error) {
       console.warn(
-        "AI Work Reports: Analytics score unavailable.",
+        "AI Work Reports V5.0: KPI progress failed.",
         error
       );
     }
 
+    const current =
+      this.toSafeNumber(
+        kpi?.current ??
+        kpi?.value,
+        0
+      );
+
+    const target =
+      this.toSafeNumber(
+        kpi?.target,
+        0
+      );
+
+    const baseline =
+      this.toSafeNumber(
+        kpi?.baseline,
+        current
+      );
+
+    if (
+      this.normalizeStatus(kpi?.direction) ===
+      "lower"
+    ) {
+      if (target === 0) {
+        if (current <= 0) return 100;
+
+        if (baseline > 0) {
+          return this.normalizePercent(
+            (
+              (baseline - current) /
+              baseline
+            ) * 100
+          );
+        }
+
+        return 0;
+      }
+
+      if (current <= target) return 100;
+
+      if (baseline > target) {
+        const required =
+          baseline - target;
+
+        if (required > 0) {
+          return this.normalizePercent(
+            (
+              (baseline - current) /
+              required
+            ) * 100
+          );
+        }
+      }
+
+      return this.normalizePercent(
+        (
+          target /
+          Math.max(current, 1)
+        ) * 100
+      );
+    }
+
+    if (target <= 0) {
+      return current > 0 ? 100 : 0;
+    }
+
+    return this.normalizePercent(
+      (
+        current /
+        target
+      ) * 100
+    );
+  },
+
+  calculateRiskScore(risks = []) {
+    if (!risks.length) return 100;
+
+    const penalty =
+      risks.reduce(
+        (total, risk) => {
+          if (
+            this.isClosedStatus(
+              risk?.status
+            )
+          ) {
+            return total;
+          }
+
+          const level =
+            risk?.level ??
+            risk?.riskLevel ??
+            risk?.severity ??
+            "";
+
+          if (this.isHighRisk(level)) {
+            return total + 12;
+          }
+
+          if (
+            this.normalizeStatus(level)
+              .includes("متوسط") ||
+            this.normalizeStatus(level) ===
+              "medium"
+          ) {
+            return total + 6;
+          }
+
+          return total + 2;
+        },
+        0
+      );
+
+    return this.normalizePercent(
+      100 - penalty,
+      0
+    );
+  },
+
+  calculateGovernanceScore(controls = []) {
+    if (!controls.length) return 0;
+
+    const active =
+      controls.filter(control => {
+        if (
+          control.enabled === true ||
+          control.active === true
+        ) {
+          return true;
+        }
+
+        return [
+          "active",
+          "enabled",
+          "approved",
+          "نشط",
+          "مفعل",
+          "مفعّل",
+          "معتمد"
+        ].includes(
+          this.normalizeStatus(
+            control.status ??
+            control.state ??
+            ""
+          )
+        );
+      }).length;
+
+    return this.normalizePercent(
+      (
+        active /
+        controls.length
+      ) * 100
+    );
+  },
+
+  calculateProjectScore(projects = []) {
+    if (!projects.length) return 0;
+
+    return this.average(
+      projects.map(project =>
+        this.normalizePercent(
+          project.progress ??
+          project.readiness ??
+          project.score,
+          0
+        )
+      )
+    );
+  },
+
+  calculateDecisionScore(decisionCenter) {
+    const history =
+      decisionCenter.decisionHistory;
+
+    if (history.length) {
+      const approved =
+        history.filter(
+          item =>
+            this.normalizeStatus(
+              item.status
+            ) === "approved"
+        ).length;
+
+      return this.normalizePercent(
+        (
+          approved /
+          history.length
+        ) * 100
+      );
+    }
+
+    if (decisionCenter.scenarios.length) {
+      return this.average(
+        decisionCenter.scenarios.map(
+          scenario =>
+            this.normalizePercent(
+              scenario.score ??
+              scenario.decisionScore ??
+              0,
+              0
+            )
+        )
+      );
+    }
+
+    return 0;
+  },
+
+  calculateAutomationScore(automationCenter) {
+    const history =
+      automationCenter.executionHistory;
+
+    if (history.length) {
+      const completed =
+        history.filter(
+          entry =>
+            [
+              "completed",
+              "success",
+              "successful",
+              "مكتمل",
+              "ناجح"
+            ].includes(
+              this.normalizeStatus(
+                entry.status
+              )
+            )
+        ).length;
+
+      return this.normalizePercent(
+        (
+          completed /
+          history.length
+        ) * 100
+      );
+    }
+
+    if (automationCenter.workflows.length) {
+      return this.average(
+        automationCenter.workflows.map(
+          workflow =>
+            this.normalizePercent(
+              workflow.automation,
+              0
+            )
+        )
+      );
+    }
+
+    return 0;
+  },
+
+  getScores(context) {
     const ideaScore =
       context.ideas.length
-        ? this.normalizePercent(
-            this.average(
-              context.ideas.map(
-                (idea) =>
-                  this.toSafeNumber(
-                    idea?.decisionScore,
-                    this.isHighPriority(idea)
-                      ? 70
-                      : 50
-                  )
+        ? this.average(
+            context.ideas.map(idea =>
+              this.normalizePercent(
+                idea.decisionScore,
+                this.isHighPriority(idea)
+                  ? 75
+                  : this.isMediumPriority(idea)
+                    ? 60
+                    : 45
               )
-            ),
-            0
+            )
           )
         : 0;
+
+    const projectScore =
+      this.calculateProjectScore(
+        context.projects
+      );
 
     const maturityScore =
       context.departments.length
         ? this.average(
             context.departments.map(
-              (department) =>
-                this.normalizePercent(
-                  department?.maturity,
-                  0
-                )
+              department =>
+                department.maturity
             )
           )
         : 0;
@@ -538,9 +1084,8 @@ AIW.Modules.reports = {
     const kpiScore =
       context.kpis.length
         ? this.average(
-            context.kpis.map(
-              (kpi) =>
-                this.getKpiProgress(kpi)
+            context.kpis.map(kpi =>
+              this.getKpiProgress(kpi)
             )
           )
         : 0;
@@ -552,252 +1097,309 @@ AIW.Modules.reports = {
 
     const governanceScore =
       this.calculateGovernanceScore(
-        context
+        context.controls
       );
 
-    const fallbackExecutive =
-      this.average([
-        ideaScore,
-        maturityScore,
-        kpiScore,
-        riskScore,
-        governanceScore
-      ]);
+    const decisionScore =
+      this.calculateDecisionScore(
+        context.decisionCenter
+      );
+
+    const automationScore =
+      this.calculateAutomationScore(
+        context.automationCenter
+      );
+
+    const availableScores = [
+      ideaScore,
+      projectScore,
+      maturityScore,
+      kpiScore,
+      riskScore,
+      governanceScore,
+      decisionScore,
+      automationScore
+    ].filter(score => score > 0);
+
+    const executiveScore =
+      availableScores.length
+        ? this.average(availableScores)
+        : 0;
 
     return {
-      executiveScore:
-        this.normalizePercent(
-          analyticsScores.executiveScore,
-          fallbackExecutive
-        ),
-
-      ideaScore:
-        this.normalizePercent(
-          analyticsScores.ideaScore,
-          ideaScore
-        ),
-
-      maturityScore:
-        this.normalizePercent(
-          analyticsScores.maturityScore,
-          maturityScore
-        ),
-
-      riskScore:
-        this.normalizePercent(
-          analyticsScores.riskScore,
-          riskScore
-        ),
-
-      governanceScore:
-        this.normalizePercent(
-          analyticsScores.governanceScore,
-          governanceScore
-        ),
-
-      kpiScore
+      executiveScore,
+      ideaScore,
+      projectScore,
+      maturityScore,
+      kpiScore,
+      riskScore,
+      governanceScore,
+      decisionScore,
+      automationScore
     };
-  },
-
-  getKpiProgress(kpi) {
-    if (
-      window.AIW?.Modules?.kpis &&
-      typeof window.AIW.Modules.kpis
-        .progress === "function"
-    ) {
-      return window.AIW.Modules.kpis
-        .progress(kpi);
-    }
-
-    const current =
-      this.toSafeNumber(
-        kpi?.current,
-        0
-      );
-
-    const target =
-      this.toSafeNumber(
-        kpi?.target,
-        0
-      );
-
-    if (target <= 0) {
-      return 0;
-    }
-
-    if (kpi?.direction === "lower") {
-      if (current <= target) {
-        return 100;
-      }
-
-      return this.normalizePercent(
-        (target / Math.max(current, 1)) *
-          100,
-        0
-      );
-    }
-
-    return this.normalizePercent(
-      (current / target) * 100,
-      0
-    );
-  },
-
-  calculateRiskScore(risks) {
-    if (!risks.length) {
-      return 100;
-    }
-
-    const penalty = risks.reduce(
-      (total, risk) => {
-        const level = String(
-          risk?.level ??
-          risk?.[1] ??
-          ""
-        )
-          .trim()
-          .toLowerCase();
-
-        const status = String(
-          risk?.status || ""
-        )
-          .trim()
-          .toLowerCase();
-
-        if (
-          [
-            "resolved",
-            "closed",
-            "تم الحل",
-            "مغلق"
-          ].includes(status)
-        ) {
-          return total;
-        }
-
-        if (
-          level.includes("عال") ||
-          level === "high" ||
-          level === "critical"
-        ) {
-          return total + 12;
-        }
-
-        if (
-          level.includes("متوسط") ||
-          level === "medium"
-        ) {
-          return total + 6;
-        }
-
-        return total + 2;
-      },
-      0
-    );
-
-    return this.normalizePercent(
-      100 - penalty,
-      0
-    );
-  },
-
-  calculateGovernanceScore(context) {
-    const governanceCenter =
-      this.getSharedData()
-        .governanceCenter;
-
-    if (
-      window.AIW?.Modules?.governance &&
-      typeof window.AIW.Modules.governance
-        .getMetrics === "function" &&
-      governanceCenter
-    ) {
-      try {
-        return this.normalizePercent(
-          window.AIW.Modules.governance
-            .getMetrics(governanceCenter)
-            .governanceScore,
-          0
-        );
-      } catch (error) {
-        console.warn(
-          "AI Work Reports: Governance score failed.",
-          error
-        );
-      }
-    }
-
-    const controls =
-      Array.isArray(
-        this.getSharedData().governance
-      )
-        ? this.getSharedData().governance
-        : [];
-
-    return controls.length
-      ? this.normalizePercent(
-          60 + controls.length * 5,
-          85
-        )
-      : 0;
   },
 
   /* =======================================================
-     Recommendations
+     Dynamic Narrative
   ======================================================= */
 
-  getRecommendations(context) {
-    try {
-      if (
-        window.AIW?.Recommendation &&
-        typeof window.AIW.Recommendation
-          .fullReport === "function"
-      ) {
-        const generated =
-          window.AIW.Recommendation
-            .fullReport(context);
+  buildExecutiveSummary(context, scores) {
+    const pendingIdeas =
+      context.ideas.filter(
+        idea => this.isPendingIdea(idea)
+      ).length;
 
-        if (
-          generated &&
-          typeof generated === "object"
-        ) {
-          return {
-            ceo: Array.isArray(
-              generated.ceo
-            )
-              ? generated.ceo
-              : [],
+    const convertedIdeas =
+      context.ideas.filter(
+        idea => this.isConvertedIdea(idea)
+      ).length;
 
-            nextActions: Array.isArray(
-              generated.nextActions
-            )
-              ? generated.nextActions
-              : []
-          };
-        }
-      }
-    } catch (error) {
-      console.warn(
-        "AI Work Reports: Recommendation engine failed.",
-        error
+    const openHighRisks =
+      context.risks.filter(
+        risk =>
+          this.isHighRisk(
+            risk.level ??
+            risk.riskLevel ??
+            risk.severity
+          ) &&
+          !this.isClosedStatus(
+            risk.status
+          )
+      ).length;
+
+    let title =
+      "المحفظة تحتاج إلى استكمال القياس والحوكمة قبل التوسع.";
+
+    if (
+      scores.executiveScore >= 75 &&
+      openHighRisks === 0
+    ) {
+      title =
+        "المحفظة جاهزة للانتقال إلى موجة تنفيذ وتوسع مدروسة.";
+    } else if (
+      scores.executiveScore >= 55
+    ) {
+      title =
+        "المحفظة تمتلك أساساً مناسباً للتنفيذ المرحلي مع متابعة المخاطر.";
+    }
+
+    const description =
+      `تضم المنصة ${context.ideas.length} فكرة و${context.projects.length} مشروعاً، ` +
+      `منها ${pendingIdeas} أفكار بانتظار الاعتماد و${convertedIdeas} أفكار تحولت إلى مشاريع. ` +
+      `بلغ متوسط مؤشرات الأداء ${scores.kpiScore}%، بينما توجد ${openHighRisks} مخاطر عالية مفتوحة.`;
+
+    return {
+      title,
+      description
+    };
+  },
+
+  buildExecutiveHighlight(context, scores) {
+    if (scores.kpiScore < 50) {
+      return {
+        title:
+          "الأولوية الحالية: رفع جودة القياس",
+
+        description:
+          "يجب تحديث قيم المؤشرات وربطها بخطوط أساس ومستهدفات قبل اتخاذ قرارات توسع جديدة."
+      };
+    }
+
+    if (scores.riskScore < 60) {
+      return {
+        title:
+          "الأولوية الحالية: إغلاق المخاطر العالية",
+
+        description:
+          "تحتاج المحفظة إلى معالجة المخاطر المفتوحة وتوثيق القرارات البشرية قبل التوسع التشغيلي."
+      };
+    }
+
+    if (scores.projectScore < 60) {
+      return {
+        title:
+          "الأولوية الحالية: تسريع جاهزية المشاريع",
+
+        description:
+          "المشاريع المعتمدة تحتاج إلى خطط تنفيذ ومالكين ومؤشرات واضحة لرفع الجاهزية."
+      };
+    }
+
+    return {
+      title:
+        "الأولوية الحالية: التوسع المنضبط",
+
+      description:
+        "المؤشرات والمخاطر في وضع مناسب للانتقال إلى توسع مرحلي مع استمرار المراقبة."
+    };
+  },
+
+  buildFinalRecommendation(context, scores) {
+    const quickWins =
+      context.ideas.filter(
+        idea => this.isQuickWin(idea)
+      );
+
+    if (quickWins.length) {
+      return {
+        title:
+          `البدء بأفضل ${Math.min(3, quickWins.length)} فرص Quick Wins`,
+
+        description:
+          "ابدأ بالمبادرات الأسرع والأقل تعقيداً، واربط كل مبادرة بمؤشر ومالك وقرار مراجعة واضح."
+      };
+    }
+
+    if (scores.kpiScore < 50) {
+      return {
+        title:
+          "تحديث مؤشرات الأداء قبل إطلاق مبادرات جديدة",
+
+        description:
+          "التوصية هي استكمال بيانات المؤشرات وخطوط الأساس حتى تصبح القرارات مبنية على بيانات قابلة للقياس."
+      };
+    }
+
+    return {
+      title:
+        "الانتقال إلى موجة تنفيذ مرحلية",
+
+      description:
+        "اختيار المشاريع الأعلى جاهزية والأقل مخاطرة، ثم مراجعة النتائج بعد أول دورة قياس."
+    };
+  },
+
+  getRecommendations(context, scores) {
+    const executive = [];
+    const actions = [];
+
+    const pendingIdeas =
+      context.ideas.filter(
+        idea => this.isPendingIdea(idea)
+      ).length;
+
+    const highRisks =
+      context.risks.filter(
+        risk =>
+          this.isHighRisk(
+            risk.level ??
+            risk.riskLevel ??
+            risk.severity
+          ) &&
+          !this.isClosedStatus(
+            risk.status
+          )
+      ).length;
+
+    if (pendingIdeas > 0) {
+      executive.push(
+        `حسم ${pendingIdeas} أفكار بانتظار الاعتماد لتسريع دورة المحفظة.`
+      );
+    }
+
+    if (highRisks > 0) {
+      executive.push(
+        `إغلاق أو معالجة ${highRisks} مخاطر عالية قبل التوسع.`
+      );
+    }
+
+    if (scores.kpiScore < 60) {
+      executive.push(
+        "رفع جودة تحديث مؤشرات الأداء وربطها بالمشاريع والقرارات."
+      );
+    }
+
+    if (scores.automationScore < 60) {
+      actions.push(
+        "تحليل سجل تنفيذ الأتمتة ورفع نسبة العمليات الناجحة."
+      );
+    }
+
+    if (scores.projectScore < 60) {
+      actions.push(
+        "تحديد خطة تنفيذ ومالك ومؤشر لكل مشروع منخفض الجاهزية."
+      );
+    }
+
+    if (scores.governanceScore < 70) {
+      actions.push(
+        "تفعيل الضوابط غير النشطة وتوثيق المراجعات البشرية."
+      );
+    }
+
+    actions.push(
+      "تحديث التقرير بعد كل دورة قياس أو قرار تنفيذي جوهري."
+    );
+
+    if (!executive.length) {
+      executive.push(
+        "المحفظة في وضع مستقر ويمكن الانتقال إلى التوسع المرحلي."
       );
     }
 
     return {
-      ceo: [
-        "البدء بلوحات قياس جودة التسجيلات وأخطاء البيانات كمرحلة أولى.",
-        "تفعيل مراجعة بشرية موثقة للتنبيهات المرتبطة بالصلاحيات والحسابات.",
-        "إطلاق تحليل الجلسات الطويلة واستخدام الصلاحيات كـ Quick Win.",
-        "بناء لوحة تنفيذية موحدة للبوابات الذكية والتسجيلات والتنبيهات."
-      ],
-
-      nextActions: [
-        "حصر مصادر بيانات التسجيلات وسجلات الدخول والصلاحيات.",
-        "تحديد خط أساس لجودة التسجيلات وزمن العبور وجاهزية البوابات.",
-        "اختيار 3 مشاريع سريعة للبدء خلال المرحلة الأولى.",
-        "ربط كل تنبيه بمؤشر ومالك وإجراء مراجعة واضح."
-      ]
+      ceo: executive.slice(0, 6),
+      nextActions: actions.slice(0, 6)
     };
+  },
+
+  /* =======================================================
+     Report Generation History
+  ======================================================= */
+
+  generateReportSnapshot(context, scores) {
+    if (this._isGenerating) {
+      return {
+        success: false,
+        message: "يتم إنشاء التقرير حالياً."
+      };
+    }
+
+    this._isGenerating = true;
+
+    try {
+      const center =
+        this.getReportsCenter();
+
+      const now =
+        new Date().toISOString();
+
+      const entry =
+        this.normalizeReportHistory(
+          {
+            id: this.createId("report"),
+            title: center.settings.title,
+            cycle: center.settings.reportingCycle,
+            executiveScore: scores.executiveScore,
+            ideasCount: context.ideas.length,
+            projectsCount: context.projects.length,
+            kpisCount: context.kpis.length,
+            risksCount: context.risks.length,
+            generatedBy: "الإدارة",
+            createdAt: now
+          },
+          center.history.length
+        );
+
+      const history = [
+        ...center.history,
+        entry
+      ];
+
+      const result =
+        this.updateReportsCenter({
+          history
+        });
+
+      return result.success
+        ? {
+            success: true,
+            report: entry
+          }
+        : result;
+    } finally {
+      this._isGenerating = false;
+    }
   },
 
   /* =======================================================
@@ -805,611 +1407,1047 @@ AIW.Modules.reports = {
   ======================================================= */
 
   render(container) {
-    if (!container) return;
+    if (!container || this._isRendering) return;
 
+    this._isRendering = true;
     this._container = container;
 
-    this.ensureReportsCenterSeeded();
+    try {
+      this.injectStyles();
 
-    const W = window.AIW?.Widgets;
-    const reportsCenter =
-      this.getReportsCenter();
+      const widgets =
+        window.AIW?.Widgets;
 
-    const ideas = this.getIdeas();
-    const projects = this.getProjects();
-    const roadmap = this.getRoadmap();
-    const risks = this.getRisks();
-    const kpis = this.getKpis();
+      const reportsCenter =
+        this.getReportsCenter();
 
-    const departments =
-      this.getDepartments(ideas);
+      const ideas =
+        this.getIdeas();
 
-    const quickWins =
-      this.getQuickWins(ideas);
+      const projects =
+        this.getProjects();
 
-    const highIdeas = ideas.filter(
-      (idea) =>
-        this.isHighPriority(idea)
-    ).length;
+      const roadmap =
+        this.getRoadmap();
 
-    const mediumIdeas = ideas.filter(
-      (idea) =>
-        this.isMediumPriority(idea)
-    ).length;
+      const risks =
+        this.getRisks();
 
-    const lowIdeas = ideas.filter(
-      (idea) =>
-        this.isLowPriority(idea)
-    ).length;
+      const controls =
+        this.getGovernanceControls();
 
-    const avgMaturity =
-      departments.length
-        ? this.average(
-            departments.map(
-              (department) =>
-                department.maturity
+      const kpiCenter =
+        this.getKpiCenter();
+
+      const decisionCenter =
+        this.getDecisionCenter();
+
+      const automationCenter =
+        this.getAutomationCenter();
+
+      const departments =
+        this.getDepartments(ideas);
+
+      const quickWins =
+        ideas.filter(
+          idea => this.isQuickWin(idea)
+        );
+
+      const highIdeas =
+        ideas.filter(
+          idea => this.isHighPriority(idea)
+        ).length;
+
+      const mediumIdeas =
+        ideas.filter(
+          idea => this.isMediumPriority(idea)
+        ).length;
+
+      const lowIdeas =
+        ideas.filter(
+          idea => this.isLowPriority(idea)
+        ).length;
+
+      const context = {
+        ideas,
+        projects,
+        roadmap,
+        risks,
+        controls,
+        kpis: kpiCenter.items,
+        kpiHistory: kpiCenter.history,
+        departments,
+        quickWins,
+        decisionCenter,
+        automationCenter
+      };
+
+      const scores =
+        this.getScores(context);
+
+      const executiveSummary =
+        this.buildExecutiveSummary(
+          context,
+          scores
+        );
+
+      const executiveHighlight =
+        this.buildExecutiveHighlight(
+          context,
+          scores
+        );
+
+      const finalRecommendation =
+        this.buildFinalRecommendation(
+          context,
+          scores
+        );
+
+      const recommendations =
+        this.getRecommendations(
+          context,
+          scores
+        );
+
+      const topDecisions =
+        this.getTopDecisions(
+          context,
+          reportsCenter.settings.topDecisionLimit
+        );
+
+      const maximumDepartmentCount =
+        Math.max(
+          1,
+          ...departments.map(
+            department =>
+              department.totalCount
+          )
+        );
+
+      const avgMaturity =
+        departments.length
+          ? this.average(
+              departments.map(
+                department =>
+                  department.maturity
+              )
             )
-          )
-        : 0;
+          : 0;
 
-    const context = {
-      ideas,
-      projects,
-      roadmap,
-      risks,
-      kpis,
-      departments,
-      quickWins
-    };
+      container.innerHTML = `
+        <section class="module-page">
+          ${
+            typeof widgets?.hero === "function"
+              ? widgets.hero({
+                  kicker:
+                    "Executive Reports · Biometric Analytics",
 
-    const scores =
-      this.getScores(context);
+                  title:
+                    reportsCenter.settings.title,
 
-    const executiveScore =
-      scores.executiveScore;
+                  description:
+                    "تقرير تنفيذي حي يعتمد على الأفكار والمشاريع والمؤشرات والقرارات والأتمتة والحوكمة والمخاطر داخل Store V2.2.",
 
-    const decisionLimit =
-      Math.max(
-        1,
-        this.toSafeNumber(
-          reportsCenter.settings
-            .topDecisionLimit,
-          5
-        )
-      );
-
-    const decisionTop = ideas
-      .slice()
-      .sort(
-        (first, second) =>
-          this.toSafeNumber(
-            second?.decisionScore,
-            0
-          ) -
-          this.toSafeNumber(
-            first?.decisionScore,
-            0
-          )
-      )
-      .slice(0, decisionLimit);
-
-    const recommendations =
-      this.getRecommendations({
-        ...context,
-        scores
-      });
-
-    const maximumDepartmentCount =
-      Math.max(
-        1,
-        ...departments.map(
-          (department) =>
-            department.count
-        )
-      );
-
-    container.innerHTML = `
-      <section class="module-page">
-
-        ${
-          W?.hero
-            ? W.hero({
-                kicker:
-                  "Executive Reports · Biometric Analytics",
-
-                title:
-                  reportsCenter.settings.title,
-
-                description:
-                  "تقرير تنفيذي يوضح حالة جودة التسجيلات، استخدام الصلاحيات، أداء البوابات الذكية، المخاطر التشغيلية، وأولويات التنفيذ القادمة.",
-
-                chips: [
-                  "👁️ Biometric Analytics",
-                  `🧠 Executive Score ${executiveScore}%`,
-                  `🚀 ${quickWins.length} Quick Wins`,
-                  `🛡️ ${risks.length} مخاطر متابعة`
-                ]
-              })
-            : this.fallbackHero()
-        }
-
-        <div class="module-grid">
-          ${this.kpi(
-            "Executive Score",
-            `${executiveScore}%`,
-            "Executive Health"
-          )}
-
-          ${this.kpi(
-            "الفرص",
-            ideas.length,
-            "AI Opportunities"
-          )}
-
-          ${this.kpi(
-            "Quick Wins",
-            quickWins.length,
-            "Ready to Start"
-          )}
-
-          ${this.kpi(
-            "متوسط الجاهزية",
-            `${avgMaturity}%`,
-            "Portfolio Readiness"
-          )}
-
-          ${this.kpi(
-            "المخاطر",
-            risks.length,
-            "Risk Register"
-          )}
-
-          ${this.kpi(
-            "أولوية عالية",
-            highIdeas,
-            "High Priority"
-          )}
-        </div>
-
-        <div class="module-wide-grid">
-          <div class="module-panel">
-            ${this.sectionTitle(
-              "الخلاصة التنفيذية",
-              "قراءة مختصرة لحالة المبادرة المتخصصة."
-            )}
-
-            <div class="report-ultimate-summary">
-              <strong>
-                ${this.escapeHtml(
-                  reportsCenter
-                    .executiveSummary.title
-                )}
-              </strong>
-
-              <p>
-                ${this.escapeHtml(
-                  reportsCenter
-                    .executiveSummary
-                    .description
-                )}
-              </p>
-
-              <div class="report-score-strip">
-                <div>
-                  <span>Executive</span>
-                  <b>${scores.executiveScore}%</b>
-                </div>
-
-                <div>
-                  <span>Ideas</span>
-                  <b>${scores.ideaScore}%</b>
-                </div>
-
-                <div>
-                  <span>Readiness</span>
-                  <b>${scores.maturityScore}%</b>
-                </div>
-
-                <div>
-                  <span>Risk</span>
-                  <b>${scores.riskScore}%</b>
-                </div>
-
-                <div>
-                  <span>Governance</span>
-                  <b>${scores.governanceScore}%</b>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="module-panel">
-            ${this.sectionTitle(
-              "Executive Highlights",
-              "أهم الرسائل التنفيذية من البيانات الحالية."
-            )}
-
-            <div class="report-ai-card">
-              <strong>
-                ${this.escapeHtml(
-                  reportsCenter
-                    .executiveHighlight.title
-                )}
-              </strong>
-
-              <p>
-                ${this.escapeHtml(
-                  reportsCenter
-                    .executiveHighlight
-                    .description
-                )}
-              </p>
-
-              <button
-                class="module-btn secondary"
-                data-module="kpis"
-              >
-                فتح مركز المؤشرات
-              </button>
-            </div>
-          </div>
-        </div>
-
-        ${
-          reportsCenter.settings.showCharts
-            ? `
-              <div class="module-wide-grid">
-                <div class="module-panel">
-                  ${this.sectionTitle(
-                    "توزيع الأولويات",
-                    "تصنيف الفرص حسب درجة الأولوية."
-                  )}
-
-                  <div class="report-chart-card">
-                    <canvas
-                      id="reportsPriorityChart"
-                    ></canvas>
-                  </div>
-                </div>
-
-                <div class="module-panel">
-                  ${this.sectionTitle(
-                    "صحة التشغيل",
-                    "مؤشرات الجاهزية والمخاطر والحوكمة في رسم واحد."
-                  )}
-
-                  <div class="report-chart-card">
-                    <canvas
-                      id="reportsHealthChart"
-                    ></canvas>
-                  </div>
-                </div>
-              </div>
-            `
-            : ""
-        }
-
-        <div class="module-wide-grid">
-          <div class="module-panel">
-            ${this.sectionTitle(
-              "توزيع الفرص حسب المحافظ",
-              "توزيع الحلول على نطاقات العمل الرئيسية."
-            )}
-
-            <div class="report-bars">
-              ${departments
-                .map((department) => {
-                  const width =
-                    this.normalizePercent(
-                      (
-                        department.count /
-                        maximumDepartmentCount
-                      ) * 100,
-                      0
-                    );
-
-                  return `
-                    <div class="report-bar-item">
-                      <div>
-                        <strong>
-                          ${this.escapeHtml(
-                            department.name
-                          )}
-                        </strong>
-
-                        <span>
-                          ${department.count}
-                          فرص
-                        </span>
-                      </div>
-
-                      <div class="report-bar">
-                        <i
-                          style="width:${width}%"
-                        ></i>
-                      </div>
-                    </div>
-                  `;
+                  chips: [
+                    "👁️ Biometric Analytics",
+                    `🧠 Executive Score ${scores.executiveScore}%`,
+                    `🚀 ${quickWins.length} Quick Wins`,
+                    `🛡️ ${risks.length} مخاطر`,
+                    `📝 ${reportsCenter.history.length} تقارير محفوظة`
+                  ]
                 })
-                .join("")}
-            </div>
-          </div>
-
-          <div class="module-panel">
-            ${this.sectionTitle(
-              "جاهزية المحافظ",
-              "مقارنة تقديرية لجاهزية كل نطاق تشغيلي."
-            )}
-
-            <div class="report-bars">
-              ${departments
-                .map(
-                  (department) => `
-                    <div class="report-bar-item">
-                      <div>
-                        <strong>
-                          ${this.escapeHtml(
-                            department.name
-                          )}
-                        </strong>
-
-                        <span>
-                          ${department.maturity}%
-                        </span>
-                      </div>
-
-                      <div class="report-bar">
-                        <i
-                          style="width:${department.maturity}%"
-                        ></i>
-                      </div>
-                    </div>
-                  `
-                )
-                .join("")}
-            </div>
-          </div>
-        </div>
-
-        <div class="module-panel">
-          ${this.sectionTitle(
-            "Decision Intelligence",
-            "أفضل الفرص المقترحة للبدء بناءً على Decision Score."
-          )}
-
-          ${
-            decisionTop.length
-              ? `
-                <div class="report-decision-grid">
-                  ${decisionTop
-                    .map((idea, index) => {
-                      const decisionScore =
-                        this.normalizePercent(
-                          idea?.decisionScore,
-                          0
-                        );
-
-                      return `
-                        <article class="report-decision-card">
-                          <b>
-                            ${String(
-                              index + 1
-                            ).padStart(2, "0")}
-                          </b>
-
-                          <strong>
-                            ${this.escapeHtml(
-                              idea?.title ||
-                              "فكرة غير مسماة"
-                            )}
-                          </strong>
-
-                          <span>
-                            ${this.escapeHtml(
-                              idea?.department ||
-                              "غير مصنف"
-                            )}
-                          </span>
-
-                          <div class="aiw-progress">
-                            <div
-                              style="width:${decisionScore}%"
-                            ></div>
-                          </div>
-
-                          <small>
-                            Decision Score:
-                            ${decisionScore}%
-                          </small>
-                        </article>
-                      `;
-                    })
-                    .join("")}
-                </div>
-              `
-              : this.emptyState(
-                  "لا توجد فرص مصنفة لاتخاذ القرار حالياً."
+              : this.fallbackHero(
+                  scores.executiveScore,
+                  quickWins.length,
+                  risks.length,
+                  reportsCenter.history.length
                 )
           }
-        </div>
 
-        <div class="module-panel">
-          ${this.sectionTitle(
-            "تحليل الأولويات",
-            "قراءة تنفيذية لسهولة البدء ومستوى الأثر."
-          )}
-
-          <div class="report-insight-grid">
-            <div class="report-insight-card">
-              <span>عالية الأولوية</span>
-              <strong>${highIdeas}</strong>
-
-              <p>
-                مرتبطة بجودة البيانات أو الصلاحيات أو الأمن وتحتاج متابعة مبكرة.
-              </p>
-            </div>
-
-            <div class="report-insight-card">
-              <span>متوسطة الأولوية</span>
-              <strong>${mediumIdeas}</strong>
-
-              <p>
-                مناسبة للموجة الثانية بعد تجهيز مصادر البيانات والحوكمة.
-              </p>
-            </div>
-
-            <div class="report-insight-card">
-              <span>منخفضة الأولوية</span>
-              <strong>${lowIdeas}</strong>
-
-              <p>
-                يمكن وضعها ضمن تحسينات لاحقة بعد تشغيل الحلول الأساسية.
-              </p>
-            </div>
-
-            <div class="report-insight-card">
-              <span>Quick Wins</span>
-              <strong>${quickWins.length}</strong>
-
-              <p>
-                أنسب نقطة بداية لأنها تعتمد على القياس والتحليل قبل التكامل العميق.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div class="module-panel">
-          ${this.sectionTitle(
-            "خارطة الطريق",
-            "مراحل الانتقال من القياس إلى التنبيهات الذكية."
-          )}
-
-          ${
-            roadmap.length
-              ? `
-                <div class="report-roadmap-grid">
-                  ${roadmap
-                    .map((roadmapItem) => {
-                      const progress =
-                        this.normalizePercent(
-                          roadmapItem?.progress,
-                          0
-                        );
-
-                      return `
-                        <div class="report-roadmap-card">
-                          <b>
-                            ${this.escapeHtml(
-                              roadmapItem?.year ||
-                              ""
-                            )}
-                          </b>
-
-                          <strong>
-                            ${this.escapeHtml(
-                              roadmapItem?.phase ||
-                              ""
-                            )}
-                          </strong>
-
-                          <span>
-                            ${progress}%
-                          </span>
-
-                          <div class="aiw-progress">
-                            <div
-                              style="width:${progress}%"
-                            ></div>
-                          </div>
-
-                          <p>
-                            ${this.escapeHtml(
-                              roadmapItem?.activities ||
-                              ""
-                            )}
-                          </p>
-                        </div>
-                      `;
-                    })
-                    .join("")}
-                </div>
-              `
-              : this.emptyState(
-                  "لا توجد مراحل مسجلة في خارطة الطريق."
-                )
-          }
-        </div>
-
-        <div class="module-wide-grid">
-          <div class="module-panel">
-            ${this.sectionTitle(
-              "Top Executive Priorities",
-              "أولويات مقترحة للمرحلة القادمة."
+          <div class="module-grid">
+            ${this.kpi(
+              "Executive Score",
+              `${scores.executiveScore}%`,
+              "Executive Health"
             )}
 
-            ${this.renderExecutiveList(
-              recommendations.ceo
+            ${this.kpi(
+              "الأفكار",
+              ideas.length,
+              "AI Opportunities"
+            )}
+
+            ${this.kpi(
+              "المشاريع",
+              projects.length,
+              "Project Portfolio"
+            )}
+
+            ${this.kpi(
+              "KPI Score",
+              `${scores.kpiScore}%`,
+              "Performance"
+            )}
+
+            ${this.kpi(
+              "المخاطر",
+              risks.length,
+              "Risk Register"
+            )}
+
+            ${this.kpi(
+              "القرارات",
+              decisionCenter.decisionHistory.length,
+              "Decision History"
             )}
           </div>
 
-          <div class="module-panel">
-            ${this.sectionTitle(
-              "Next Best Actions",
-              "خطوات عملية للبدء."
-            )}
-
-            ${this.renderExecutiveList(
-              recommendations.nextActions
-            )}
-          </div>
-        </div>
-
-        <div class="module-panel">
-          ${this.sectionTitle(
-            "توصية التقرير",
-            "الخطوة العملية المقترحة."
-          )}
-
-          <div class="report-recommendation">
-            <strong>
-              ${this.escapeHtml(
-                reportsCenter
-                  .finalRecommendation.title
-              )}
-            </strong>
-
-            <p>
-              ${this.escapeHtml(
-                reportsCenter
-                  .finalRecommendation
-                  .description
-              )}
-            </p>
+          <div class="reports-action-bar">
+            <button
+              type="button"
+              class="report-action-button primary"
+              data-report-action="generate"
+            >
+              📝 حفظ نسخة التقرير
+            </button>
 
             <button
-              class="module-btn secondary"
-              data-module="kpis"
+              type="button"
+              class="report-action-button secondary"
+              data-report-action="open-kpis"
             >
-              فتح مركز المؤشرات
+              📈 فتح المؤشرات
+            </button>
+
+            <button
+              type="button"
+              class="report-action-button secondary"
+              data-report-action="open-decision"
+            >
+              🧭 فتح القرار
             </button>
           </div>
-        </div>
 
-      </section>
-    `;
+          <div class="module-wide-grid">
+            <div class="module-panel">
+              ${this.sectionTitle(
+                "الخلاصة التنفيذية",
+                "قراءة ديناميكية لحالة المنصة الحالية."
+              )}
 
-    if (
-      reportsCenter.settings.showCharts
-    ) {
-      this.renderCharts({
-        highIdeas,
-        mediumIdeas,
-        lowIdeas,
-        scores
-      });
+              <div class="report-ultimate-summary">
+                <strong>
+                  ${this.escapeHtml(
+                    executiveSummary.title
+                  )}
+                </strong>
+
+                <p>
+                  ${this.escapeHtml(
+                    executiveSummary.description
+                  )}
+                </p>
+
+                <div class="report-score-strip">
+                  <div>
+                    <span>Executive</span>
+                    <b>${scores.executiveScore}%</b>
+                  </div>
+
+                  <div>
+                    <span>Ideas</span>
+                    <b>${scores.ideaScore}%</b>
+                  </div>
+
+                  <div>
+                    <span>Projects</span>
+                    <b>${scores.projectScore}%</b>
+                  </div>
+
+                  <div>
+                    <span>KPI</span>
+                    <b>${scores.kpiScore}%</b>
+                  </div>
+
+                  <div>
+                    <span>Risk</span>
+                    <b>${scores.riskScore}%</b>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="module-panel">
+              ${this.sectionTitle(
+                "Executive Highlights",
+                "أهم رسالة تنفيذية من البيانات الحالية."
+              )}
+
+              <div class="report-ai-card">
+                <strong>
+                  ${this.escapeHtml(
+                    executiveHighlight.title
+                  )}
+                </strong>
+
+                <p>
+                  ${this.escapeHtml(
+                    executiveHighlight.description
+                  )}
+                </p>
+
+                <div class="report-highlight-metrics">
+                  <span>
+                    Governance ${scores.governanceScore}%
+                  </span>
+
+                  <span>
+                    Decision ${scores.decisionScore}%
+                  </span>
+
+                  <span>
+                    Automation ${scores.automationScore}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          ${
+            reportsCenter.settings.showCharts
+              ? `
+                <div class="module-wide-grid">
+                  <div class="module-panel">
+                    ${this.sectionTitle(
+                      "توزيع الأولويات",
+                      "تصنيف الأفكار حسب الأولوية."
+                    )}
+
+                    <div class="report-chart-card">
+                      <canvas id="reportsPriorityChart"></canvas>
+                    </div>
+                  </div>
+
+                  <div class="module-panel">
+                    ${this.sectionTitle(
+                      "صحة المنصة",
+                      "المؤشرات التنفيذية الرئيسية."
+                    )}
+
+                    <div class="report-chart-card">
+                      <canvas id="reportsHealthChart"></canvas>
+                    </div>
+                  </div>
+                </div>
+              `
+              : ""
+          }
+
+          <div class="module-wide-grid">
+            <div class="module-panel">
+              ${this.sectionTitle(
+                "توزيع المحفظة",
+                "توزيع الأفكار والمشاريع على المحافظ."
+              )}
+
+              ${
+                departments.length
+                  ? `
+                    <div class="report-bars">
+                      ${departments
+                        .map(department => {
+                          const width =
+                            this.normalizePercent(
+                              (
+                                department.totalCount /
+                                maximumDepartmentCount
+                              ) * 100
+                            );
+
+                          return `
+                            <div class="report-bar-item">
+                              <div>
+                                <strong>
+                                  ${this.escapeHtml(
+                                    department.name
+                                  )}
+                                </strong>
+
+                                <span>
+                                  ${department.ideaCount} أفكار
+                                  ·
+                                  ${department.projectCount} مشاريع
+                                </span>
+                              </div>
+
+                              <div class="report-bar">
+                                <i style="width:${width}%"></i>
+                              </div>
+                            </div>
+                          `;
+                        })
+                        .join("")}
+                    </div>
+                  `
+                  : this.emptyState(
+                      "لا توجد محافظ تشغيلية مسجلة."
+                    )
+              }
+            </div>
+
+            <div class="module-panel">
+              ${this.sectionTitle(
+                "جاهزية المحافظ",
+                "مقارنة جاهزية النطاقات التشغيلية."
+              )}
+
+              ${
+                departments.length
+                  ? `
+                    <div class="report-bars">
+                      ${departments
+                        .map(department => `
+                          <div class="report-bar-item">
+                            <div>
+                              <strong>
+                                ${this.escapeHtml(
+                                  department.name
+                                )}
+                              </strong>
+
+                              <span>
+                                ${department.maturity}%
+                              </span>
+                            </div>
+
+                            <div class="report-bar">
+                              <i style="width:${department.maturity}%"></i>
+                            </div>
+                          </div>
+                        `)
+                        .join("")}
+                    </div>
+                  `
+                  : this.emptyState(
+                      "لا توجد بيانات جاهزية للمحافظ."
+                    )
+              }
+            </div>
+          </div>
+
+          <div class="module-panel">
+            ${this.sectionTitle(
+              "Decision Intelligence",
+              "أعلى الفرص والمشاريع والقرارات حسب التقييم."
+            )}
+
+            ${this.renderTopDecisions(
+              topDecisions
+            )}
+          </div>
+
+          <div class="module-panel">
+            ${this.sectionTitle(
+              "تحليل الأولويات",
+              "قراءة سريعة لتوزيع محفظة الأفكار."
+            )}
+
+            <div class="report-insight-grid">
+              <div class="report-insight-card">
+                <span>عالية الأولوية</span>
+                <strong>${highIdeas}</strong>
+                <p>تحتاج مراجعة وتنفيذاً مبكراً.</p>
+              </div>
+
+              <div class="report-insight-card">
+                <span>متوسطة الأولوية</span>
+                <strong>${mediumIdeas}</strong>
+                <p>مناسبة للموجة الثانية.</p>
+              </div>
+
+              <div class="report-insight-card">
+                <span>منخفضة الأولوية</span>
+                <strong>${lowIdeas}</strong>
+                <p>يمكن جدولتها ضمن تحسينات لاحقة.</p>
+              </div>
+
+              <div class="report-insight-card">
+                <span>Quick Wins</span>
+                <strong>${quickWins.length}</strong>
+                <p>أفضل فرص للبدء السريع.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="module-wide-grid">
+            <div class="module-panel">
+              ${this.sectionTitle(
+                "Decision History",
+                "آخر القرارات التنفيذية المسجلة."
+              )}
+
+              ${this.renderDecisionHistory(
+                decisionCenter.decisionHistory
+              )}
+            </div>
+
+            <div class="module-panel">
+              ${this.sectionTitle(
+                "KPI History",
+                "آخر تحديثات مؤشرات الأداء."
+              )}
+
+              ${this.renderKpiHistory(
+                kpiCenter.history,
+                kpiCenter.items
+              )}
+            </div>
+          </div>
+
+          ${
+            reportsCenter.settings.includeAutomation
+              ? `
+                <div class="module-panel">
+                  ${this.sectionTitle(
+                    "Automation Execution Summary",
+                    "ملخص سجل تنفيذ الأتمتة."
+                  )}
+
+                  ${this.renderAutomationHistory(
+                    automationCenter.executionHistory
+                  )}
+                </div>
+              `
+              : ""
+          }
+
+          <div class="module-panel">
+            ${this.sectionTitle(
+              "خارطة الطريق",
+              "مراحل التنفيذ والتقدم."
+            )}
+
+            ${this.renderRoadmap(roadmap)}
+          </div>
+
+          <div class="module-wide-grid">
+            <div class="module-panel">
+              ${this.sectionTitle(
+                "Top Executive Priorities",
+                "أهم أولويات الإدارة."
+              )}
+
+              ${this.renderExecutiveList(
+                recommendations.ceo
+              )}
+            </div>
+
+            <div class="module-panel">
+              ${this.sectionTitle(
+                "Next Best Actions",
+                "الإجراءات العملية التالية."
+              )}
+
+              ${this.renderExecutiveList(
+                recommendations.nextActions
+              )}
+            </div>
+          </div>
+
+          <div class="module-panel">
+            ${this.sectionTitle(
+              "توصية التقرير",
+              "القرار العملي المقترح."
+            )}
+
+            <div class="report-recommendation">
+              <strong>
+                ${this.escapeHtml(
+                  finalRecommendation.title
+                )}
+              </strong>
+
+              <p>
+                ${this.escapeHtml(
+                  finalRecommendation.description
+                )}
+              </p>
+
+              <div class="aiw-chip-row">
+                <span class="aiw-chip">
+                  جاهزية المحافظ ${avgMaturity}%
+                </span>
+
+                <span class="aiw-chip">
+                  دورة التقرير ${this.escapeHtml(
+                    reportsCenter.settings.reportingCycle
+                  )}
+                </span>
+
+                <span class="aiw-chip">
+                  ${reportsCenter.history.length} نسخ محفوظة
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="module-panel">
+            ${this.sectionTitle(
+              "Report Generation History",
+              "النسخ التنفيذية المحفوظة."
+            )}
+
+            ${this.renderReportHistory(
+              reportsCenter.history
+            )}
+          </div>
+        </section>
+      `;
+
+      if (reportsCenter.settings.showCharts) {
+        this.renderCharts({
+          highIdeas,
+          mediumIdeas,
+          lowIdeas,
+          scores
+        });
+      }
+
+      this._lastContext = context;
+      this._lastScores = scores;
+
+      this.bindActionEvents();
+      this.bindAutomaticSync();
+    } finally {
+      this._isRendering = false;
+    }
+  },
+
+  /* =======================================================
+     Top Decisions
+  ======================================================= */
+
+  getTopDecisions(context, limit) {
+    const ideaItems =
+      context.ideas.map(idea => ({
+        id:
+          `idea-${idea.id}`,
+        type: "فكرة",
+        title:
+          idea.title ||
+          "فكرة غير مسماة",
+        subtitle:
+          idea.department ||
+          "غير مصنف",
+        score:
+          this.normalizePercent(
+            idea.decisionScore,
+            this.isHighPriority(idea)
+              ? 75
+              : 55
+          )
+      }));
+
+    const projectItems =
+      context.projects.map(project => ({
+        id:
+          `project-${project.id}`,
+        type: "مشروع",
+        title:
+          project.title ||
+          "مشروع غير مسمى",
+        subtitle:
+          project.department ||
+          "غير مصنف",
+        score:
+          this.normalizePercent(
+            project.progress ??
+            project.readiness ??
+            project.score,
+            0
+          )
+      }));
+
+    const decisionItems =
+      context.decisionCenter
+        .decisionHistory
+        .map(decision => ({
+          id:
+            `decision-${decision.id}`,
+          type: "قرار",
+          title:
+            decision.title ||
+            decision.subject ||
+            "قرار تنفيذي",
+          subtitle:
+            decision.status ||
+            "مسجل",
+          score:
+            this.normalizePercent(
+              decision.score ??
+              decision.decisionScore,
+              this.normalizeStatus(
+                decision.status
+              ) === "approved"
+                ? 100
+                : 50
+            )
+        }));
+
+    return [
+      ...ideaItems,
+      ...projectItems,
+      ...decisionItems
+    ]
+      .sort(
+        (a, b) =>
+          b.score - a.score
+      )
+      .slice(0, limit);
+  },
+
+  renderTopDecisions(items = []) {
+    if (!items.length) {
+      return this.emptyState(
+        "لا توجد عناصر مصنفة لاتخاذ القرار."
+      );
     }
 
-    this.bindAutomaticSync();
+    return `
+      <div class="report-decision-grid">
+        ${items
+          .map((item, index) => `
+            <article class="report-decision-card">
+              <b>
+                ${String(index + 1).padStart(2, "0")}
+              </b>
+
+              <span class="report-decision-type">
+                ${this.escapeHtml(item.type)}
+              </span>
+
+              <strong>
+                ${this.escapeHtml(item.title)}
+              </strong>
+
+              <span>
+                ${this.escapeHtml(item.subtitle)}
+              </span>
+
+              <div class="aiw-progress">
+                <div style="width:${item.score}%"></div>
+              </div>
+
+              <small>
+                Score: ${item.score}%
+              </small>
+            </article>
+          `)
+          .join("")}
+      </div>
+    `;
+  },
+
+  /* =======================================================
+     Histories
+  ======================================================= */
+
+  renderDecisionHistory(history = []) {
+    if (!history.length) {
+      return this.emptyState(
+        "لا يوجد سجل قرارات حالياً."
+      );
+    }
+
+    return `
+      <div class="report-history-list">
+        ${[...history]
+          .reverse()
+          .slice(0, 8)
+          .map(item => `
+            <div class="report-history-row">
+              <span>🧭</span>
+
+              <div>
+                <strong>
+                  ${this.escapeHtml(
+                    item.title ||
+                    item.subject ||
+                    "قرار تنفيذي"
+                  )}
+                </strong>
+
+                <small>
+                  ${this.escapeHtml(
+                    item.actor ||
+                    item.decidedBy ||
+                    "الإدارة"
+                  )}
+                </small>
+              </div>
+
+              <div>
+                <b>
+                  ${this.escapeHtml(
+                    item.status ||
+                    "مسجل"
+                  )}
+                </b>
+
+                <small>
+                  ${this.escapeHtml(
+                    this.formatDateTime(
+                      item.createdAt ??
+                      item.decidedAt,
+                      "غير محدد"
+                    )
+                  )}
+                </small>
+              </div>
+            </div>
+          `)
+          .join("")}
+      </div>
+    `;
+  },
+
+  renderKpiHistory(history = [], items = []) {
+    if (!history.length) {
+      return this.emptyState(
+        "لا يوجد سجل تحديث للمؤشرات."
+      );
+    }
+
+    return `
+      <div class="report-history-list">
+        ${[...history]
+          .reverse()
+          .slice(0, 8)
+          .map(entry => {
+            const kpi = items.find(
+              item =>
+                String(item.id) ===
+                String(entry.kpiId)
+            );
+
+            return `
+              <div class="report-history-row">
+                <span>📈</span>
+
+                <div>
+                  <strong>
+                    ${this.escapeHtml(
+                      kpi?.title ||
+                      "مؤشر أداء"
+                    )}
+                  </strong>
+
+                  <small>
+                    ${this.escapeHtml(
+                      entry.actor ||
+                      "الإدارة"
+                    )}
+                  </small>
+                </div>
+
+                <div>
+                  <b>
+                    ${this.escapeHtml(
+                      `${entry.value ?? 0} ${kpi?.unit || ""}`.trim()
+                    )}
+                  </b>
+
+                  <small>
+                    ${this.escapeHtml(
+                      this.formatDateTime(
+                        entry.createdAt,
+                        "غير محدد"
+                      )
+                    )}
+                  </small>
+                </div>
+              </div>
+            `;
+          })
+          .join("")}
+      </div>
+    `;
+  },
+
+  renderAutomationHistory(history = []) {
+    if (!history.length) {
+      return this.emptyState(
+        "لا يوجد سجل تنفيذ للأتمتة."
+      );
+    }
+
+    return `
+      <div class="report-history-list automation">
+        ${[...history]
+          .reverse()
+          .slice(0, 10)
+          .map(entry => `
+            <div class="report-history-row">
+              <span>⚙️</span>
+
+              <div>
+                <strong>
+                  ${this.escapeHtml(
+                    entry.workflowTitle ||
+                    entry.title ||
+                    "تنفيذ Workflow"
+                  )}
+                </strong>
+
+                <small>
+                  ${this.escapeHtml(
+                    entry.trigger ||
+                    entry.event ||
+                    "تشغيل آلي"
+                  )}
+                </small>
+              </div>
+
+              <div>
+                <b>
+                  ${this.escapeHtml(
+                    entry.status ||
+                    "مسجل"
+                  )}
+                </b>
+
+                <small>
+                  ${this.escapeHtml(
+                    this.formatDateTime(
+                      entry.createdAt ??
+                      entry.startedAt ??
+                      entry.completedAt,
+                      "غير محدد"
+                    )
+                  )}
+                </small>
+              </div>
+            </div>
+          `)
+          .join("")}
+      </div>
+    `;
+  },
+
+  renderReportHistory(history = []) {
+    if (!history.length) {
+      return this.emptyState(
+        "لم يتم حفظ أي نسخة تقرير حتى الآن."
+      );
+    }
+
+    return `
+      <div class="report-history-list saved">
+        ${[...history]
+          .reverse()
+          .slice(0, this.config.maximumHistoryRows)
+          .map(entry => `
+            <button
+              type="button"
+              class="report-history-row report-history-button"
+              data-report-action="details"
+              data-report-id="${this.escapeAttribute(
+                entry.id
+              )}"
+            >
+              <span>📝</span>
+
+              <div>
+                <strong>
+                  ${this.escapeHtml(entry.title)}
+                </strong>
+
+                <small>
+                  ${this.escapeHtml(
+                    entry.generatedBy
+                  )}
+                  ·
+                  ${this.escapeHtml(entry.cycle)}
+                </small>
+              </div>
+
+              <div>
+                <b>
+                  ${entry.executiveScore}%
+                </b>
+
+                <small>
+                  ${this.escapeHtml(
+                    this.formatDateTime(
+                      entry.createdAt,
+                      "غير محدد"
+                    )
+                  )}
+                </small>
+              </div>
+            </button>
+          `)
+          .join("")}
+      </div>
+    `;
+  },
+
+  renderRoadmap(roadmap = []) {
+    if (!roadmap.length) {
+      return this.emptyState(
+        "لا توجد مراحل مسجلة في خارطة الطريق."
+      );
+    }
+
+    return `
+      <div class="report-roadmap-grid">
+        ${roadmap
+          .map(item => {
+            const progress =
+              this.normalizePercent(
+                item.progress,
+                0
+              );
+
+            return `
+              <div class="report-roadmap-card">
+                <b>
+                  ${this.escapeHtml(
+                    item.year ||
+                    item.period ||
+                    ""
+                  )}
+                </b>
+
+                <strong>
+                  ${this.escapeHtml(
+                    item.phase ||
+                    item.title ||
+                    ""
+                  )}
+                </strong>
+
+                <span>${progress}%</span>
+
+                <div class="aiw-progress">
+                  <div style="width:${progress}%"></div>
+                </div>
+
+                <p>
+                  ${this.escapeHtml(
+                    this.valueToText(
+                      item.activities ??
+                      item.description ??
+                      ""
+                    )
+                  )}
+                </p>
+              </div>
+            `;
+          })
+          .join("")}
+      </div>
+    `;
   },
 
   /* =======================================================
@@ -1426,57 +2464,266 @@ AIW.Modules.reports = {
 
     setTimeout(() => {
       if (
-        window.AIW?.Charts &&
-        typeof window.AIW.Charts
-          .doughnut === "function"
+        typeof window.AIW.Charts.doughnut ===
+        "function"
       ) {
         window.AIW.Charts.doughnut(
           "reportsPriorityChart",
-
           [
             "عالية",
             "متوسطة",
             "منخفضة"
           ],
-
           [
             highIdeas,
             mediumIdeas,
             lowIdeas
           ],
-
           "Priority Distribution"
         );
       }
 
       if (
-        window.AIW?.Charts &&
         typeof window.AIW.Charts.bar ===
-          "function"
+        "function"
       ) {
         window.AIW.Charts.bar(
           "reportsHealthChart",
-
           [
             "Executive",
             "Ideas",
-            "Readiness",
+            "Projects",
+            "KPI",
             "Risk",
-            "Governance"
+            "Governance",
+            "Decision",
+            "Automation"
           ],
-
           [
             scores.executiveScore,
             scores.ideaScore,
-            scores.maturityScore,
+            scores.projectScore,
+            scores.kpiScore,
             scores.riskScore,
-            scores.governanceScore
+            scores.governanceScore,
+            scores.decisionScore,
+            scores.automationScore
           ],
-
-          "Operational Health"
+          "Platform Health"
         );
       }
-    }, 50);
+    }, this.config.chartDelay);
+  },
+
+  /* =======================================================
+     UI Events
+  ======================================================= */
+
+  bindActionEvents() {
+    if (
+      this._eventsBound ||
+      !this._container
+    ) {
+      return;
+    }
+
+    this._eventsBound = true;
+
+    this._container.addEventListener(
+      "click",
+      event => {
+        const button =
+          event.target.closest(
+            "[data-report-action]"
+          );
+
+        if (
+          !button ||
+          !this._container?.contains(button)
+        ) {
+          return;
+        }
+
+        const action =
+          button.dataset.reportAction;
+
+        if (action === "generate") {
+          const result =
+            this.generateReportSnapshot(
+              this._lastContext,
+              this._lastScores
+            );
+
+          if (!result.success) {
+            this.showToast(
+              result.message ||
+              "تعذر حفظ التقرير.",
+              "error"
+            );
+            return;
+          }
+
+          this.showToast(
+            "تم حفظ نسخة التقرير التنفيذي.",
+            "success"
+          );
+
+          this.scheduleRefresh();
+          return;
+        }
+
+        if (action === "open-kpis") {
+          this.openModule("kpis");
+          return;
+        }
+
+        if (action === "open-decision") {
+          this.openModule("decision");
+          return;
+        }
+
+        if (action === "details") {
+          this.openReportDetails(
+            button.dataset.reportId
+          );
+        }
+      }
+    );
+  },
+
+  openReportDetails(reportId) {
+    const report =
+      this.getReportsCenter()
+        .history
+        .find(
+          entry =>
+            String(entry.id) ===
+            String(reportId)
+        );
+
+    if (!report) {
+      this.showToast(
+        "تعذر العثور على نسخة التقرير.",
+        "error"
+      );
+      return;
+    }
+
+    this.closeReportDetails();
+
+    const modal =
+      document.createElement("div");
+
+    modal.className =
+      "report-details-overlay";
+
+    modal.innerHTML = `
+      <div
+        class="report-details-dialog"
+        role="dialog"
+        aria-modal="true"
+      >
+        <button
+          type="button"
+          class="report-details-close"
+          data-report-details-close
+        >
+          ×
+        </button>
+
+        <div class="report-details-icon">
+          📝
+        </div>
+
+        <h3>
+          ${this.escapeHtml(report.title)}
+        </h3>
+
+        <p>
+          نسخة تنفيذية محفوظة ضمن دورة
+          ${this.escapeHtml(report.cycle)}.
+        </p>
+
+        <div class="report-details-grid">
+          <div>
+            <small>Executive Score</small>
+            <strong>${report.executiveScore}%</strong>
+          </div>
+
+          <div>
+            <small>Ideas</small>
+            <strong>${report.ideasCount}</strong>
+          </div>
+
+          <div>
+            <small>Projects</small>
+            <strong>${report.projectsCount}</strong>
+          </div>
+
+          <div>
+            <small>KPIs</small>
+            <strong>${report.kpisCount}</strong>
+          </div>
+
+          <div>
+            <small>Risks</small>
+            <strong>${report.risksCount}</strong>
+          </div>
+
+          <div>
+            <small>Generated By</small>
+            <strong>
+              ${this.escapeHtml(report.generatedBy)}
+            </strong>
+          </div>
+        </div>
+
+        <div class="report-details-date">
+          ${this.escapeHtml(
+            this.formatDateTime(
+              report.createdAt,
+              "غير محدد"
+            )
+          )}
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    this._detailsModal = modal;
+
+    modal.addEventListener(
+      "click",
+      event => {
+        if (
+          event.target === modal ||
+          event.target.closest(
+            "[data-report-details-close]"
+          )
+        ) {
+          this.closeReportDetails();
+        }
+      }
+    );
+
+    requestAnimationFrame(() => {
+      modal.classList.add("visible");
+    });
+  },
+
+  closeReportDetails() {
+    if (!this._detailsModal) return;
+
+    const modal =
+      this._detailsModal;
+
+    modal.classList.remove("visible");
+
+    setTimeout(() => {
+      modal.remove();
+    }, 180);
+
+    this._detailsModal = null;
   },
 
   /* =======================================================
@@ -1484,10 +2731,7 @@ AIW.Modules.reports = {
   ======================================================= */
 
   renderExecutiveList(items = []) {
-    if (
-      !Array.isArray(items) ||
-      !items.length
-    ) {
+    if (!items.length) {
       return this.emptyState(
         "لا توجد توصيات متاحة حالياً."
       );
@@ -1496,27 +2740,23 @@ AIW.Modules.reports = {
     return `
       <div class="executive-list">
         ${items
-          .map(
-            (item, index) => `
-              <div class="executive-item">
-                <strong>
-                  ${String(
-                    index + 1
-                  ).padStart(2, "0")}
-                </strong>
+          .map((item, index) => `
+            <div class="executive-item">
+              <strong>
+                ${String(index + 1).padStart(2, "0")}
+              </strong>
 
-                <span>
-                  ${this.escapeHtml(
-                    typeof item === "string"
-                      ? item
-                      : item?.title ||
-                        item?.description ||
-                        ""
-                  )}
-                </span>
-              </div>
-            `
-          )
+              <span>
+                ${this.escapeHtml(
+                  typeof item === "string"
+                    ? item
+                    : item?.title ||
+                      item?.description ||
+                      ""
+                )}
+              </span>
+            </div>
+          `)
           .join("")}
       </div>
     `;
@@ -1524,9 +2764,8 @@ AIW.Modules.reports = {
 
   kpi(label, value, note) {
     if (
-      window.AIW?.Widgets &&
-      typeof window.AIW.Widgets.kpi ===
-        "function"
+      typeof window.AIW?.Widgets?.kpi ===
+      "function"
     ) {
       return window.AIW.Widgets.kpi({
         label,
@@ -1537,43 +2776,28 @@ AIW.Modules.reports = {
 
     return `
       <div class="module-card">
-        <span>
-          ${this.escapeHtml(label)}
-        </span>
-
-        <strong>
-          ${this.escapeHtml(value)}
-        </strong>
-
-        <small>
-          ${this.escapeHtml(note)}
-        </small>
+        <span>${this.escapeHtml(label)}</span>
+        <strong>${this.escapeHtml(value)}</strong>
+        <small>${this.escapeHtml(note)}</small>
       </div>
     `;
   },
 
-  sectionTitle(title, desc) {
+  sectionTitle(title, description) {
     if (
-      window.AIW?.Widgets &&
-      typeof window.AIW.Widgets
-        .sectionTitle === "function"
+      typeof window.AIW?.Widgets?.sectionTitle ===
+      "function"
     ) {
-      return window.AIW.Widgets
-        .sectionTitle(
-          title,
-          desc
-        );
+      return window.AIW.Widgets.sectionTitle(
+        title,
+        description
+      );
     }
 
     return `
       <div class="module-section-title compact">
-        <h2>
-          ${this.escapeHtml(title)}
-        </h2>
-
-        <p>
-          ${this.escapeHtml(desc)}
-        </p>
+        <h2>${this.escapeHtml(title)}</h2>
+        <p>${this.escapeHtml(description)}</p>
       </div>
     `;
   },
@@ -1586,7 +2810,12 @@ AIW.Modules.reports = {
     `;
   },
 
-  fallbackHero() {
+  fallbackHero(
+    executiveScore,
+    quickWins,
+    risks,
+    historyCount
+  ) {
     return `
       <div class="module-hero">
         <span class="module-kicker">
@@ -1598,33 +2827,77 @@ AIW.Modules.reports = {
         </h1>
 
         <p>
-          تقرير تنفيذي يعرض جودة التسجيلات، الصلاحيات، البوابات، المخاطر، وأولويات التنفيذ.
+          تقرير تنفيذي حي يربط الأفكار والمشاريع والمؤشرات والقرارات والأتمتة والمخاطر.
         </p>
+
+        <div class="aiw-chip-row">
+          <span class="aiw-chip">
+            🧠 Executive Score ${executiveScore}%
+          </span>
+
+          <span class="aiw-chip">
+            🚀 ${quickWins} Quick Wins
+          </span>
+
+          <span class="aiw-chip">
+            🛡️ ${risks} مخاطر
+          </span>
+
+          <span class="aiw-chip">
+            📝 ${historyCount} تقارير محفوظة
+          </span>
+        </div>
       </div>
     `;
   },
 
+  openModule(moduleId) {
+    if (
+      typeof window.AIW?.App?.go ===
+      "function"
+    ) {
+      window.AIW.App.go(moduleId);
+      return;
+    }
+
+    if (
+      typeof window.AIW?.Router?.go ===
+      "function"
+    ) {
+      window.AIW.Router.go(moduleId);
+      return;
+    }
+
+    window.location.hash =
+      `#${moduleId}`;
+  },
+
   /* =======================================================
-     Automatic Synchronization
+     Synchronization
   ======================================================= */
+
+  scheduleRefresh() {
+    clearTimeout(this._refreshTimer);
+
+    this._refreshTimer =
+      setTimeout(() => {
+        if (!this._container?.isConnected) {
+          return;
+        }
+
+        this.render(this._container);
+      }, this.config.refreshDelay);
+  },
 
   bindAutomaticSync() {
     if (this._syncBound) return;
 
     this._syncBound = true;
 
-    const refreshReports = () => {
-      if (
-        !this._container ||
-        !this._container.isConnected
-      ) {
-        return;
-      }
+    const refresh =
+      () => this.scheduleRefresh();
 
-      this.render(this._container);
-    };
-
-    const syncEvents = [
+    const events = [
       "aiw:dataChanged",
       "aiw:dataUpdated",
       "aiw:dataImported",
@@ -1634,83 +2907,532 @@ AIW.Modules.reports = {
 
       "aiw:reportsChanged",
       "aiw:reportsUpdated",
+      "aiw:reportGenerated",
 
-      "aiw:ideasChanged",
-      "aiw:ideasUpdated",
+      "aiw:ideaCreated",
+      "aiw:ideaUpdated",
+      "aiw:ideaSubmittedForApproval",
+      "aiw:ideaApproved",
+      "aiw:ideaRejected",
+      "aiw:ideaConvertedToProject",
 
-      "aiw:projectsChanged",
-      "aiw:projectsUpdated",
+      "aiw:projectCreated",
+      "aiw:projectUpdated",
+      "aiw:projectArchived",
 
-      "aiw:kpisChanged",
       "aiw:kpisUpdated",
+      "aiw:kpiValueUpdated",
 
-      "aiw:governanceChanged",
+      "aiw:decisionUpdated",
+      "aiw:decisionApproved",
+      "aiw:decisionRejected",
+
+      "aiw:automationUpdated",
+      "aiw:workflowExecuted",
+
       "aiw:governanceUpdated",
-
-      "aiw:roadmapChanged",
-      "aiw:roadmapUpdated",
-
-      "aiw:risksChanged",
-      "aiw:risksUpdated"
+      "aiw:risksUpdated",
+      "aiw:roadmapUpdated"
     ];
 
-    syncEvents.forEach(
-      (eventName) => {
-        window.addEventListener(
-          eventName,
-          refreshReports
-        );
-      }
-    );
+    events.forEach(eventName => {
+      window.addEventListener(
+        eventName,
+        refresh
+      );
+    });
+
+    const store =
+      this.getStore();
+
+    if (
+      typeof store?.subscribe ===
+      "function"
+    ) {
+      this._unsubscribeStore =
+        store.subscribe(refresh);
+    }
 
     window.addEventListener(
       "storage",
-      (event) => {
+      event => {
         const supportedKeys = [
+          window.AIW?.KEYS?.DATA,
+          "atcDataV1",
           "aiwDataV1",
           "aiwData",
           "AIW_DATA"
-        ];
+        ].filter(Boolean);
 
         if (
           !event.key ||
-          supportedKeys.includes(
-            event.key
-          )
+          supportedKeys.includes(event.key)
         ) {
-          refreshReports();
+          refresh();
         }
       }
     );
+  },
+
+  destroy() {
+    clearTimeout(this._refreshTimer);
+
+    if (
+      typeof this._unsubscribeStore ===
+      "function"
+    ) {
+      this._unsubscribeStore();
+    }
+
+    this._unsubscribeStore = null;
+    this._container = null;
+    this._eventsBound = false;
+    this._syncBound = false;
+    this.closeReportDetails();
+  },
+
+  /* =======================================================
+     Toast
+  ======================================================= */
+
+  showToast(message, type = "success") {
+    document
+      .querySelector(
+        ".report-workflow-toast"
+      )
+      ?.remove();
+
+    const toast =
+      document.createElement("div");
+
+    toast.className =
+      `report-workflow-toast ${type}`;
+
+    toast.textContent = message;
+
+    document.body.appendChild(toast);
+
+    requestAnimationFrame(() => {
+      toast.classList.add("visible");
+    });
+
+    setTimeout(() => {
+      toast.classList.remove("visible");
+
+      setTimeout(() => {
+        toast.remove();
+      }, 200);
+    }, 2800);
+  },
+
+  /* =======================================================
+     Styles
+  ======================================================= */
+
+  injectStyles() {
+    if (
+      document.getElementById(
+        this.config.styleId
+      )
+    ) {
+      return;
+    }
+
+    const style =
+      document.createElement("style");
+
+    style.id =
+      this.config.styleId;
+
+    style.textContent = `
+      .reports-action-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 18px;
+      }
+
+      .report-action-button {
+        appearance: none;
+        min-height: 44px;
+        padding: 11px 16px;
+        border: 0;
+        border-radius: 14px;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .report-action-button.primary {
+        color: #ffffff;
+        background: #101b2f;
+      }
+
+      .report-action-button.secondary {
+        color: #344054;
+        background: #f2f4f7;
+        border: 1px solid #e4e7ec;
+      }
+
+      .report-highlight-metrics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 16px;
+      }
+
+      .report-highlight-metrics span,
+      .report-decision-type {
+        display: inline-flex;
+        align-items: center;
+        min-height: 30px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        color: #344054;
+        background: #f2f4f7;
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .report-history-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .report-history-row {
+        display: grid;
+        grid-template-columns:
+          auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 12px;
+        padding: 13px 14px;
+        border: 1px solid rgba(15, 23, 42, 0.07);
+        border-radius: 16px;
+        text-align: right;
+        background: #f9fafb;
+      }
+
+      .report-history-button {
+        width: 100%;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .report-history-row > span {
+        display: grid;
+        place-items: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 13px;
+        background: #edf3ff;
+      }
+
+      .report-history-row strong,
+      .report-history-row small,
+      .report-history-row b {
+        display: block;
+      }
+
+      .report-history-row strong {
+        color: #101828;
+        font-size: 13px;
+      }
+
+      .report-history-row b {
+        color: #101828;
+        font-size: 12px;
+      }
+
+      .report-history-row small {
+        margin-top: 4px;
+        color: #667085;
+        font-size: 10px;
+      }
+
+      .report-details-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding:
+          24px
+          18px
+          calc(24px + env(safe-area-inset-bottom));
+        direction: rtl;
+        background: rgba(15, 23, 42, 0.48);
+        backdrop-filter: blur(10px);
+        opacity: 0;
+        transition: opacity 0.18s ease;
+      }
+
+      .report-details-overlay.visible {
+        opacity: 1;
+      }
+
+      .report-details-dialog {
+        position: relative;
+        width: min(100%, 520px);
+        max-height: min(86vh, 720px);
+        overflow-y: auto;
+        padding: 28px 22px 22px;
+        border-radius: 28px;
+        background: #ffffff;
+        box-shadow:
+          0 28px 80px rgba(15, 23, 42, 0.28);
+        transform:
+          translateY(12px)
+          scale(0.98);
+        transition: transform 0.18s ease;
+      }
+
+      .report-details-overlay.visible
+      .report-details-dialog {
+        transform:
+          translateY(0)
+          scale(1);
+      }
+
+      .report-details-close {
+        position: absolute;
+        top: 14px;
+        left: 15px;
+        width: 36px;
+        height: 36px;
+        border: 0;
+        border-radius: 50%;
+        color: #475467;
+        background: #f2f4f7;
+        font-size: 24px;
+        cursor: pointer;
+      }
+
+      .report-details-icon {
+        display: grid;
+        place-items: center;
+        width: 62px;
+        height: 62px;
+        margin-bottom: 16px;
+        border-radius: 20px;
+        font-size: 30px;
+        background: #101b2f;
+      }
+
+      .report-details-dialog h3 {
+        margin: 0 0 8px;
+        color: #101828;
+        font-size: 22px;
+      }
+
+      .report-details-dialog > p {
+        margin: 0;
+        color: #667085;
+        font-size: 14px;
+        line-height: 1.8;
+      }
+
+      .report-details-grid {
+        display: grid;
+        grid-template-columns:
+          repeat(3, minmax(0, 1fr));
+        gap: 9px;
+        margin-top: 20px;
+      }
+
+      .report-details-grid > div {
+        padding: 12px 9px;
+        border-radius: 14px;
+        text-align: center;
+        background: #f7f8fa;
+      }
+
+      .report-details-grid small,
+      .report-details-grid strong {
+        display: block;
+      }
+
+      .report-details-grid small {
+        margin-bottom: 5px;
+        color: #667085;
+        font-size: 10px;
+      }
+
+      .report-details-grid strong {
+        color: #101828;
+        font-size: 13px;
+      }
+
+      .report-details-date {
+        margin-top: 18px;
+        padding-top: 15px;
+        border-top: 1px solid rgba(15, 23, 42, 0.08);
+        color: #667085;
+        font-size: 12px;
+      }
+
+      .report-workflow-toast {
+        position: fixed;
+        right: 50%;
+        bottom:
+          calc(
+            108px +
+            env(safe-area-inset-bottom)
+          );
+        z-index: 100000;
+        width: min(
+          calc(100% - 36px),
+          420px
+        );
+        box-sizing: border-box;
+        padding: 14px 17px;
+        border-radius: 16px;
+        color: #ffffff;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 800;
+        line-height: 1.6;
+        background: #101b2f;
+        box-shadow:
+          0 18px 45px rgba(15, 23, 42, 0.25);
+        opacity: 0;
+        transform:
+          translateX(50%)
+          translateY(14px);
+        transition:
+          opacity 0.2s ease,
+          transform 0.2s ease;
+      }
+
+      .report-workflow-toast.visible {
+        opacity: 1;
+        transform:
+          translateX(50%)
+          translateY(0);
+      }
+
+      .report-workflow-toast.success {
+        background: #087d3e;
+      }
+
+      .report-workflow-toast.error {
+        background: #b42318;
+      }
+
+      @media (max-width: 720px) {
+        .reports-action-bar {
+          display: grid;
+          grid-template-columns: 1fr;
+        }
+
+        .report-details-grid {
+          grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+        }
+      }
+    `;
+
+    document.head.appendChild(style);
   },
 
   /* =======================================================
      Utilities
   ======================================================= */
 
-  average(values) {
-    if (
-      !Array.isArray(values) ||
-      !values.length
-    ) {
-      return 0;
+  normalizeStatus(value) {
+    return String(value ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/_/g, "-");
+  },
+
+  valueToText(value, fallback = "") {
+    if (Array.isArray(value)) {
+      const values =
+        value
+          .map(item =>
+            typeof item === "object"
+              ? item.title ||
+                item.name ||
+                item.description ||
+                ""
+              : String(item || "")
+          )
+          .filter(Boolean);
+
+      return values.length
+        ? values.join("، ")
+        : fallback;
     }
 
+    if (
+      value &&
+      typeof value === "object"
+    ) {
+      return (
+        value.title ||
+        value.name ||
+        value.description ||
+        fallback
+      );
+    }
+
+    const text =
+      String(value ?? "").trim();
+
+    return text || fallback;
+  },
+
+  formatDateTime(value, fallback = "") {
+    if (!value) return fallback;
+
+    try {
+      const date =
+        new Date(value);
+
+      if (Number.isNaN(date.getTime())) {
+        return String(value);
+      }
+
+      return date.toLocaleString(
+        "ar-AE",
+        {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        }
+      );
+    } catch (error) {
+      return String(value);
+    }
+  },
+
+  average(values = []) {
+    const validValues =
+      values
+        .map(value => Number(value))
+        .filter(value =>
+          Number.isFinite(value)
+        );
+
+    if (!validValues.length) return 0;
+
     return Math.round(
-      values.reduce(
-        (total, value) =>
-          total +
-          this.toSafeNumber(
-            value,
-            0
-          ),
+      validValues.reduce(
+        (sum, value) =>
+          sum + value,
         0
-      ) / values.length
+      ) / validValues.length
     );
   },
 
   toSafeNumber(value, fallback = 0) {
-    const number = Number(value);
+    const number =
+      Number(value);
 
     return Number.isFinite(number)
       ? number
@@ -1732,28 +3454,41 @@ AIW.Modules.reports = {
     );
   },
 
+  createId(prefix = "item") {
+    return (
+      `${prefix}-${Date.now()}-` +
+      Math.random()
+        .toString(36)
+        .slice(2, 8)
+    );
+  },
+
+  uniqueBy(items = [], selector) {
+    const seen = new Set();
+
+    return items.filter(item => {
+      const key =
+        String(selector(item));
+
+      if (seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    });
+  },
+
   escapeHtml(value) {
     return String(value ?? "")
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
-      .replace(/>/g, "&quot;")
+      .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
   },
 
-  clone(value) {
-    if (
-      typeof structuredClone === "function"
-    ) {
-      try {
-        return structuredClone(value);
-      } catch (error) {
-        // JSON fallback.
-      }
-    }
-
-    return JSON.parse(
-      JSON.stringify(value)
-    );
+  escapeAttribute(value) {
+    return this.escapeHtml(value);
   }
 };
