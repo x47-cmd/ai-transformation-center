@@ -2,232 +2,344 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-  <title>AI Work | مركز التحول المؤسسي بالذكاء الاصطناعي</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  />
+
+  <title>
+    AI Work | منصة الذكاء البيومتري المؤسسية
+  </title>
 
   <meta
     name="description"
-    content="منصة تنفيذية لإدارة استراتيجية التحول المؤسسي بالذكاء الاصطناعي، المشاريع، الأفكار، مؤشرات الأداء، النضج، الحوكمة، الجدوى، الأتمتة، والقرار التنفيذي."
+    content="منصة تنفيذية مؤسسية لإدارة فرص ومشاريع الذكاء الاصطناعي للأنظمة البيومترية والبوابات الذكية، مع الحوكمة، مؤشرات الأداء، الأتمتة، القرار، والتقارير التنفيذية."
   />
 
-  <meta name="theme-color" content="#f8fafc" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-title" content="AI Work" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta
+    name="theme-color"
+    content="#f8fafc"
+  />
 
-  <link rel="stylesheet" href="css/style.css?v=3.0.9">
-  <link rel="stylesheet" href="css/enterprise.css?v=3.0.9">
+  <meta
+    name="color-scheme"
+    content="light dark"
+  />
+
+  <meta
+    name="apple-mobile-web-app-capable"
+    content="yes"
+  />
+
+  <meta
+    name="apple-mobile-web-app-title"
+    content="AI Work"
+  />
+
+  <meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="default"
+  />
+
+  <link
+    rel="stylesheet"
+    href="css/style.css?v=5.0.0"
+  />
+
+  <link
+    rel="stylesheet"
+    href="css/enterprise.css?v=5.0.0"
+  />
 </head>
 
 <body>
-
-<div id="app" class="aiw-app enterprise-app" data-version="3.0.9">
-
-<header
-id="appHeader"
-class="aiw-header enterprise-topbar"
-role="banner">
-</header>
-
-<main
-id="appMain"
-class="aiw-main enterprise-main"
-role="main">
-</main>
-
-<div id="toastContainer"
-class="aiw-toast-container"
-aria-live="polite"></div>
-
-<div id="modalRoot"
-class="aiw-modal-root"
-aria-hidden="true"></div>
-
-<div id="drawerRoot"
-class="aiw-drawer-root"
-aria-hidden="true"></div>
-
-<div id="overlayRoot"
-class="aiw-overlay-root"
-aria-hidden="true"></div>
-
-<nav
-id="bottomNav"
-class="aiw-bottom-nav enterprise-bottom-nav"
-role="navigation"
-aria-label="التنقل الرئيسي">
-
-<button
-type="button"
-data-module="dashboard"
-data-route="dashboard"
-class="aiw-nav-item nav-item active">
-
-<span class="nav-icon">🏠</span>
-<small>الرئيسية</small>
-
-</button>
-
-<button
-type="button"
-data-module="ideas"
-data-route="ideas"
-class="aiw-nav-item nav-item">
-
-<span class="nav-icon">💡</span>
-<small>الأفكار</small>
-
-</button>
-
-<button
-type="button"
-data-module="projects"
-data-route="projects"
-class="aiw-nav-item nav-item">
-
-<span class="nav-icon">📁</span>
-<small>المشاريع</small>
-
-</button>
-
-<button
-type="button"
-data-module="strategy"
-data-route="strategy"
-class="aiw-nav-item nav-item">
-
-<span class="nav-icon">🎯</span>
-<small>الاستراتيجية</small>
-
-</button>
-
-<button
-type="button"
-data-module="reports"
-data-route="reports"
-class="aiw-nav-item nav-item">
-
-<span class="nav-icon">📄</span>
-<small>التقارير</small>
-
-</button>
-
-<button
-type="button"
-data-module="settings"
-data-route="settings"
-class="aiw-nav-item nav-item">
-
-<span class="nav-icon">⋮</span>
-<small>المزيد</small>
-
-</button>
-
-</nav>
-
-</div>
-
-<!-- ===================================================== -->
-<!-- Config -->
-<!-- ===================================================== -->
-
-<script src="js/config/config.js?v=3.0.9"></script>
-
-<script src="js/store.js?v=3.0.9"></script>
-
-<script src="js/data/aiw-data.js?v=3.0.9"></script>
-
-<script src="js/localization/translations.js?v=3.0.9"></script>
-
-<!-- ===================================================== -->
-<!-- Libraries -->
-<!-- ===================================================== -->
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<!-- ===================================================== -->
-<!-- Core -->
-<!-- ===================================================== -->
-
-<script src="js/core/widgets.js?v=3.0.9"></script>
-
-<script src="js/core/charts.js?v=3.0.9"></script>
-
-<script src="js/core/analytics.js?v=3.0.9"></script>
-
-<script src="js/core/automation.js?v=3.0.9"></script>
-
-<script src="js/core/ai-engine.js?v=3.0.9"></script>
-
-<script src="js/core/decision-engine.js?v=3.0.9"></script>
-
-<script src="js/core/recommendation-engine.js?v=3.0.9"></script>
-
-<!-- الجديد -->
-<script src="js/core/biometric-analytics.js?v=3.0.9"></script>
-
-<script src="js/core/export.js?v=3.0.9"></script>
-
-<script src="js/core/notifications.js?v=3.0.9"></script>
-
-<script src="js/core/permissions.js?v=3.0.9"></script>
-
-<script src="js/core/router.js?v=3.0.9"></script>
-
-<!-- ===================================================== -->
-<!-- Modules -->
-<!-- ===================================================== -->
-
-<script src="js/modules/dashboard/dashboard.js?v=3.0.9"></script>
-
-<script src="js/modules/strategy/strategy.js?v=3.0.9"></script>
-
-<script src="js/modules/projects/projects.js?v=3.0.9"></script>
-
-<script src="js/modules/ideas/ideas.js?v=3.0.9"></script>
-
-<script src="js/modules/governance/governance.js?v=3.0.9"></script>
-
-<script src="js/modules/maturity/maturity.js?v=3.0.9"></script>
-
-<script src="js/modules/reports/reports.js?v=3.0.9"></script>
-
-<script src="js/modules/kpis/kpis.js?v=3.0.9"></script>
-
-<script src="js/modules/business/business.js?v=3.0.9"></script>
-
-<script src="js/modules/automation/automation.js?v=3.0.9"></script>
-
-<script src="js/modules/decision/decision.js?v=3.0.9"></script>
-
-<script src="js/modules/settings/settings.js?v=3.0.9"></script>
-
-<!-- ===================================================== -->
-<!-- Application -->
-<!-- ===================================================== -->
-
-<script src="js/core/app.js?v=3.0.9"></script>
-
-<script>
-
-window.addEventListener("load", () => {
-
-    if (
-        window.ATCApp &&
-        typeof window.ATCApp.go === "function"
-    ) {
-
-        window.ATCApp.go(
-            location.hash.replace("#","") || "dashboard",
-            false
+  <noscript>
+    <div
+      style="
+        margin: 24px;
+        padding: 18px;
+        border-radius: 16px;
+        background: #fff3cd;
+        color: #664d03;
+        font-family: Arial, sans-serif;
+        text-align: center;
+      "
+    >
+      تتطلب منصة AI Work تفعيل JavaScript للعمل.
+    </div>
+  </noscript>
+
+  <div
+    id="app"
+    class="aiw-app enterprise-app"
+    data-aiw-root
+    data-version="5.0.0"
+  >
+    <header
+      id="appHeader"
+      class="aiw-header enterprise-topbar"
+      role="banner"
+    ></header>
+
+    <main
+      id="appMain"
+      class="aiw-main enterprise-main"
+      data-app-main
+      role="main"
+      tabindex="-1"
+    ></main>
+
+    <div
+      id="toastContainer"
+      class="aiw-toast-container"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
+
+    <div
+      id="modalRoot"
+      class="aiw-modal-root"
+      aria-hidden="true"
+    ></div>
+
+    <div
+      id="drawerRoot"
+      class="aiw-drawer-root"
+      aria-hidden="true"
+    ></div>
+
+    <div
+      id="overlayRoot"
+      class="aiw-overlay-root"
+      aria-hidden="true"
+    ></div>
+
+    <nav
+      id="bottomNav"
+      class="aiw-bottom-nav enterprise-bottom-nav"
+      role="navigation"
+      aria-label="التنقل الرئيسي"
+    >
+      <button
+        type="button"
+        data-module="dashboard"
+        data-route="dashboard"
+        class="aiw-nav-item nav-item active"
+        aria-current="page"
+      >
+        <span
+          class="nav-icon"
+          aria-hidden="true"
+        >
+          🏠
+        </span>
+
+        <small>الرئيسية</small>
+      </button>
+
+      <button
+        type="button"
+        data-module="ideas"
+        data-route="ideas"
+        class="aiw-nav-item nav-item"
+      >
+        <span
+          class="nav-icon"
+          aria-hidden="true"
+        >
+          💡
+        </span>
+
+        <small>الأفكار</small>
+      </button>
+
+      <button
+        type="button"
+        data-module="projects"
+        data-route="projects"
+        class="aiw-nav-item nav-item"
+      >
+        <span
+          class="nav-icon"
+          aria-hidden="true"
+        >
+          📁
+        </span>
+
+        <small>المشاريع</small>
+      </button>
+
+      <button
+        type="button"
+        data-module="strategy"
+        data-route="strategy"
+        class="aiw-nav-item nav-item"
+      >
+        <span
+          class="nav-icon"
+          aria-hidden="true"
+        >
+          🎯
+        </span>
+
+        <small>الاستراتيجية</small>
+      </button>
+
+      <button
+        type="button"
+        data-module="reports"
+        data-route="reports"
+        class="aiw-nav-item nav-item"
+      >
+        <span
+          class="nav-icon"
+          aria-hidden="true"
+        >
+          📊
+        </span>
+
+        <small>التقارير</small>
+      </button>
+
+      <button
+        type="button"
+        data-module="settings"
+        data-route="settings"
+        class="aiw-nav-item nav-item"
+      >
+        <span
+          class="nav-icon"
+          aria-hidden="true"
+        >
+          ⋮
+        </span>
+
+        <small>المزيد</small>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ===================================================== -->
+  <!-- 1. Global Configuration                              -->
+  <!-- ===================================================== -->
+
+  <script src="js/config/config.js?v=5.0.0"></script>
+
+  <!-- ===================================================== -->
+  <!-- 2. Initial Data Blueprint                            -->
+  <!-- Must load before Store so Store V2.2 can normalize   -->
+  <!-- and persist the complete initial platform state.     -->
+  <!-- ===================================================== -->
+
+  <script src="js/data/aiw-data.js?v=5.0.0"></script>
+
+  <!-- ===================================================== -->
+  <!-- 3. Central Store V2.2                                -->
+  <!-- Single Source of Truth                               -->
+  <!-- ===================================================== -->
+
+  <script src="js/store.js?v=5.0.0"></script>
+
+  <!-- ===================================================== -->
+  <!-- 4. Localization                                      -->
+  <!-- ===================================================== -->
+
+  <script src="js/localization/translations.js?v=5.0.0"></script>
+
+  <!-- ===================================================== -->
+  <!-- 5. External Libraries                                -->
+  <!-- ===================================================== -->
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"
+    defer
+  ></script>
+
+  <!-- ===================================================== -->
+  <!-- 6. Shared UI and Analytics Engines                   -->
+  <!-- ===================================================== -->
+
+  <script src="js/core/widgets.js?v=5.0.0"></script>
+  <script src="js/core/charts.js?v=5.0.0"></script>
+  <script src="js/core/analytics.js?v=5.0.0"></script>
+  <script src="js/core/biometric-analytics.js?v=5.0.0"></script>
+
+  <!-- ===================================================== -->
+  <!-- 7. Operational Engines                               -->
+  <!-- ===================================================== -->
+
+  <script src="js/core/automation.js?v=5.0.0"></script>
+  <script src="js/core/ai-engine.js?v=5.0.0"></script>
+  <script src="js/core/decision-engine.js?v=5.0.0"></script>
+  <script src="js/core/recommendation-engine.js?v=5.0.0"></script>
+  <script src="js/core/export.js?v=5.0.0"></script>
+  <script src="js/core/notifications.js?v=5.0.0"></script>
+  <script src="js/core/permissions.js?v=5.0.0"></script>
+
+  <!-- ===================================================== -->
+  <!-- 8. Core Navigation and Shell                         -->
+  <!-- Router must load before App.                         -->
+  <!-- Shell loads before modules and App.                  -->
+  <!-- ===================================================== -->
+
+  <script src="js/core/router.js?v=5.0.0"></script>
+  <script src="js/core/shell.js?v=5.0.0"></script>
+
+  <!-- Register Shell initialization before App bootstrap. -->
+  <script>
+    (function () {
+      "use strict";
+
+      const initializeShell = function () {
+        if (
+          window.AIW?.Shell &&
+          typeof window.AIW.Shell.init === "function"
+        ) {
+          window.AIW.Shell.init(
+            document.getElementById("app")
+          );
+        }
+      };
+
+      if (document.readyState === "loading") {
+        document.addEventListener(
+          "DOMContentLoaded",
+          initializeShell,
+          {
+            once: true
+          }
         );
+      } else {
+        initializeShell();
+      }
+    })();
+  </script>
 
-    }
+  <!-- ===================================================== -->
+  <!-- 9. Application Modules                               -->
+  <!-- All modules register themselves before App starts.   -->
+  <!-- ===================================================== -->
 
-});
+  <script src="js/modules/dashboard/dashboard.js?v=5.0.0"></script>
+  <script src="js/modules/strategy/strategy.js?v=5.0.0"></script>
+  <script src="js/modules/projects/projects.js?v=5.0.0"></script>
+  <script src="js/modules/ideas/ideas.js?v=5.0.0"></script>
+  <script src="js/modules/governance/governance.js?v=5.0.0"></script>
+  <script src="js/modules/maturity/maturity.js?v=5.0.0"></script>
+  <script src="js/modules/reports/reports.js?v=5.0.0"></script>
+  <script src="js/modules/kpis/kpis.js?v=5.0.0"></script>
+  <script src="js/modules/business/business.js?v=5.0.0"></script>
+  <script src="js/modules/automation/automation.js?v=5.0.0"></script>
+  <script src="js/modules/decision/decision.js?v=5.0.0"></script>
+  <script src="js/modules/settings/settings.js?v=5.0.0"></script>
 
-</script>
+  <!-- ===================================================== -->
+  <!-- 10. Application Bootstrap                            -->
+  <!-- app.js initializes itself once after DOM readiness.  -->
+  <!-- Do not add a second window.load navigation call.     -->
+  <!-- ===================================================== -->
 
+  <script src="js/core/app.js?v=5.0.0"></script>
 </body>
 </html>
