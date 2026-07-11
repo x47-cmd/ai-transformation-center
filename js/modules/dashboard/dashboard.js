@@ -904,7 +904,7 @@
 
                 <div>
                   <strong>${metrics.departmentsCount} 🛂</strong>
-                  <span>محافظ تشغيلية</span>
+                  <span>مجالات تشغيلية</span>
                 </div>
 
                 <div>
