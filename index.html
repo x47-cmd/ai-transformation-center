@@ -74,7 +74,7 @@
     id="app"
     class="aiw-app enterprise-app"
     data-aiw-root
-    data-version="5.2.1"
+    data-version="5.3.0"
   >
     <header
       id="appHeader"
@@ -128,13 +128,7 @@
         class="aiw-nav-item nav-item active"
         aria-current="page"
       >
-        <span
-          class="nav-icon"
-          aria-hidden="true"
-        >
-          🏠
-        </span>
-
+        <span class="nav-icon" aria-hidden="true">🏠</span>
         <small>الرئيسية</small>
       </button>
 
@@ -144,13 +138,7 @@
         data-route="ideas"
         class="aiw-nav-item nav-item"
       >
-        <span
-          class="nav-icon"
-          aria-hidden="true"
-        >
-          💡
-        </span>
-
+        <span class="nav-icon" aria-hidden="true">💡</span>
         <small>الأفكار</small>
       </button>
 
@@ -160,13 +148,7 @@
         data-route="projects"
         class="aiw-nav-item nav-item"
       >
-        <span
-          class="nav-icon"
-          aria-hidden="true"
-        >
-          📁
-        </span>
-
+        <span class="nav-icon" aria-hidden="true">📁</span>
         <small>المشاريع</small>
       </button>
 
@@ -176,13 +158,7 @@
         data-route="strategy"
         class="aiw-nav-item nav-item"
       >
-        <span
-          class="nav-icon"
-          aria-hidden="true"
-        >
-          🎯
-        </span>
-
+        <span class="nav-icon" aria-hidden="true">🎯</span>
         <small>الاستراتيجية</small>
       </button>
 
@@ -192,13 +168,7 @@
         data-route="reports"
         class="aiw-nav-item nav-item"
       >
-        <span
-          class="nav-icon"
-          aria-hidden="true"
-        >
-          📊
-        </span>
-
+        <span class="nav-icon" aria-hidden="true">📊</span>
         <small>التقارير</small>
       </button>
 
@@ -208,13 +178,7 @@
         data-route="settings"
         class="aiw-nav-item nav-item"
       >
-        <span
-          class="nav-icon"
-          aria-hidden="true"
-        >
-          ⋮
-        </span>
-
+        <span class="nav-icon" aria-hidden="true">⋮</span>
         <small>المزيد</small>
       </button>
     </nav>
@@ -335,7 +299,22 @@
   <script src="js/modules/settings/settings.js?v=5.0.1"></script>
 
   <!-- ===================================================== -->
-  <!-- 10. Application Bootstrap                            -->
+  <!-- 10. AI Intelligence Extensions - Phase 7             -->
+  <!-- Core must load first, UI must load last.              -->
+  <!-- These files extend the platform without modifying     -->
+  <!-- Dashboard, Ideas, Projects, or other core modules.    -->
+  <!-- ===================================================== -->
+
+  <script src="js/extensions/ai/ai-intelligence-core.js?v=1.0.0"></script>
+  <script src="js/extensions/ai/project-ai-advisor.js?v=1.0.0"></script>
+  <script src="js/extensions/ai/project-risk-intelligence.js?v=1.0.0"></script>
+  <script src="js/extensions/ai/idea-ai-scoring.js?v=1.0.0"></script>
+  <script src="js/extensions/ai/similarity-intelligence.js?v=1.0.0"></script>
+  <script src="js/extensions/ai/executive-insights.js?v=1.0.0"></script>
+  <script src="js/extensions/ai/ai-intelligence-ui.js?v=1.0.0"></script>
+
+  <!-- ===================================================== -->
+  <!-- 11. Application Bootstrap                            -->
   <!-- app.js initializes itself once after DOM readiness.  -->
   <!-- Do not add a second window.load navigation call.     -->
   <!-- ===================================================== -->
