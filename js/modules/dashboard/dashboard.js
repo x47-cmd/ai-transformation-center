@@ -1,23 +1,20 @@
 /* =========================================================
-   AI Work - Executive Dashboard V5.1
+   AI Work - Executive Dashboard V5.2
    Enterprise Biometric Intelligence Platform
    Store V2.2 Native Architecture
 
    File Path:
    js/modules/dashboard/dashboard.js
 
-   Fixes in V5.1:
-   - Full alignment with Store V2.2 project statuses
-   - Reads dashboard + pipeline as native Store V2.2 sources
-   - Uses projectStatus before legacy project status fields
-   - Correct support for planning / ready / in-progress /
-     pilot / production / on-hold / completed / cancelled /
-     archived
-   - Real idea lifecycle and project delivery indicators
-   - Real governance, risk and approval metrics
-   - Stable cross-page synchronization without render loops
-   - No direct localStorage or AIW.Data data fallback
-   - Existing blue hero design preserved
+   V5.2 Dashboard Redesign:
+   - Preserves the premium blue hero section
+   - Replaces unclear health/readiness indicators
+   - Focuses on executive actions and operational value
+   - Shows ideas, active projects, pending decisions and blockers
+   - Adds portfolio progress, priorities and recent activity
+   - Improves Executive Status with clear recommendations
+   - Fully synchronized with AIW.Store V2.2
+   - No direct localStorage or AIW.Data fallback
 ========================================================= */
 
 (function () {
@@ -30,7 +27,7 @@
     id: "dashboard",
     title: "الرئيسية",
     icon: "🏠",
-    version: "5.1.0",
+    version: "5.2.0",
 
     _container: null,
     _unsubscribeStore: null,
@@ -42,8 +39,8 @@
       refreshDelay: 90,
       targetIdeas: 100,
       defaultRoadmapPeriod: "2026–2030",
-      maxTrendPoints: 9,
-      styleId: "aiw-dashboard-v51-styles"
+      maxActivities: 4,
+      styleId: "aiw-dashboard-v52-styles"
     },
 
     lifecycle: {
@@ -80,33 +77,23 @@
       const store = this.getStore();
 
       if (!store) {
-        console.error(
-          "AI Work Dashboard V5.1: AIW.Store is unavailable."
-        );
+        console.error("AI Work Dashboard V5.2: AIW.Store is unavailable.");
         return {};
       }
 
       try {
         if (typeof store.getState === "function") {
           const state = store.getState();
-
-          return state &&
-            typeof state === "object"
-            ? state
-            : {};
+          return state && typeof state === "object" ? state : {};
         }
 
         if (typeof store.getData === "function") {
           const state = store.getData();
-
-          return state &&
-            typeof state === "object"
-            ? state
-            : {};
+          return state && typeof state === "object" ? state : {};
         }
       } catch (error) {
         console.error(
-          "AI Work Dashboard V5.1: Unable to read Store state.",
+          "AI Work Dashboard V5.2: Unable to read Store state.",
           error
         );
       }
@@ -116,9 +103,7 @@
 
     getCollection(name) {
       const value = this.getState()?.[name];
-      return Array.isArray(value)
-        ? value
-        : [];
+      return Array.isArray(value) ? value : [];
     },
 
     getIdeas() {
@@ -127,29 +112,18 @@
       try {
         if (typeof store?.getIdeas === "function") {
           const ideas = store.getIdeas();
-
-          if (Array.isArray(ideas)) {
-            return ideas;
-          }
+          if (Array.isArray(ideas)) return ideas;
         }
 
         if (typeof store?.getCollection === "function") {
-          const ideas =
-            store.getCollection("ideas");
-
-          if (Array.isArray(ideas)) {
-            return ideas;
-          }
+          const ideas = store.getCollection("ideas");
+          if (Array.isArray(ideas)) return ideas;
         }
       } catch (error) {
-        console.warn(
-          "AI Work Dashboard V5.1: Ideas reader failed.",
-          error
-        );
+        console.warn("AI Work Dashboard V5.2: Ideas reader failed.", error);
       }
 
-      return this.getCollection("ideas")
-        .filter(item => !item?.deletedAt);
+      return this.getCollection("ideas").filter(item => !item?.deletedAt);
     },
 
     getProjects() {
@@ -157,63 +131,35 @@
 
       try {
         if (typeof store?.getProjects === "function") {
-          const projects = store.getProjects({
-            includeArchived: false
-          });
-
-          if (Array.isArray(projects)) {
-            return projects;
-          }
+          const projects = store.getProjects({ includeArchived: false });
+          if (Array.isArray(projects)) return projects;
         }
 
         if (typeof store?.getCollection === "function") {
-          const projects =
-            store.getCollection("projects");
-
-          if (Array.isArray(projects)) {
-            return projects;
-          }
+          const projects = store.getCollection("projects");
+          if (Array.isArray(projects)) return projects;
         }
       } catch (error) {
-        console.warn(
-          "AI Work Dashboard V5.1: Projects reader failed.",
-          error
-        );
+        console.warn("AI Work Dashboard V5.2: Projects reader failed.", error);
       }
 
-      return this.getCollection("projects")
-        .filter(item => !item?.deletedAt);
+      return this.getCollection("projects").filter(item => !item?.deletedAt);
     },
 
     getPipeline() {
       const store = this.getStore();
 
       try {
-        if (
-          typeof store?.getPipelineStats ===
-          "function"
-        ) {
-          const pipeline =
-            store.getPipelineStats();
-
-          if (
-            pipeline &&
-            typeof pipeline === "object"
-          ) {
-            return pipeline;
-          }
+        if (typeof store?.getPipelineStats === "function") {
+          const pipeline = store.getPipelineStats();
+          if (pipeline && typeof pipeline === "object") return pipeline;
         }
       } catch (error) {
-        console.warn(
-          "AI Work Dashboard V5.1: Pipeline reader failed.",
-          error
-        );
+        console.warn("AI Work Dashboard V5.2: Pipeline reader failed.", error);
       }
 
       const state = this.getState();
-
-      return state.pipeline &&
-        typeof state.pipeline === "object"
+      return state.pipeline && typeof state.pipeline === "object"
         ? state.pipeline
         : {};
     },
@@ -221,30 +167,14 @@
     getGovernanceItems() {
       const state = this.getState();
 
-      if (Array.isArray(state.governance)) {
-        return state.governance;
-      }
-
-      if (
-        state.governance &&
-        Array.isArray(
-          state.governance.controls
-        )
-      ) {
+      if (Array.isArray(state.governance)) return state.governance;
+      if (state.governance && Array.isArray(state.governance.controls)) {
         return state.governance.controls;
       }
-
-      if (
-        Array.isArray(
-          state.governanceControls
-        )
-      ) {
+      if (Array.isArray(state.governanceControls)) {
         return state.governanceControls;
       }
-
-      if (Array.isArray(state.controls)) {
-        return state.controls;
-      }
+      if (Array.isArray(state.controls)) return state.controls;
 
       return [];
     },
@@ -252,12 +182,12 @@
     getApprovalItems() {
       const state = this.getState();
 
-      if (
-        Array.isArray(
-          state.automation?.approvals
-        )
-      ) {
+      if (Array.isArray(state.automation?.approvals)) {
         return state.automation.approvals;
+      }
+
+      if (Array.isArray(state.approvals)) {
+        return state.approvals;
       }
 
       return [];
@@ -272,66 +202,33 @@
         state.riskRegister,
         state.governance?.risks
       ].forEach(source => {
-        if (Array.isArray(source)) {
-          risks.push(...source);
-        }
+        if (Array.isArray(source)) risks.push(...source);
       });
 
       this.getProjects().forEach(project => {
         if (Array.isArray(project?.risks)) {
-          project.risks.forEach(
-            (risk, index) => {
-              risks.push({
-                ...(
-                  risk &&
-                  typeof risk === "object"
-                    ? risk
-                    : {
-                        title:
-                          String(risk || "خطر")
-                      }
-                ),
-
-                id:
-                  risk?.id ||
-                  `project-risk-${project.id}-${index}`,
-
-                sourceType: "project",
-                sourceId: project.id,
-                sourceTitle:
-                  project.title ||
-                  "مشروع"
-              });
-            }
-          );
+          project.risks.forEach((risk, index) => {
+            risks.push({
+              ...(risk && typeof risk === "object"
+                ? risk
+                : { title: String(risk || "خطر") }),
+              id: risk?.id || `project-risk-${project.id}-${index}`,
+              sourceType: "project",
+              sourceId: project.id,
+              sourceTitle: project.title || "مشروع"
+            });
+          });
         }
 
-        if (
-          project?.riskLevel ||
-          project?.risk
-        ) {
+        if (project?.riskLevel || project?.risk) {
           risks.push({
-            id:
-              `project-level-risk-${project.id}`,
-
-            title:
-              project.title ||
-              "مخاطر مشروع",
-
-            level:
-              project.riskLevel ||
-              project.risk,
-
-            status:
-              project.projectStatus ||
-              project.status ||
-              "open",
-
+            id: `project-level-risk-${project.id}`,
+            title: project.title || "مخاطر مشروع",
+            level: project.riskLevel || project.risk,
+            status: project.projectStatus || project.status || "open",
             sourceType: "project",
             sourceId: project.id,
-            sourceTitle:
-              project.title ||
-              "مشروع"
+            sourceTitle: project.title || "مشروع"
           });
         }
       });
@@ -343,10 +240,7 @@
           [
             item?.sourceType || "risk",
             item?.sourceId || "",
-            item?.title ||
-              item?.name ||
-              item?.level ||
-              ""
+            item?.title || item?.name || item?.level || ""
           ].join("-")
       );
     },
@@ -362,52 +256,32 @@
         state.operations?.alerts,
         state.monitoring?.alerts
       ].forEach(source => {
-        if (Array.isArray(source)) {
-          alerts.push(...source);
-        }
+        if (Array.isArray(source)) alerts.push(...source);
       });
 
       this.getRisks()
-        .filter(risk =>
-          this.isHighSeverity(risk)
-        )
+        .filter(risk => this.isHighSeverity(risk))
         .forEach(risk => {
           alerts.push({
             id:
               `risk-alert-${
                 risk.id ||
                 risk.sourceId ||
-                this.hashText(
-                  risk.title ||
-                  risk.name ||
-                  "risk"
-                )
+                this.hashText(risk.title || risk.name || "risk")
               }`,
-
             title:
               risk.title ||
               risk.name ||
               risk.sourceTitle ||
               "مخاطر تشغيلية عالية",
-
             severity:
               risk.severity ||
               risk.level ||
               risk.riskLevel ||
               "high",
-
-            status:
-              risk.status ||
-              "open",
-
-            sourceType:
-              risk.sourceType ||
-              "risk",
-
-            sourceId:
-              risk.sourceId ||
-              risk.id ||
-              null
+            status: risk.status || "open",
+            sourceType: risk.sourceType || "risk",
+            sourceId: risk.sourceId || risk.id || null
           });
         });
 
@@ -416,13 +290,9 @@
         item =>
           item?.id ||
           [
-            item?.title ||
-              item?.name ||
-              "alert",
+            item?.title || item?.name || "alert",
             item?.sourceId || "",
-            item?.severity ||
-              item?.level ||
-              ""
+            item?.severity || item?.level || ""
           ].join("-")
       );
     },
@@ -440,46 +310,26 @@
         return this.lifecycle.CONVERTED;
       }
 
-      const raw =
-        this.normalizeStatus(
-          idea.ideaStatus ??
-          idea.lifecycleStatus ??
-          idea.status ??
-          idea.approval?.status ??
-          ""
-        );
+      const raw = this.normalizeStatus(
+        idea.ideaStatus ??
+        idea.lifecycleStatus ??
+        idea.status ??
+        idea.approval?.status ??
+        ""
+      );
 
-      if (
-        [
-          "converted",
-          "converted-to-project"
-        ].includes(raw)
-      ) {
+      if (["converted", "converted-to-project"].includes(raw)) {
         return this.lifecycle.CONVERTED;
       }
 
-      if (
-        raw === "pending" ||
-        raw === "pending-approval"
-      ) {
+      if (raw === "pending" || raw === "pending-approval") {
         return this.lifecycle.PENDING;
       }
 
-      if (raw === "submitted") {
-        return this.lifecycle.SUBMITTED;
-      }
-
-      if (raw === "approved") {
-        return this.lifecycle.APPROVED;
-      }
-
-      if (raw === "rejected") {
-        return this.lifecycle.REJECTED;
-      }
-
-      if (raw === "archived") {
-        return this.lifecycle.ARCHIVED;
-      }
+      if (raw === "submitted") return this.lifecycle.SUBMITTED;
+      if (raw === "approved") return this.lifecycle.APPROVED;
+      if (raw === "rejected") return this.lifecycle.REJECTED;
+      if (raw === "archived") return this.lifecycle.ARCHIVED;
 
       return this.lifecycle.DRAFT;
     },
@@ -506,105 +356,64 @@
     ======================================================= */
 
     getProjectStatus(project = {}) {
-      const raw =
-        this.normalizeStatus(
-          project.projectStatus ??
-          project.status ??
-          project.lifecycleStatus ??
-          project.deliveryStatus ??
-          ""
-        );
+      const raw = this.normalizeStatus(
+        project.projectStatus ??
+        project.status ??
+        project.lifecycleStatus ??
+        project.deliveryStatus ??
+        ""
+      );
 
       const map = {
-        planning:
-          this.projectStatus.PLANNING,
-        planned:
-          this.projectStatus.PLANNING,
-        study:
-          this.projectStatus.PLANNING,
-        draft:
-          this.projectStatus.PLANNING,
+        planning: this.projectStatus.PLANNING,
+        planned: this.projectStatus.PLANNING,
+        study: this.projectStatus.PLANNING,
+        draft: this.projectStatus.PLANNING,
 
-        ready:
-          this.projectStatus.READY,
-        approved:
-          this.projectStatus.READY,
+        ready: this.projectStatus.READY,
+        approved: this.projectStatus.READY,
 
-        active:
-          this.projectStatus.IN_PROGRESS,
-        "in-progress":
-          this.projectStatus.IN_PROGRESS,
-        inprogress:
-          this.projectStatus.IN_PROGRESS,
-        execution:
-          this.projectStatus.IN_PROGRESS,
+        active: this.projectStatus.IN_PROGRESS,
+        "in-progress": this.projectStatus.IN_PROGRESS,
+        inprogress: this.projectStatus.IN_PROGRESS,
+        execution: this.projectStatus.IN_PROGRESS,
 
-        pilot:
-          this.projectStatus.PILOT,
+        pilot: this.projectStatus.PILOT,
 
-        production:
-          this.projectStatus.PRODUCTION,
-        operational:
-          this.projectStatus.PRODUCTION,
+        production: this.projectStatus.PRODUCTION,
+        operational: this.projectStatus.PRODUCTION,
 
-        "on-hold":
-          this.projectStatus.ON_HOLD,
-        paused:
-          this.projectStatus.ON_HOLD,
-        blocked:
-          this.projectStatus.ON_HOLD,
+        "on-hold": this.projectStatus.ON_HOLD,
+        paused: this.projectStatus.ON_HOLD,
+        blocked: this.projectStatus.ON_HOLD,
 
-        completed:
-          this.projectStatus.COMPLETED,
+        completed: this.projectStatus.COMPLETED,
 
-        cancelled:
-          this.projectStatus.CANCELLED,
-        canceled:
-          this.projectStatus.CANCELLED,
+        cancelled: this.projectStatus.CANCELLED,
+        canceled: this.projectStatus.CANCELLED,
 
-        archived:
-          this.projectStatus.ARCHIVED,
+        archived: this.projectStatus.ARCHIVED,
 
-        "قيد-التخطيط":
-          this.projectStatus.PLANNING,
-        "قيد-الدراسة":
-          this.projectStatus.PLANNING,
-        معتمد:
-          this.projectStatus.READY,
-        جاهز:
-          this.projectStatus.READY,
-        "قيد-التنفيذ":
-          this.projectStatus.IN_PROGRESS,
-        "قيد-العمل":
-          this.projectStatus.IN_PROGRESS,
-        تجريبي:
-          this.projectStatus.PILOT,
-        "تجربة-أولية":
-          this.projectStatus.PILOT,
-        تشغيل:
-          this.projectStatus.PRODUCTION,
-        "قيد-التشغيل":
-          this.projectStatus.PRODUCTION,
-        "متوقف-مؤقتاً":
-          this.projectStatus.ON_HOLD,
-        "متوقف-موقتا":
-          this.projectStatus.ON_HOLD,
-        متعثر:
-          this.projectStatus.ON_HOLD,
-        مكتمل:
-          this.projectStatus.COMPLETED,
-        منجز:
-          this.projectStatus.COMPLETED,
-        ملغي:
-          this.projectStatus.CANCELLED,
-        مؤرشف:
-          this.projectStatus.ARCHIVED
+        "قيد-التخطيط": this.projectStatus.PLANNING,
+        "قيد-الدراسة": this.projectStatus.PLANNING,
+        معتمد: this.projectStatus.READY,
+        جاهز: this.projectStatus.READY,
+        "قيد-التنفيذ": this.projectStatus.IN_PROGRESS,
+        "قيد-العمل": this.projectStatus.IN_PROGRESS,
+        تجريبي: this.projectStatus.PILOT,
+        "تجربة-أولية": this.projectStatus.PILOT,
+        تشغيل: this.projectStatus.PRODUCTION,
+        "قيد-التشغيل": this.projectStatus.PRODUCTION,
+        "متوقف-مؤقتاً": this.projectStatus.ON_HOLD,
+        "متوقف-موقتا": this.projectStatus.ON_HOLD,
+        متعثر: this.projectStatus.ON_HOLD,
+        مكتمل: this.projectStatus.COMPLETED,
+        منجز: this.projectStatus.COMPLETED,
+        ملغي: this.projectStatus.CANCELLED,
+        مؤرشف: this.projectStatus.ARCHIVED
       };
 
-      return (
-        map[raw] ||
-        this.projectStatus.PLANNING
-      );
+      return map[raw] || this.projectStatus.PLANNING;
     },
 
     isActiveProject(project = {}) {
@@ -612,23 +421,15 @@
         this.projectStatus.IN_PROGRESS,
         this.projectStatus.PILOT,
         this.projectStatus.PRODUCTION
-      ].includes(
-        this.getProjectStatus(project)
-      );
+      ].includes(this.getProjectStatus(project));
     },
 
     isCompletedProject(project = {}) {
-      return (
-        this.getProjectStatus(project) ===
-        this.projectStatus.COMPLETED
-      );
+      return this.getProjectStatus(project) === this.projectStatus.COMPLETED;
     },
 
     isBlockedProject(project = {}) {
-      return (
-        this.getProjectStatus(project) ===
-        this.projectStatus.ON_HOLD
-      );
+      return this.getProjectStatus(project) === this.projectStatus.ON_HOLD;
     },
 
     isHighRiskProject(project = {}) {
@@ -652,36 +453,14 @@
     ======================================================= */
 
     isActiveGovernanceControl(item) {
-      if (
-        typeof item === "string"
-      ) {
-        return Boolean(item.trim());
-      }
+      if (typeof item === "string") return Boolean(item.trim());
+      if (!item || typeof item !== "object") return false;
 
-      if (
-        !item ||
-        typeof item !== "object"
-      ) {
-        return false;
-      }
+      if (item.enabled === true || item.active === true) return true;
 
-      if (
-        item.enabled === true ||
-        item.active === true
-      ) {
-        return true;
-      }
+      const status = this.normalizeStatus(item.status ?? item.state ?? "");
 
-      const status =
-        this.normalizeStatus(
-          item.status ??
-          item.state ??
-          ""
-        );
-
-      if (!status) {
-        return true;
-      }
+      if (!status) return true;
 
       return [
         "active",
@@ -712,11 +491,21 @@
         "ملغي",
         "مؤرشف"
       ].includes(
-        this.normalizeStatus(
-          item.status ??
-          item.state ??
-          ""
-        )
+        this.normalizeStatus(item.status ?? item.state ?? "")
+      );
+    },
+
+    isPendingApproval(item = {}) {
+      return [
+        "pending",
+        "pending-approval",
+        "waiting",
+        "submitted",
+        "بانتظار-الاعتماد",
+        "قيد-المراجعة",
+        "معلق"
+      ].includes(
+        this.normalizeStatus(item.status ?? item.state ?? "")
       );
     },
 
@@ -739,23 +528,6 @@
       );
     },
 
-    isMediumSeverity(item = {}) {
-      return [
-        "medium",
-        "متوسط",
-        "متوسطة"
-      ].includes(
-        this.normalizeStatus(
-          item.severity ??
-          item.level ??
-          item.priority ??
-          item.type ??
-          item.riskLevel ??
-          ""
-        )
-      );
-    },
-
     /* =======================================================
        Metrics
     ======================================================= */
@@ -763,407 +535,210 @@
     calculateMetrics() {
       const state = this.getState();
       const dashboard =
-        state.dashboard &&
-        typeof state.dashboard === "object"
+        state.dashboard && typeof state.dashboard === "object"
           ? state.dashboard
           : {};
 
       const summary =
-        state.summary &&
-        typeof state.summary === "object"
+        state.summary && typeof state.summary === "object"
           ? state.summary
           : {};
 
-      const pipeline =
-        this.getPipeline();
-
-      const ideas =
-        this.getIdeas();
-
-      const projects =
-        this.getProjects();
-
-      const departments =
-        Array.isArray(
-          state.departments
-        )
-          ? state.departments
-          : [];
-
-      const governance =
-        this.getGovernanceItems();
-
-      const approvals =
-        this.getApprovalItems();
-
-      const risks =
-        this.getRisks();
-
-      const alerts =
-        this.getAlerts();
+      const pipeline = this.getPipeline();
+      const ideas = this.getIdeas();
+      const projects = this.getProjects();
+      const departments = Array.isArray(state.departments)
+        ? state.departments
+        : [];
+      const governance = this.getGovernanceItems();
+      const approvals = this.getApprovalItems();
+      const risks = this.getRisks();
+      const alerts = this.getAlerts();
 
       const ideaMetrics = {
-        total:
-          this.numberOrFallback(
-            pipeline.totalIdeas,
-            ideas.length
-          ),
+        total: this.numberOrFallback(pipeline.totalIdeas, ideas.length),
 
-        highPriority:
-          ideas.filter(idea =>
-            this.isHighPriorityIdea(
-              idea
-            )
-          ).length,
+        highPriority: ideas.filter(idea =>
+          this.isHighPriorityIdea(idea)
+        ).length,
 
-        draft:
-          this.numberOrFallback(
-            pipeline.draftIdeas,
-            ideas.filter(
-              idea =>
-                this.getIdeaStatus(
-                  idea
-                ) ===
-                this.lifecycle.DRAFT
-            ).length
-          ),
+        draft: this.numberOrFallback(
+          pipeline.draftIdeas,
+          ideas.filter(
+            idea => this.getIdeaStatus(idea) === this.lifecycle.DRAFT
+          ).length
+        ),
 
-        submitted:
-          this.numberOrFallback(
-            pipeline.submittedIdeas,
-            ideas.filter(
-              idea =>
-                this.getIdeaStatus(
-                  idea
-                ) ===
-                this.lifecycle.SUBMITTED
-            ).length
-          ),
+        submitted: this.numberOrFallback(
+          pipeline.submittedIdeas,
+          ideas.filter(
+            idea => this.getIdeaStatus(idea) === this.lifecycle.SUBMITTED
+          ).length
+        ),
 
-        pending:
-          this.numberOrFallback(
-            pipeline.pendingIdeas,
-            ideas.filter(
-              idea =>
-                this.getIdeaStatus(
-                  idea
-                ) ===
-                this.lifecycle.PENDING
-            ).length
-          ),
+        pending: this.numberOrFallback(
+          pipeline.pendingIdeas,
+          ideas.filter(
+            idea => this.getIdeaStatus(idea) === this.lifecycle.PENDING
+          ).length
+        ),
 
-        approved:
-          this.numberOrFallback(
-            pipeline.approvedIdeas,
-            ideas.filter(
-              idea =>
-                this.getIdeaStatus(
-                  idea
-                ) ===
-                this.lifecycle.APPROVED
-            ).length
-          ),
+        approved: this.numberOrFallback(
+          pipeline.approvedIdeas,
+          ideas.filter(
+            idea => this.getIdeaStatus(idea) === this.lifecycle.APPROVED
+          ).length
+        ),
 
-        rejected:
-          this.numberOrFallback(
-            pipeline.rejectedIdeas,
-            ideas.filter(
-              idea =>
-                this.getIdeaStatus(
-                  idea
-                ) ===
-                this.lifecycle.REJECTED
-            ).length
-          ),
+        rejected: this.numberOrFallback(
+          pipeline.rejectedIdeas,
+          ideas.filter(
+            idea => this.getIdeaStatus(idea) === this.lifecycle.REJECTED
+          ).length
+        ),
 
-        converted:
-          this.numberOrFallback(
-            pipeline.convertedIdeas,
-            ideas.filter(
-              idea =>
-                this.getIdeaStatus(
-                  idea
-                ) ===
-                this.lifecycle.CONVERTED
-            ).length
-          )
+        converted: this.numberOrFallback(
+          pipeline.convertedIdeas,
+          ideas.filter(
+            idea => this.getIdeaStatus(idea) === this.lifecycle.CONVERTED
+          ).length
+        )
       };
 
       const projectMetrics = {
-        total:
-          this.numberOrFallback(
-            pipeline.totalProjects,
-            projects.length
-          ),
+        total: this.numberOrFallback(pipeline.totalProjects, projects.length),
 
-        active:
-          this.numberOrFallback(
-            pipeline.activeProjects,
-            projects.filter(project =>
-              this.isActiveProject(
-                project
-              )
-            ).length
-          ),
+        active: this.numberOrFallback(
+          pipeline.activeProjects,
+          projects.filter(project => this.isActiveProject(project)).length
+        ),
 
-        completed:
-          this.numberOrFallback(
-            pipeline.completedProjects,
-            projects.filter(project =>
-              this.isCompletedProject(
-                project
-              )
-            ).length
-          ),
+        completed: this.numberOrFallback(
+          pipeline.completedProjects,
+          projects.filter(project => this.isCompletedProject(project)).length
+        ),
 
-        archived:
-          this.numberOrFallback(
-            pipeline.archivedProjects,
-            projects.filter(
-              project =>
-                this.getProjectStatus(
-                  project
-                ) ===
-                this.projectStatus.ARCHIVED
-            ).length
-          ),
+        ready: projects.filter(
+          project =>
+            this.getProjectStatus(project) === this.projectStatus.READY
+        ).length,
 
-        ready:
-          projects.filter(
-            project =>
-              this.getProjectStatus(
-                project
-              ) ===
-              this.projectStatus.READY
-          ).length,
+        pilot: projects.filter(
+          project =>
+            this.getProjectStatus(project) === this.projectStatus.PILOT
+        ).length,
 
-        pilot:
-          projects.filter(
-            project =>
-              this.getProjectStatus(
-                project
-              ) ===
-              this.projectStatus.PILOT
-          ).length,
+        production: projects.filter(
+          project =>
+            this.getProjectStatus(project) === this.projectStatus.PRODUCTION
+        ).length,
 
-        production:
-          projects.filter(
-            project =>
-              this.getProjectStatus(
-                project
-              ) ===
-              this.projectStatus.PRODUCTION
-          ).length,
+        blocked: projects.filter(project =>
+          this.isBlockedProject(project)
+        ).length,
 
-        blocked:
-          projects.filter(project =>
-            this.isBlockedProject(
-              project
-            )
-          ).length,
-
-        highRisk:
-          projects.filter(project =>
-            this.isHighRiskProject(
-              project
-            )
-          ).length,
-
-        linkedToIdeas:
-          projects.filter(project =>
-            Boolean(
-              project.sourceIdeaId ??
-              project.ideaId ??
-              project.origin?.ideaId
-            )
-          ).length
+        highRisk: projects.filter(project =>
+          this.isHighRiskProject(project)
+        ).length
       };
 
-      projectMetrics.averageProgress =
-        this.numberOrFallback(
-          pipeline.averageProjectProgress,
-          projects.length
-            ? Math.round(
-                projects.reduce(
-                  (sum, project) =>
-                    sum +
-                    this.normalizePercent(
-                      project.progress ??
-                      project.completion ??
-                      0
-                    ),
-                  0
-                ) /
-                projects.length
-              )
-            : 0
-        );
-
-      projectMetrics.onTrack =
-        projects.filter(project =>
-          !this.isHighRiskProject(
-            project
-          ) &&
-          !this.isBlockedProject(
-            project
-          ) &&
-          ![
-            this.projectStatus.CANCELLED,
-            this.projectStatus.ARCHIVED
-          ].includes(
-            this.getProjectStatus(
-              project
-            )
-          )
-        ).length;
-
-      projectMetrics.onTrackRate =
+      projectMetrics.averageProgress = this.numberOrFallback(
+        pipeline.averageProjectProgress,
         projects.length
-          ? this.normalizePercent(
-              (
-                projectMetrics.onTrack /
-                projects.length
-              ) * 100
+          ? Math.round(
+              projects.reduce(
+                (sum, project) =>
+                  sum +
+                  this.normalizePercent(
+                    project.progress ??
+                    project.completion ??
+                    0
+                  ),
+                0
+              ) / projects.length
             )
-          : 0;
+          : 0
+      );
+
+      projectMetrics.onTrack = projects.filter(project =>
+        !this.isHighRiskProject(project) &&
+        !this.isBlockedProject(project) &&
+        ![
+          this.projectStatus.CANCELLED,
+          this.projectStatus.ARCHIVED
+        ].includes(this.getProjectStatus(project))
+      ).length;
+
+      projectMetrics.onTrackRate = projects.length
+        ? this.normalizePercent(
+            (projectMetrics.onTrack / projects.length) * 100
+          )
+        : 0;
 
       const governanceMetrics = {
-        total:
-          governance.length,
-
-        active:
-          governance.filter(item =>
-            this.isActiveGovernanceControl(
-              item
-            )
-          ).length
+        total: governance.length,
+        active: governance.filter(item =>
+          this.isActiveGovernanceControl(item)
+        ).length
       };
 
-      const pendingApprovals =
-        approvals.filter(
-          approval =>
-            !this.isClosedItem(
-              approval
-            ) &&
-            this.normalizeStatus(
-              approval.status
-            ) === "pending"
-        ).length;
+      const pendingApprovals = approvals.filter(
+        approval =>
+          !this.isClosedItem(approval) &&
+          this.isPendingApproval(approval)
+      ).length;
 
       const alertMetrics = {
-        total:
-          alerts.filter(
-            item =>
-              !this.isClosedItem(
-                item
-              )
-          ).length,
-
-        critical:
-          alerts.filter(
-            item =>
-              this.isHighSeverity(
-                item
-              ) &&
-              !this.isClosedItem(
-                item
-              )
-          ).length,
-
-        medium:
-          alerts.filter(
-            item =>
-              this.isMediumSeverity(
-                item
-              ) &&
-              !this.isClosedItem(
-                item
-              )
-          ).length
+        total: alerts.filter(item => !this.isClosedItem(item)).length,
+        critical: alerts.filter(
+          item =>
+            this.isHighSeverity(item) &&
+            !this.isClosedItem(item)
+        ).length
       };
 
       const riskMetrics = {
-        total:
-          risks.length,
-
-        critical:
-          risks.filter(
-            item =>
-              this.isHighSeverity(
-                item
-              ) &&
-              !this.isClosedItem(
-                item
-              )
-          ).length
+        total: risks.filter(item => !this.isClosedItem(item)).length,
+        high: risks.filter(
+          item =>
+            this.isHighSeverity(item) &&
+            !this.isClosedItem(item)
+        ).length
       };
 
-      const targetIdeas =
-        Math.max(
-          1,
-          this.toSafeNumber(
-            summary.targetIdeas ??
-            dashboard.targetIdeas,
-            this.config.targetIdeas
-          )
-        );
+      const targetIdeas = Math.max(
+        1,
+        this.toSafeNumber(
+          summary.targetIdeas ?? dashboard.targetIdeas,
+          this.config.targetIdeas
+        )
+      );
 
-      const ideaProgress =
-        this.normalizePercent(
-          (
-            ideaMetrics.total /
-            targetIdeas
-          ) * 100
-        );
+      const ideaProgress = this.normalizePercent(
+        (ideaMetrics.total / targetIdeas) * 100
+      );
 
-      const readiness =
-        this.calculateReadiness({
-          state,
-          dashboard,
-          summary,
-          ideas,
-          projects,
-          governance,
-          projectMetrics
-        });
+      const conversionRate = this.numberOrFallback(
+        pipeline.conversionRate,
+        ideaMetrics.total
+          ? this.normalizePercent(
+              (ideaMetrics.converted / ideaMetrics.total) * 100
+            )
+          : 0
+      );
 
-      const systemHealth =
-        this.calculateSystemHealth({
-          state,
-          dashboard,
-          summary,
-          projects,
-          governance,
-          alerts,
-          risks,
-          projectMetrics,
-          governanceMetrics,
-          alertMetrics,
-          riskMetrics
-        });
+      const decisionQueue =
+        Math.max(ideaMetrics.pending, pendingApprovals) +
+        projectMetrics.blocked +
+        alertMetrics.critical;
 
-      const operationsHealth =
-        this.calculateOperationsHealth({
-          state,
-          dashboard,
-          summary,
-          projects,
-          projectMetrics,
-          alertMetrics
-        });
+      const executionReady =
+        ideaMetrics.approved +
+        projectMetrics.ready;
 
-      const conversionRate =
-        this.numberOrFallback(
-          pipeline.conversionRate,
-          ideaMetrics.total
-            ? this.normalizePercent(
-                (
-                  ideaMetrics.converted /
-                  ideaMetrics.total
-                ) * 100
-              )
-            : 0
-        );
+      const departmentsCount =
+        departments.length ||
+        this.countDistinctDepartments(ideas, projects);
 
       return {
         state,
@@ -1186,391 +761,19 @@
         targetIdeas,
         ideaProgress,
         conversionRate,
-        readiness,
-        systemHealth,
-        operationsHealth,
-
+        decisionQueue,
+        executionReady,
+        departmentsCount,
         roadmapPeriod:
           summary.period ??
           summary.roadmapPeriod ??
-          state.strategyMeta
-            ?.roadmapPeriod ??
-          this.config
-            .defaultRoadmapPeriod
+          state.strategyMeta?.roadmapPeriod ??
+          this.config.defaultRoadmapPeriod
       };
     },
 
-    calculateReadiness(context = {}) {
-      const explicit =
-        this.firstFiniteNumber([
-          context.dashboard
-            ?.readinessScore,
-          context.dashboard
-            ?.maturityScore,
-          context.summary
-            ?.aiReadiness,
-          context.summary
-            ?.readiness,
-          context.summary
-            ?.maturityScore
-        ]);
-
-      if (
-        explicit !== null &&
-        explicit > 0
-      ) {
-        return this.normalizePercent(
-          explicit
-        );
-      }
-
-      const ideaScore =
-        context.ideas?.length
-          ? this.normalizePercent(
-              context.ideas.reduce(
-                (sum, idea) =>
-                  sum +
-                  this.toSafeNumber(
-                    idea.decisionScore ??
-                    idea.readiness ??
-                    0
-                  ),
-                0
-              ) /
-              context.ideas.length
-            )
-          : 0;
-
-      const projectScore =
-        context.projects?.length
-          ? this.normalizePercent(
-              context.projects.reduce(
-                (sum, project) =>
-                  sum +
-                  this.toSafeNumber(
-                    project.readiness ??
-                    project.decisionScore ??
-                    project.progress ??
-                    0
-                  ),
-                0
-              ) /
-              context.projects.length
-            )
-          : 0;
-
-      const governanceScore =
-        context.governance?.length
-          ? this.normalizePercent(
-              (
-                context.governance.filter(
-                  item =>
-                    this.isActiveGovernanceControl(
-                      item
-                    )
-                ).length /
-                context.governance.length
-              ) * 100
-            )
-          : 0;
-
-      const scores =
-        [
-          ideaScore,
-          projectScore,
-          governanceScore
-        ].filter(
-          score => score > 0
-        );
-
-      return scores.length
-        ? Math.round(
-            scores.reduce(
-              (sum, score) =>
-                sum + score,
-              0
-            ) /
-            scores.length
-          )
-        : 0;
-    },
-
-    calculateSystemHealth(
-      context = {}
-    ) {
-      const explicit =
-        this.firstFiniteNumber([
-          context.dashboard
-            ?.platformHealth,
-          context.dashboard
-            ?.portfolioHealth,
-          context.summary
-            ?.systemHealth,
-          context.summary
-            ?.portfolioHealth,
-          context.state
-            ?.health?.overall
-        ]);
-
-      if (
-        explicit !== null &&
-        explicit > 0
-      ) {
-        return this.normalizePercent(
-          explicit
-        );
-      }
-
-      const projectHealth =
-        context.projects?.length
-          ? context.projectMetrics
-              ?.onTrackRate || 0
-          : 100;
-
-      const governanceHealth =
-        context.governance?.length
-          ? this.normalizePercent(
-              (
-                context.governanceMetrics
-                  .active /
-                context.governance.length
-              ) * 100
-            )
-          : 100;
-
-      const alertPenalty =
-        Math.min(
-          45,
-          (
-            context.alertMetrics
-              ?.critical || 0
-          ) * 12 +
-          (
-            context.alertMetrics
-              ?.medium || 0
-          ) * 4
-        );
-
-      const riskPenalty =
-        Math.min(
-          30,
-          (
-            context.riskMetrics
-              ?.critical || 0
-          ) * 7
-        );
-
-      return this.normalizePercent(
-        (
-          projectHealth * 0.55 +
-          governanceHealth * 0.45
-        ) -
-        alertPenalty -
-        riskPenalty
-      );
-    },
-
-    calculateOperationsHealth(
-      context = {}
-    ) {
-      const explicit =
-        this.firstFiniteNumber([
-          context.summary
-            ?.operationsHealth,
-          context.summary
-            ?.operationalHealth,
-          context.state
-            ?.operations?.health,
-          context.state
-            ?.monitoring
-            ?.operationsHealth
-        ]);
-
-      if (
-        explicit !== null &&
-        explicit > 0
-      ) {
-        return this.normalizePercent(
-          explicit
-        );
-      }
-
-      if (
-        !context.projects?.length
-      ) {
-        return context.alertMetrics
-          ?.critical
-          ? Math.max(
-              0,
-              100 -
-              context.alertMetrics
-                .critical *
-                15
-            )
-          : 100;
-      }
-
-      const progress =
-        context.projectMetrics
-          .averageProgress || 0;
-
-      const onTrack =
-        context.projectMetrics
-          .onTrackRate || 0;
-
-      const blockedPenalty =
-        Math.min(
-          35,
-          context.projectMetrics
-            .blocked * 10
-        );
-
-      const alertPenalty =
-        Math.min(
-          35,
-          context.alertMetrics
-            .critical * 12
-        );
-
-      return this.normalizePercent(
-        progress * 0.45 +
-        onTrack * 0.55 -
-        blockedPenalty -
-        alertPenalty
-      );
-    },
-
     /* =======================================================
-       Trend
-    ======================================================= */
-
-    getOperationsTrend(metrics) {
-      const state =
-        metrics.state || {};
-
-      const sources = [
-        metrics.summary
-          ?.operationsTrend,
-        metrics.summary
-          ?.operationalTrend,
-        state.operationsTrend,
-        state.operations?.trend,
-        state.monitoring
-          ?.operationsTrend,
-        state.analytics
-          ?.operationsTrend
-      ];
-
-      for (const source of sources) {
-        const cleaned =
-          this.cleanTrend(source);
-
-        if (cleaned.length) {
-          return cleaned.slice(
-            -this.config
-              .maxTrendPoints
-          );
-        }
-      }
-
-      return this.buildDerivedTrend(
-        metrics
-      );
-    },
-
-    cleanTrend(trend) {
-      if (!Array.isArray(trend)) {
-        return [];
-      }
-
-      return trend
-        .map(item => {
-          if (
-            item &&
-            typeof item === "object"
-          ) {
-            return this.normalizePercent(
-              item.value ??
-              item.health ??
-              item.score ??
-              item.percentage ??
-              0
-            );
-          }
-
-          return this.normalizePercent(
-            item,
-            0
-          );
-        })
-        .filter(
-          value =>
-            Number.isFinite(value)
-        );
-    },
-
-    buildDerivedTrend(metrics) {
-      const current =
-        this.normalizePercent(
-          metrics.operationsHealth,
-          0
-        );
-
-      const progress =
-        metrics.projectMetrics
-          ?.averageProgress || 0;
-
-      const onTrack =
-        metrics.projectMetrics
-          ?.onTrackRate || 0;
-
-      const readiness =
-        metrics.readiness || 0;
-
-      const health =
-        metrics.systemHealth || 0;
-
-      return [
-        Math.max(0, current - 14),
-        Math.max(0, progress - 8),
-        Math.max(0, readiness - 6),
-        Math.max(0, onTrack - 4),
-        Math.max(0, health - 2),
-        current,
-        Math.min(100, current + 2),
-        Math.min(100, current + 1),
-        current
-      ].map(value =>
-        this.normalizePercent(value)
-      );
-    },
-
-    renderMiniChart(values = []) {
-      return values
-        .map(value => {
-          const height =
-            Math.max(
-              12,
-              Math.min(
-                100,
-                this.normalizePercent(
-                  value
-                )
-              )
-            );
-
-          return `
-            <span
-              style="height:${height}%"
-              title="${height}%"
-            ></span>
-          `;
-        })
-        .join("");
-    },
-
-    /* =======================================================
-       Executive Narrative
+       Executive Content
     ======================================================= */
 
     getExecutiveStatus(metrics) {
@@ -1579,85 +782,248 @@
         projectMetrics,
         ideaMetrics,
         pendingApprovals,
-        operationsHealth,
-        systemHealth
+        riskMetrics
       } = metrics;
 
-      if (
-        alertMetrics.critical > 0
-      ) {
+      if (alertMetrics.critical > 0 || riskMetrics.high > 0) {
         return {
           tone: "critical",
-
-          title:
-            "توجد مؤشرات حرجة تحتاج مراجعة تنفيذية",
-
+          eyebrow: "EXECUTIVE ATTENTION",
+          title: "توجد عناصر عالية الأهمية تحتاج تدخلاً تنفيذياً",
           text:
-            `يوجد ${alertMetrics.critical} تنبيه حرج مفتوح. ` +
-            "الأولوية الحالية هي معالجة المخاطر المرتبطة بالعمليات والمشاريع."
+            `يوجد ${alertMetrics.critical} تنبيه حرج و${riskMetrics.high} مخاطر عالية مفتوحة.`,
+          recommendation:
+            "ابدأ بمراجعة العناصر الحرجة ثم حدد مالك الإجراء والموعد المستهدف للإغلاق."
         };
       }
 
-      if (
-        projectMetrics.blocked > 0
-      ) {
+      if (projectMetrics.blocked > 0) {
         return {
           tone: "warning",
-
-          title:
-            "بعض المشاريع تحتاج تدخلاً لإعادة المسار",
-
+          eyebrow: "DELIVERY ATTENTION",
+          title: "بعض المشاريع تحتاج دعماً للعودة إلى المسار",
           text:
-            `يوجد ${projectMetrics.blocked} مشروع متوقف مؤقتاً. ` +
-            `متوسط التقدم الحالي ${projectMetrics.averageProgress}%.`
+            `يوجد ${projectMetrics.blocked} مشروع متوقف، ومتوسط إنجاز المحفظة ${projectMetrics.averageProgress}%.`,
+          recommendation:
+            "راجع أسباب التعثر والاعتماد والموارد المطلوبة قبل بدء مشاريع إضافية."
         };
       }
 
-      if (
-        pendingApprovals > 0 ||
-        ideaMetrics.pending > 0
-      ) {
+      if (pendingApprovals > 0 || ideaMetrics.pending > 0) {
         return {
           tone: "attention",
-
-          title:
-            "مسار الاعتماد يحتاج قراراً إدارياً",
-
+          eyebrow: "DECISION REQUIRED",
+          title: "يوجد مسار اعتماد يحتاج قراراً",
           text:
             `توجد ${Math.max(
               pendingApprovals,
               ideaMetrics.pending
-            )} فكرة بانتظار الاعتماد، ` +
-            `و${ideaMetrics.converted} فكرة تحولت إلى مشاريع تنفيذية.`
+            )} عناصر بانتظار الاعتماد، و${ideaMetrics.approved} أفكار جاهزة للخطوة التالية.`,
+          recommendation:
+            "ابدأ بالفرص الأعلى أولوية، واعتمد الجاهز منها أو أعده لاستكمال المتطلبات."
         };
       }
 
-      if (
-        operationsHealth >= 80 &&
-        systemHealth >= 80
-      ) {
+      if (projectMetrics.active > 0) {
         return {
           tone: "stable",
-
-          title:
-            "حالة المنصة مستقرة وجاهزة للتوسع المنضبط",
-
+          eyebrow: "EXECUTIVE STATUS",
+          title: "المحفظة مستقرة والتنفيذ يسير بصورة منظمة",
           text:
-            `صحة الأنظمة ${systemHealth}% وحالة العمليات ${operationsHealth}%. ` +
-            "يمكن التركيز على تسريع المشاريع الأعلى جاهزية."
+            `يوجد ${projectMetrics.active} مشروع نشط، و${projectMetrics.onTrack} مشاريع على المسار.`,
+          recommendation:
+            "استمر في متابعة التقدم الأسبوعي وركز على المشاريع الأقرب للتجربة أو التشغيل."
         };
       }
 
       return {
         tone: "neutral",
-
-        title:
-          "المحفظة في مرحلة بناء الجاهزية التنفيذية",
-
+        eyebrow: "EXECUTIVE STATUS",
+        title: "المنصة جاهزة للانتقال من الفرص إلى التنفيذ",
         text:
-          `تم تسجيل ${ideaMetrics.total} فكرة و${projectMetrics.total} مشروع. ` +
-          "الأولوية هي رفع الجاهزية وتحسين الربط بين الفرص والتنفيذ."
+          `تم تسجيل ${ideaMetrics.total} فكرة، منها ${ideaMetrics.approved} أفكار معتمدة و${ideaMetrics.converted} محولة إلى مشاريع.`,
+        recommendation:
+          "ابدأ بتحويل أفضل الأفكار المعتمدة إلى مشاريع وحدد المالك والمدة ومؤشر النجاح."
       };
+    },
+
+    buildPriorities(metrics) {
+      const priorities = [];
+
+      if (metrics.alertMetrics.critical > 0) {
+        priorities.push({
+          icon: "🚨",
+          title: "مراجعة التنبيهات الحرجة",
+          text: `${metrics.alertMetrics.critical} تنبيه يحتاج معالجة`,
+          tone: "critical",
+          route: "settings"
+        });
+      }
+
+      if (metrics.projectMetrics.blocked > 0) {
+        priorities.push({
+          icon: "⛔",
+          title: "إعادة المشاريع المتوقفة للمسار",
+          text: `${metrics.projectMetrics.blocked} مشروع متوقف مؤقتاً`,
+          tone: "warning",
+          route: "projects"
+        });
+      }
+
+      const approvalCount = Math.max(
+        metrics.pendingApprovals,
+        metrics.ideaMetrics.pending
+      );
+
+      if (approvalCount > 0) {
+        priorities.push({
+          icon: "✅",
+          title: "حسم الاعتمادات المعلقة",
+          text: `${approvalCount} عناصر بانتظار القرار`,
+          tone: "attention",
+          route: "ideas"
+        });
+      }
+
+      if (metrics.ideaMetrics.approved > 0) {
+        priorities.push({
+          icon: "🚀",
+          title: "تحويل الأفكار الجاهزة",
+          text: `${metrics.ideaMetrics.approved} أفكار معتمدة قابلة للتحويل`,
+          tone: "success",
+          route: "ideas"
+        });
+      }
+
+      if (!priorities.length) {
+        priorities.push(
+          {
+            icon: "💡",
+            title: "إضافة فرص جديدة",
+            text: "وسّع محفظة الأفكار المتخصصة",
+            tone: "neutral",
+            route: "ideas"
+          },
+          {
+            icon: "📁",
+            title: "بدء مشروع تنفيذي",
+            text: "حوّل أفضل فكرة معتمدة إلى مشروع",
+            tone: "neutral",
+            route: "projects"
+          }
+        );
+      }
+
+      return priorities.slice(0, 4);
+    },
+
+    getRecentActivities(metrics) {
+      const state = metrics.state || {};
+      const rawActivities = [];
+
+      [
+        state.activityLog,
+        state.activities,
+        state.auditLog,
+        state.history,
+        state.metadata?.activityLog,
+        state.automation?.executionHistory
+      ].forEach(source => {
+        if (Array.isArray(source)) rawActivities.push(...source);
+      });
+
+      const normalized = rawActivities
+        .map((item, index) => {
+          if (typeof item === "string") {
+            return {
+              id: `activity-${index}`,
+              title: item,
+              time: "",
+              icon: "•"
+            };
+          }
+
+          if (!item || typeof item !== "object") return null;
+
+          return {
+            id: item.id || `activity-${index}`,
+            title:
+              item.title ||
+              item.message ||
+              item.action ||
+              item.type ||
+              "تم تحديث بيانات المنصة",
+            time: this.formatRelativeTime(
+              item.createdAt ||
+              item.updatedAt ||
+              item.timestamp ||
+              item.date
+            ),
+            icon: this.getActivityIcon(item)
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => {
+          const aTime = new Date(
+            rawActivities.find(item => item?.id === a.id)?.createdAt || 0
+          ).getTime();
+          const bTime = new Date(
+            rawActivities.find(item => item?.id === b.id)?.createdAt || 0
+          ).getTime();
+          return bTime - aTime;
+        })
+        .slice(0, this.config.maxActivities);
+
+      if (normalized.length) return normalized;
+
+      const fallback = [];
+
+      if (metrics.ideaMetrics.total > 0) {
+        fallback.push({
+          icon: "💡",
+          title: `تم تسجيل ${metrics.ideaMetrics.total} فكرة في المحفظة`,
+          time: "البيانات الحالية"
+        });
+      }
+
+      if (metrics.ideaMetrics.converted > 0) {
+        fallback.push({
+          icon: "🔄",
+          title: `تم تحويل ${metrics.ideaMetrics.converted} فكرة إلى مشروع`,
+          time: "البيانات الحالية"
+        });
+      }
+
+      if (metrics.projectMetrics.active > 0) {
+        fallback.push({
+          icon: "📁",
+          title: `${metrics.projectMetrics.active} مشروع قيد التنفيذ`,
+          time: "البيانات الحالية"
+        });
+      }
+
+      if (!fallback.length) {
+        fallback.push({
+          icon: "✨",
+          title: "لا توجد أنشطة مسجلة حتى الآن",
+          time: "ابدأ بإضافة فكرة جديدة"
+        });
+      }
+
+      return fallback.slice(0, this.config.maxActivities);
+    },
+
+    getActivityIcon(item = {}) {
+      const text = this.normalizeStatus(
+        `${item.type || ""} ${item.action || ""} ${item.title || ""}`
+      );
+
+      if (text.includes("idea") || text.includes("فكرة")) return "💡";
+      if (text.includes("project") || text.includes("مشروع")) return "📁";
+      if (text.includes("approval") || text.includes("اعتماد")) return "✅";
+      if (text.includes("risk") || text.includes("خطر")) return "⚠️";
+      if (text.includes("report") || text.includes("تقرير")) return "📊";
+      return "•";
     },
 
     /* =======================================================
@@ -1665,12 +1031,7 @@
     ======================================================= */
 
     render(container) {
-      if (
-        !container ||
-        this._isRendering
-      ) {
-        return;
-      }
+      if (!container || this._isRendering) return;
 
       this._isRendering = true;
       this._container = container;
@@ -1678,56 +1039,19 @@
       try {
         this.injectStyles();
 
-        const metrics =
-          this.calculateMetrics();
+        const metrics = this.calculateMetrics();
+        const status = this.getExecutiveStatus(metrics);
+        const priorities = this.buildPriorities(metrics);
+        const activities = this.getRecentActivities(metrics);
 
-        const {
-          ideaMetrics,
-          projectMetrics,
-          governanceMetrics,
-          alertMetrics,
-          pendingApprovals,
-          departments,
-          targetIdeas,
-          ideaProgress,
-          conversionRate,
-          readiness,
-          systemHealth,
-          operationsHealth,
-          roadmapPeriod
-        } = metrics;
-
-        const trend =
-          this.getOperationsTrend(
-            metrics
-          );
-
-        const executiveStatus =
-          this.getExecutiveStatus(
-            metrics
-          );
-
-        const departmentsCount =
-          departments.length ||
-          this.countDistinctDepartments(
-            metrics.ideas,
-            metrics.projects
-          );
-
-        const executiveAlertValue =
-          alertMetrics.critical > 0
-            ? `${alertMetrics.critical} حرجة`
-            : "0 حرجة";
-
-        const executiveAlertNote =
-          alertMetrics.critical > 0
-            ? "تحتاج مراجعة تنفيذية"
-            : alertMetrics.total > 0
-              ? `${alertMetrics.total} تنبيهات مفتوحة`
-              : "جميع المؤشرات مستقرة";
+        const approvalCount = Math.max(
+          metrics.ideaMetrics.pending,
+          metrics.pendingApprovals
+        );
 
         container.innerHTML = `
-          <section class="module-page v3-dashboard-page">
+          <section class="module-page v52-dashboard-page">
+
             <section class="v3-hero-card">
               <div class="v3-hero-content">
                 <span class="v3-hero-badge">
@@ -1740,338 +1064,346 @@
                 </h1>
 
                 <p>
-                  مركز واحد يربط جودة التسجيلات، استخدام الصلاحيات،
-                  أداء البوابات، الأمن الرقمي، المؤشرات، والتنبيهات الذكية.
+                  مركز واحد يربط الأفكار والمشاريع والقرارات والحوكمة
+                  ضمن مسار تنفيذي واضح وقابل للمتابعة.
                 </p>
               </div>
 
               <div class="v3-ai-visual">
-                <div class="v3-ai-orb">
-                  AI
-                </div>
+                <div class="v3-ai-orb">AI</div>
               </div>
 
               <div class="v3-hero-stats">
                 <div>
-                  <strong>
-                    ${ideaMetrics.total}/${targetIdeas}
-                    💡
-                  </strong>
-
-                  <span>
-                    فكرة متخصصة
-                  </span>
+                  <strong>${metrics.ideaMetrics.total}/${metrics.targetIdeas} 💡</strong>
+                  <span>فكرة متخصصة</span>
                 </div>
 
                 <div>
-                  <strong>
-                    ${projectMetrics.total}
-                    📁
-                  </strong>
-
-                  <span>
-                    مشروع تنفيذي
-                  </span>
+                  <strong>${metrics.projectMetrics.total} 📁</strong>
+                  <span>مشروع تنفيذي</span>
                 </div>
 
                 <div>
-                  <strong>
-                    ${departmentsCount}
-                    🛂
-                  </strong>
-
-                  <span>
-                    محافظ تشغيلية
-                  </span>
+                  <strong>${metrics.departmentsCount} 🛂</strong>
+                  <span>محافظ تشغيلية</span>
                 </div>
 
                 <div>
-                  <strong>
-                    ${this.escapeHtml(
-                      roadmapPeriod
-                    )}
-                    🗓️
-                  </strong>
-
-                  <span>
-                    خارطة زمنية
-                  </span>
+                  <strong>${this.escapeHtml(metrics.roadmapPeriod)} 🗓️</strong>
+                  <span>خارطة زمنية</span>
                 </div>
               </div>
             </section>
 
-            <section class="v3-kpi-grid">
-              ${this.kpiCard(
-                "👁️",
-                "الأفكار الحالية",
-                ideaMetrics.total,
-                `${ideaProgress}% من هدف ${targetIdeas} فكرة`,
-                "blue"
-              )}
-
-              ${this.kpiCard(
-                "🚀",
-                "أولوية عالية",
-                ideaMetrics.highPriority,
-                `${Math.max(
-                  ideaMetrics.pending,
-                  pendingApprovals
-                )} بانتظار الاعتماد`,
-                "green"
-              )}
-
-              ${this.kpiCard(
-                "🛂",
-                "جاهزية الذكاء الاصطناعي",
-                `${readiness}%`,
-                "AI Readiness",
-                "purple"
-              )}
-
-              ${this.kpiCard(
-                "📊",
-                "صحة الأنظمة",
-                `${systemHealth}%`,
-                "System Health",
-                "green"
-              )}
-            </section>
-
-            <section class="v3-roi-card">
+            <section class="v52-section-head">
               <div>
-                <h3>
-                  🟢 حالة العمليات البيومترية
-                </h3>
+                <span>EXECUTIVE SNAPSHOT</span>
+                <h2>نظرة تنفيذية سريعة</h2>
+              </div>
+              <p>أهم ما يحتاجه المسؤول لاتخاذ القرار والمتابعة.</p>
+            </section>
 
-                <strong>
-                  ${operationsHealth}%
-                </strong>
+            <section class="v52-kpi-grid">
+              ${this.executiveCard({
+                icon: "💡",
+                label: "الأفكار الحالية",
+                value: metrics.ideaMetrics.total,
+                note: `${metrics.ideaProgress}% من هدف ${metrics.targetIdeas} فكرة`,
+                meta: `${metrics.ideaMetrics.highPriority} عالية الأولوية`,
+                tone: "blue",
+                route: "ideas"
+              })}
+
+              ${this.executiveCard({
+                icon: "📁",
+                label: "المشاريع النشطة",
+                value: metrics.projectMetrics.active,
+                note: `${metrics.projectMetrics.onTrack} على المسار`,
+                meta: `${metrics.projectMetrics.blocked} متوقفة`,
+                tone: "green",
+                route: "projects"
+              })}
+
+              ${this.executiveCard({
+                icon: "✅",
+                label: "بانتظار القرار",
+                value: approvalCount,
+                note: `${metrics.ideaMetrics.approved} أفكار معتمدة`,
+                meta: `${metrics.executionReady} جاهزة للتنفيذ`,
+                tone: "amber",
+                route: "ideas"
+              })}
+
+              ${this.executiveCard({
+                icon: "⚠️",
+                label: "تحتاج متابعة",
+                value:
+                  metrics.projectMetrics.blocked +
+                  metrics.alertMetrics.critical,
+                note: `${metrics.projectMetrics.blocked} مشاريع متوقفة`,
+                meta: `${metrics.alertMetrics.critical} تنبيهات حرجة`,
+                tone: "red",
+                route: "projects"
+              })}
+            </section>
+
+            <section class="v52-portfolio-card">
+              <div class="v52-portfolio-main">
+                <div class="v52-card-title">
+                  <span class="v52-status-dot ${status.tone}"></span>
+                  <div>
+                    <small>PORTFOLIO DELIVERY</small>
+                    <h3>تقدم المحفظة التنفيذية</h3>
+                  </div>
+                </div>
+
+                <div class="v52-progress-row">
+                  <strong>${metrics.projectMetrics.averageProgress}%</strong>
+
+                  <div class="v52-progress-track" aria-label="متوسط تقدم المشاريع">
+                    <span style="width:${metrics.projectMetrics.averageProgress}%"></span>
+                  </div>
+                </div>
 
                 <p>
-                  ${projectMetrics.active}
-                  مشاريع نشطة
-                  ·
-                  ${projectMetrics.onTrackRate}%
-                  على المسار
+                  متوسط إنجاز المشاريع الحالية مع متابعة المشاريع النشطة
+                  والمتوقفة والمكتملة.
                 </p>
               </div>
 
-              <div
-                class="v3-mini-chart"
-                aria-label="مؤشر حالة العمليات البيومترية"
-              >
-                ${this.renderMiniChart(
-                  trend
-                )}
-              </div>
-            </section>
-
-            <section class="v3-summary-grid">
-              <article class="v3-small-panel">
-                <h3>
-                  🛡️ الحوكمة
-                </h3>
-
-                <strong>
-                  ${governanceMetrics.active}
-                </strong>
-
-                <p>
-                  من أصل
-                  ${governanceMetrics.total}
-                  ضابط رقابي
-                </p>
-              </article>
-
-              <article class="v3-small-panel">
-                <h3>
-                  🔔 التنبيهات التنفيذية
-                </h3>
-
-                <strong>
-                  ${executiveAlertValue}
-                </strong>
-
-                <p>
-                  ${executiveAlertNote}
-                </p>
-              </article>
-            </section>
-
-            <section class="v3-summary-grid">
-              <article class="v3-small-panel">
-                <h3>
-                  ⏳ مسار الاعتماد
-                </h3>
-
-                <strong>
-                  ${Math.max(
-                    ideaMetrics.pending,
-                    pendingApprovals
-                  )}
-                </strong>
-
-                <p>
-                  ${ideaMetrics.approved}
-                  معتمدة
-                  ·
-                  ${ideaMetrics.converted}
-                  تحولت إلى مشاريع
-                </p>
-              </article>
-
-              <article class="v3-small-panel">
-                <h3>
-                  📁 تسليم المشاريع
-                </h3>
-
-                <strong>
-                  ${projectMetrics.averageProgress}%
-                </strong>
-
-                <p>
-                  ${projectMetrics.completed}
-                  مكتملة
-                  ·
-                  ${projectMetrics.blocked}
-                  متوقفة
-                </p>
-              </article>
-            </section>
-
-            <section class="v3-summary-grid">
-              <article class="v3-small-panel">
-                <h3>
-                  🔄 معدل التحويل
-                </h3>
-
-                <strong>
-                  ${conversionRate}%
-                </strong>
-
-                <p>
-                  من فكرة إلى مشروع تنفيذي
-                </p>
-              </article>
-
-              <article class="v3-small-panel">
-                <h3>
-                  🧪 مراحل التشغيل
-                </h3>
-
-                <strong>
-                  ${projectMetrics.pilot +
-                  projectMetrics.production}
-                </strong>
-
-                <p>
-                  ${projectMetrics.pilot}
-                  تجريبية
-                  ·
-                  ${projectMetrics.production}
-                  تشغيل فعلي
-                </p>
-              </article>
-            </section>
-
-            <section class="v3-executive-status ${executiveStatus.tone}">
-              <div>
-                <span>
-                  Executive Status
-                </span>
-
-                <h3>
-                  ${this.escapeHtml(
-                    executiveStatus.title
-                  )}
-                </h3>
-
-                <p>
-                  ${this.escapeHtml(
-                    executiveStatus.text
-                  )}
-                </p>
-              </div>
-
-              <div class="v3-executive-status-metrics">
+              <div class="v52-delivery-metrics">
                 <div>
-                  <small>
-                    الأفكار المحولة
-                  </small>
-
-                  <strong>
-                    ${ideaMetrics.converted}
-                  </strong>
+                  <span>على المسار</span>
+                  <strong>${metrics.projectMetrics.onTrack}</strong>
                 </div>
 
                 <div>
-                  <small>
-                    المشاريع النشطة
-                  </small>
-
-                  <strong>
-                    ${projectMetrics.active}
-                  </strong>
+                  <span>في التجربة</span>
+                  <strong>${metrics.projectMetrics.pilot}</strong>
                 </div>
 
                 <div>
-                  <small>
-                    المخاطر العالية
-                  </small>
+                  <span>تشغيل فعلي</span>
+                  <strong>${metrics.projectMetrics.production}</strong>
+                </div>
 
-                  <strong>
-                    ${projectMetrics.highRisk}
-                  </strong>
+                <div>
+                  <span>مكتملة</span>
+                  <strong>${metrics.projectMetrics.completed}</strong>
                 </div>
               </div>
             </section>
+
+            <section class="v52-two-column">
+              <article class="v52-panel">
+                <div class="v52-panel-head">
+                  <div>
+                    <span>TODAY'S PRIORITIES</span>
+                    <h3>الأولويات الحالية</h3>
+                  </div>
+                  <span class="v52-count-pill">${priorities.length}</span>
+                </div>
+
+                <div class="v52-priority-list">
+                  ${priorities
+                    .map((item, index) =>
+                      this.priorityItem(item, index + 1)
+                    )
+                    .join("")}
+                </div>
+              </article>
+
+              <article class="v52-panel">
+                <div class="v52-panel-head">
+                  <div>
+                    <span>RECENT ACTIVITY</span>
+                    <h3>آخر تحديثات المنصة</h3>
+                  </div>
+                  <span class="v52-live-pill">مباشر</span>
+                </div>
+
+                <div class="v52-activity-list">
+                  ${activities
+                    .map(item => this.activityItem(item))
+                    .join("")}
+                </div>
+              </article>
+            </section>
+
+            <section class="v52-support-grid">
+              ${this.supportCard({
+                icon: "🛡️",
+                label: "الضوابط المفعلة",
+                value: metrics.governanceMetrics.active,
+                note: `من أصل ${metrics.governanceMetrics.total} ضابط رقابي`,
+                route: "governance"
+              })}
+
+              ${this.supportCard({
+                icon: "🔄",
+                label: "الأفكار المحولة",
+                value: metrics.ideaMetrics.converted,
+                note: `معدل التحويل ${metrics.conversionRate}%`,
+                route: "ideas"
+              })}
+
+              ${this.supportCard({
+                icon: "🚀",
+                label: "جاهزة للبدء",
+                value: metrics.executionReady,
+                note: "أفكار معتمدة ومشاريع جاهزة",
+                route: "projects"
+              })}
+            </section>
+
+            <section class="v52-executive-status ${status.tone}">
+              <div class="v52-status-copy">
+                <span>${this.escapeHtml(status.eyebrow)}</span>
+                <h3>${this.escapeHtml(status.title)}</h3>
+                <p>${this.escapeHtml(status.text)}</p>
+              </div>
+
+              <div class="v52-recommendation">
+                <small>التوصية التنفيذية</small>
+                <p>${this.escapeHtml(status.recommendation)}</p>
+
+                <div class="v52-status-actions">
+                  <button type="button" data-aiw-route="ideas">
+                    فتح الأفكار
+                  </button>
+
+                  <button type="button" data-aiw-route="projects">
+                    فتح المشاريع
+                  </button>
+
+                  <button type="button" data-aiw-route="reports">
+                    التقرير التنفيذي
+                  </button>
+                </div>
+              </div>
+            </section>
+
           </section>
         `;
 
+        this.bindDashboardActions(container);
         this.bindAutomaticSync();
       } finally {
         this._isRendering = false;
       }
     },
 
-    kpiCard(
+    executiveCard({
       icon,
       label,
       value,
       note,
-      tone
-    ) {
+      meta,
+      tone,
+      route
+    }) {
       return `
-        <article class="v3-kpi-card">
-          <div class="v3-kpi-icon ${this.escapeHtml(
-            tone
-          )}">
-            ${this.escapeHtml(
-              icon
-            )}
+        <article
+          class="v52-kpi-card ${this.escapeHtml(tone)}"
+          data-aiw-route="${this.escapeHtml(route)}"
+          role="button"
+          tabindex="0"
+        >
+          <div class="v52-kpi-top">
+            <div class="v52-kpi-icon">${this.escapeHtml(icon)}</div>
+            <span class="v52-kpi-arrow">↗</span>
           </div>
 
-          <div class="v3-kpi-text">
-            <h3>
-              ${this.escapeHtml(
-                label
-              )}
-            </h3>
+          <div class="v52-kpi-body">
+            <h3>${this.escapeHtml(label)}</h3>
+            <strong>${this.escapeHtml(value)}</strong>
+            <p>${this.escapeHtml(note)}</p>
+          </div>
 
-            <strong>
-              ${this.escapeHtml(
-                value
-              )}
-            </strong>
-
-            <p>
-              ${this.escapeHtml(
-                note
-              )}
-            </p>
+          <div class="v52-kpi-meta">
+            ${this.escapeHtml(meta)}
           </div>
         </article>
       `;
+    },
+
+    supportCard({ icon, label, value, note, route }) {
+      return `
+        <article
+          class="v52-support-card"
+          data-aiw-route="${this.escapeHtml(route)}"
+          role="button"
+          tabindex="0"
+        >
+          <div class="v52-support-icon">${this.escapeHtml(icon)}</div>
+          <div>
+            <span>${this.escapeHtml(label)}</span>
+            <strong>${this.escapeHtml(value)}</strong>
+            <p>${this.escapeHtml(note)}</p>
+          </div>
+        </article>
+      `;
+    },
+
+    priorityItem(item, number) {
+      return `
+        <button
+          type="button"
+          class="v52-priority-item ${this.escapeHtml(item.tone)}"
+          data-aiw-route="${this.escapeHtml(item.route)}"
+        >
+          <span class="v52-priority-number">${number}</span>
+          <span class="v52-priority-icon">${this.escapeHtml(item.icon)}</span>
+          <span class="v52-priority-copy">
+            <strong>${this.escapeHtml(item.title)}</strong>
+            <small>${this.escapeHtml(item.text)}</small>
+          </span>
+          <span class="v52-row-arrow">‹</span>
+        </button>
+      `;
+    },
+
+    activityItem(item) {
+      return `
+        <div class="v52-activity-item">
+          <span class="v52-activity-icon">${this.escapeHtml(item.icon)}</span>
+          <div>
+            <strong>${this.escapeHtml(item.title)}</strong>
+            <small>${this.escapeHtml(item.time || "الآن")}</small>
+          </div>
+        </div>
+      `;
+    },
+
+    bindDashboardActions(container) {
+      container.querySelectorAll("[data-aiw-route]").forEach(element => {
+        const route = element.getAttribute("data-aiw-route");
+
+        const openRoute = () => {
+          if (!route) return;
+
+          if (typeof window.AIW?.App?.go === "function") {
+            window.AIW.App.go(route);
+            return;
+          }
+
+          if (typeof window.AIW?.Router?.navigate === "function") {
+            window.AIW.Router.navigate(route);
+          }
+        };
+
+        element.addEventListener("click", openRoute);
+
+        if (element.getAttribute("role") === "button") {
+          element.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              openRoute();
+            }
+          });
+        }
+      });
     },
 
     /* =======================================================
@@ -2079,38 +1411,19 @@
     ======================================================= */
 
     scheduleRefresh() {
-      window.clearTimeout(
-        this._refreshTimer
-      );
+      window.clearTimeout(this._refreshTimer);
 
-      this._refreshTimer =
-        window.setTimeout(
-          () => {
-            if (
-              !this._container
-                ?.isConnected
-            ) {
-              return;
-            }
-
-            this.render(
-              this._container
-            );
-          },
-          this.config
-            .refreshDelay
-        );
+      this._refreshTimer = window.setTimeout(() => {
+        if (!this._container?.isConnected) return;
+        this.render(this._container);
+      }, this.config.refreshDelay);
     },
 
     bindAutomaticSync() {
-      if (this._syncBound) {
-        return;
-      }
+      if (this._syncBound) return;
 
       this._syncBound = true;
-
-      const refresh =
-        () => this.scheduleRefresh();
+      const refresh = () => this.scheduleRefresh();
 
       [
         "aiw:dataChanged",
@@ -2138,52 +1451,32 @@
         "aiw:approvalCreated",
         "aiw:approvalResolved"
       ].forEach(eventName => {
-        window.addEventListener(
-          eventName,
-          refresh
-        );
+        window.addEventListener(eventName, refresh);
       });
 
-      const store =
-        this.getStore();
+      const store = this.getStore();
 
-      if (
-        typeof store?.subscribe ===
-        "function"
-      ) {
-        this._unsubscribeStore =
-          store.subscribe(
-            change => {
-              const type =
-                change?.type ||
-                "";
+      if (typeof store?.subscribe === "function") {
+        this._unsubscribeStore = store.subscribe(change => {
+          const type = change?.type || "";
 
-              if (
-                type === "persist" ||
-                type ===
-                  "settingsPersisted" ||
-                type ===
-                  "aiw:metadataChanged"
-              ) {
-                return;
-              }
+          if (
+            type === "persist" ||
+            type === "settingsPersisted" ||
+            type === "aiw:metadataChanged"
+          ) {
+            return;
+          }
 
-              refresh();
-            }
-          );
+          refresh();
+        });
       }
     },
 
     destroy() {
-      window.clearTimeout(
-        this._refreshTimer
-      );
+      window.clearTimeout(this._refreshTimer);
 
-      if (
-        typeof this
-          ._unsubscribeStore ===
-        "function"
-      ) {
+      if (typeof this._unsubscribeStore === "function") {
         this._unsubscribeStore();
       }
 
@@ -2197,157 +1490,622 @@
     ======================================================= */
 
     injectStyles() {
-      if (
-        document.getElementById(
-          this.config.styleId
-        )
-      ) {
-        return;
-      }
+      if (document.getElementById(this.config.styleId)) return;
 
-      const style =
-        document.createElement(
-          "style"
-        );
-
-      style.id =
-        this.config.styleId;
+      const style = document.createElement("style");
+      style.id = this.config.styleId;
 
       style.textContent = `
-        .v3-executive-status {
+        .v52-dashboard-page {
           display: grid;
-          grid-template-columns:
-            minmax(0,1.6fr)
-            minmax(240px,.8fr);
-          gap: 22px;
-          align-items: center;
-          margin-top: 18px;
-          padding: 22px;
-          border:
-            1px solid
-            rgba(15,23,42,.08);
+          gap: 20px;
+        }
+
+        .v52-section-head {
+          display: flex;
+          align-items: end;
+          justify-content: space-between;
+          gap: 16px;
+          margin-top: 2px;
+        }
+
+        .v52-section-head span,
+        .v52-panel-head span,
+        .v52-card-title small,
+        .v52-status-copy > span {
+          display: block;
+          color: #7a8699;
+          font-size: 10px;
+          font-weight: 900;
+          letter-spacing: .13em;
+        }
+
+        .v52-section-head h2,
+        .v52-panel-head h3,
+        .v52-card-title h3 {
+          margin: 4px 0 0;
+          color: #152238;
+        }
+
+        .v52-section-head h2 {
+          font-size: 22px;
+        }
+
+        .v52-section-head p {
+          margin: 0;
+          color: #7a8699;
+          font-size: 13px;
+        }
+
+        .v52-kpi-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 14px;
+        }
+
+        .v52-kpi-card {
+          position: relative;
+          min-width: 0;
+          padding: 18px;
+          overflow: hidden;
+          border: 1px solid rgba(15, 23, 42, .07);
           border-radius: 24px;
           background: #fff;
-          box-shadow:
-            0 14px 34px
-            rgba(15,23,42,.06);
+          box-shadow: 0 14px 34px rgba(15, 23, 42, .055);
+          cursor: pointer;
+          transition: transform .18s ease, box-shadow .18s ease;
         }
 
-        .v3-executive-status
-        > div:first-child > span {
-          display: block;
-          margin-bottom: 7px;
-          color: #667085;
-          font-size: 11px;
-          font-weight: 800;
-          letter-spacing: .08em;
-          text-transform: uppercase;
+        .v52-kpi-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 18px 42px rgba(15, 23, 42, .09);
         }
 
-        .v3-executive-status h3 {
-          margin: 0;
-          color: #101828;
-          font-size: 20px;
-          line-height: 1.5;
+        .v52-kpi-card::after {
+          content: "";
+          position: absolute;
+          inset-inline-end: -38px;
+          top: -42px;
+          width: 120px;
+          height: 120px;
+          border-radius: 50%;
+          opacity: .45;
         }
 
-        .v3-executive-status p {
-          margin: 8px 0 0;
-          color: #667085;
-          font-size: 14px;
-          line-height: 1.8;
+        .v52-kpi-card.blue::after { background: #dce8ff; }
+        .v52-kpi-card.green::after { background: #dff7e9; }
+        .v52-kpi-card.amber::after { background: #fff0cc; }
+        .v52-kpi-card.red::after { background: #ffe1df; }
+
+        .v52-kpi-top {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
         }
 
-        .v3-executive-status.stable {
-          border-color:
-            rgba(8,125,62,.2);
-          background:
-            linear-gradient(
-              135deg,
-              rgba(226,247,234,.8),
-              #fff
-            );
-        }
-
-        .v3-executive-status.critical {
-          border-color:
-            rgba(180,35,24,.2);
-          background:
-            linear-gradient(
-              135deg,
-              rgba(254,236,235,.85),
-              #fff
-            );
-        }
-
-        .v3-executive-status.warning,
-        .v3-executive-status.attention {
-          border-color:
-            rgba(183,92,0,.2);
-          background:
-            linear-gradient(
-              135deg,
-              rgba(255,243,217,.85),
-              #fff
-            );
-        }
-
-        .v3-executive-status-metrics {
+        .v52-kpi-icon {
           display: grid;
-          grid-template-columns:
-            repeat(3,minmax(0,1fr));
+          width: 48px;
+          height: 48px;
+          place-items: center;
+          border-radius: 16px;
+          background: rgba(248, 250, 252, .92);
+          font-size: 24px;
+        }
+
+        .v52-kpi-arrow {
+          color: #8290a5;
+          font-size: 17px;
+          font-weight: 800;
+        }
+
+        .v52-kpi-body {
+          position: relative;
+          z-index: 1;
+          margin-top: 22px;
+        }
+
+        .v52-kpi-body h3 {
+          margin: 0;
+          color: #647089;
+          font-size: 15px;
+          line-height: 1.45;
+        }
+
+        .v52-kpi-body strong {
+          display: block;
+          margin-top: 7px;
+          color: #0d172a;
+          font-size: clamp(34px, 4vw, 48px);
+          line-height: 1;
+        }
+
+        .v52-kpi-body p {
+          margin: 10px 0 0;
+          color: #1aa55b;
+          font-size: 13px;
+          font-weight: 800;
+          line-height: 1.55;
+        }
+
+        .v52-kpi-meta {
+          position: relative;
+          z-index: 1;
+          margin-top: 15px;
+          padding-top: 12px;
+          border-top: 1px solid rgba(15, 23, 42, .06);
+          color: #7a8699;
+          font-size: 11px;
+          font-weight: 700;
+        }
+
+        .v52-portfolio-card {
+          display: grid;
+          grid-template-columns: minmax(0, 1.3fr) minmax(280px, .7fr);
+          gap: 20px;
+          padding: 22px;
+          border: 1px solid rgba(15, 23, 42, .07);
+          border-radius: 28px;
+          background:
+            radial-gradient(circle at 15% 10%, rgba(225, 245, 235, .8), transparent 40%),
+            #fff;
+          box-shadow: 0 16px 40px rgba(15, 23, 42, .06);
+        }
+
+        .v52-card-title {
+          display: flex;
+          align-items: center;
+          gap: 11px;
+        }
+
+        .v52-status-dot {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          box-shadow: 0 0 0 6px rgba(26, 165, 91, .1);
+          background: #20bd66;
+        }
+
+        .v52-status-dot.critical {
+          background: #e5484d;
+          box-shadow: 0 0 0 6px rgba(229, 72, 77, .1);
+        }
+
+        .v52-status-dot.warning,
+        .v52-status-dot.attention {
+          background: #f59e0b;
+          box-shadow: 0 0 0 6px rgba(245, 158, 11, .12);
+        }
+
+        .v52-progress-row {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 16px;
+          align-items: center;
+          margin-top: 24px;
+        }
+
+        .v52-progress-row > strong {
+          color: #0d172a;
+          font-size: 42px;
+          line-height: 1;
+        }
+
+        .v52-progress-track {
+          height: 12px;
+          overflow: hidden;
+          border-radius: 999px;
+          background: #edf1f5;
+        }
+
+        .v52-progress-track span {
+          display: block;
+          height: 100%;
+          border-radius: inherit;
+          background: linear-gradient(90deg, #10a957, #34cf76);
+        }
+
+        .v52-portfolio-main > p {
+          margin: 15px 0 0;
+          color: #748096;
+          font-size: 13px;
+          line-height: 1.75;
+        }
+
+        .v52-delivery-metrics {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 10px;
         }
 
-        .v3-executive-status-metrics
-        > div {
-          min-width: 0;
-          padding: 13px 10px;
-          border:
-            1px solid
-            rgba(15,23,42,.05);
-          border-radius: 16px;
+        .v52-delivery-metrics > div {
+          padding: 14px;
+          border: 1px solid rgba(15, 23, 42, .06);
+          border-radius: 18px;
+          background: rgba(248, 250, 252, .88);
           text-align: center;
-          background:
-            rgba(248,250,252,.92);
         }
 
-        .v3-executive-status-metrics
-        small,
-        .v3-executive-status-metrics
-        strong {
+        .v52-delivery-metrics span,
+        .v52-delivery-metrics strong {
           display: block;
         }
 
-        .v3-executive-status-metrics
-        small {
-          margin-bottom: 5px;
-          color: #667085;
+        .v52-delivery-metrics span {
+          color: #7a8699;
+          font-size: 11px;
+        }
+
+        .v52-delivery-metrics strong {
+          margin-top: 6px;
+          color: #152238;
+          font-size: 24px;
+        }
+
+        .v52-two-column {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 16px;
+        }
+
+        .v52-panel {
+          padding: 20px;
+          border: 1px solid rgba(15, 23, 42, .07);
+          border-radius: 26px;
+          background: #fff;
+          box-shadow: 0 14px 34px rgba(15, 23, 42, .05);
+        }
+
+        .v52-panel-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 15px;
+        }
+
+        .v52-panel-head h3 {
+          font-size: 18px;
+        }
+
+        .v52-count-pill,
+        .v52-live-pill {
+          display: inline-flex !important;
+          align-items: center;
+          justify-content: center;
+          min-width: 34px;
+          height: 30px;
+          padding: 0 10px;
+          border-radius: 999px;
+          background: #edf4ff;
+          color: #4167a7 !important;
+          font-size: 11px !important;
+          letter-spacing: 0 !important;
+        }
+
+        .v52-live-pill {
+          background: #e7f8ee;
+          color: #1a9c57 !important;
+        }
+
+        .v52-priority-list,
+        .v52-activity-list {
+          display: grid;
+          gap: 9px;
+        }
+
+        .v52-priority-item {
+          display: grid;
+          grid-template-columns: 28px 40px minmax(0, 1fr) auto;
+          gap: 10px;
+          align-items: center;
+          width: 100%;
+          padding: 11px 12px;
+          border: 1px solid rgba(15, 23, 42, .06);
+          border-radius: 17px;
+          background: #fbfcfe;
+          color: inherit;
+          text-align: start;
+          cursor: pointer;
+        }
+
+        .v52-priority-number {
+          display: grid;
+          width: 26px;
+          height: 26px;
+          place-items: center;
+          border-radius: 9px;
+          background: #eef2f7;
+          color: #68758c;
+          font-size: 11px;
+          font-weight: 900;
+        }
+
+        .v52-priority-icon,
+        .v52-activity-icon {
+          display: grid;
+          place-items: center;
+          border-radius: 13px;
+          background: #fff;
+          font-size: 20px;
+        }
+
+        .v52-priority-icon {
+          width: 38px;
+          height: 38px;
+        }
+
+        .v52-priority-copy strong,
+        .v52-priority-copy small,
+        .v52-activity-item strong,
+        .v52-activity-item small {
+          display: block;
+        }
+
+        .v52-priority-copy strong,
+        .v52-activity-item strong {
+          color: #263247;
+          font-size: 13px;
+          line-height: 1.45;
+        }
+
+        .v52-priority-copy small,
+        .v52-activity-item small {
+          margin-top: 3px;
+          color: #8893a5;
           font-size: 10px;
           line-height: 1.4;
         }
 
-        .v3-executive-status-metrics
-        strong {
-          color: #101828;
-          font-size: 21px;
+        .v52-row-arrow {
+          color: #9aa5b6;
+          font-size: 22px;
         }
 
-        @media (max-width:760px) {
-          .v3-executive-status {
+        .v52-activity-item {
+          display: grid;
+          grid-template-columns: 42px minmax(0, 1fr);
+          gap: 11px;
+          align-items: center;
+          padding: 12px;
+          border-radius: 17px;
+          background: #fbfcfe;
+        }
+
+        .v52-activity-icon {
+          width: 40px;
+          height: 40px;
+          border: 1px solid rgba(15, 23, 42, .05);
+        }
+
+        .v52-support-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 14px;
+        }
+
+        .v52-support-card {
+          display: grid;
+          grid-template-columns: 52px minmax(0, 1fr);
+          gap: 13px;
+          align-items: center;
+          padding: 17px;
+          border: 1px solid rgba(15, 23, 42, .07);
+          border-radius: 22px;
+          background: #fff;
+          box-shadow: 0 12px 30px rgba(15, 23, 42, .045);
+          cursor: pointer;
+        }
+
+        .v52-support-icon {
+          display: grid;
+          width: 50px;
+          height: 50px;
+          place-items: center;
+          border-radius: 17px;
+          background: #f1f5fa;
+          font-size: 23px;
+        }
+
+        .v52-support-card span,
+        .v52-support-card strong {
+          display: block;
+        }
+
+        .v52-support-card span {
+          color: #69758a;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .v52-support-card strong {
+          margin-top: 3px;
+          color: #132036;
+          font-size: 27px;
+        }
+
+        .v52-support-card p {
+          margin: 3px 0 0;
+          color: #8994a5;
+          font-size: 10px;
+          line-height: 1.5;
+        }
+
+        .v52-executive-status {
+          display: grid;
+          grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr);
+          gap: 22px;
+          padding: 24px;
+          border: 1px solid rgba(26, 165, 91, .2);
+          border-radius: 28px;
+          background:
+            linear-gradient(135deg, rgba(229, 248, 237, .92), #fff);
+          box-shadow: 0 16px 42px rgba(15, 23, 42, .06);
+        }
+
+        .v52-executive-status.critical {
+          border-color: rgba(229, 72, 77, .22);
+          background: linear-gradient(135deg, rgba(255, 234, 234, .9), #fff);
+        }
+
+        .v52-executive-status.warning,
+        .v52-executive-status.attention {
+          border-color: rgba(245, 158, 11, .24);
+          background: linear-gradient(135deg, rgba(255, 246, 224, .92), #fff);
+        }
+
+        .v52-executive-status.neutral {
+          border-color: rgba(70, 104, 163, .18);
+          background: linear-gradient(135deg, rgba(234, 241, 252, .92), #fff);
+        }
+
+        .v52-status-copy h3 {
+          margin: 8px 0 0;
+          color: #132036;
+          font-size: 23px;
+          line-height: 1.55;
+        }
+
+        .v52-status-copy p {
+          margin: 10px 0 0;
+          color: #6f7c90;
+          font-size: 14px;
+          line-height: 1.85;
+        }
+
+        .v52-recommendation {
+          padding: 17px;
+          border: 1px solid rgba(15, 23, 42, .06);
+          border-radius: 20px;
+          background: rgba(255, 255, 255, .72);
+        }
+
+        .v52-recommendation small {
+          color: #7a8699;
+          font-size: 10px;
+          font-weight: 900;
+        }
+
+        .v52-recommendation p {
+          margin: 7px 0 0;
+          color: #2c394f;
+          font-size: 12px;
+          font-weight: 700;
+          line-height: 1.75;
+        }
+
+        .v52-status-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-top: 15px;
+        }
+
+        .v52-status-actions button {
+          min-height: 36px;
+          padding: 0 13px;
+          border: 1px solid rgba(15, 23, 42, .08);
+          border-radius: 12px;
+          background: #fff;
+          color: #2e3b50;
+          font-size: 11px;
+          font-weight: 800;
+          cursor: pointer;
+        }
+
+        @media (max-width: 980px) {
+          .v52-kpi-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .v52-portfolio-card,
+          .v52-executive-status {
             grid-template-columns: 1fr;
           }
         }
 
-        @media (max-width:430px) {
-          .v3-executive-status-metrics {
+        @media (max-width: 720px) {
+          .v52-section-head {
+            align-items: start;
+            flex-direction: column;
+          }
+
+          .v52-two-column,
+          .v52-support-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 520px) {
+          .v52-dashboard-page {
+            gap: 16px;
+          }
+
+          .v52-kpi-grid {
+            gap: 11px;
+          }
+
+          .v52-kpi-card {
+            padding: 15px;
+            border-radius: 21px;
+          }
+
+          .v52-kpi-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            font-size: 21px;
+          }
+
+          .v52-kpi-body {
+            margin-top: 18px;
+          }
+
+          .v52-kpi-body h3 {
+            font-size: 13px;
+          }
+
+          .v52-kpi-body strong {
+            font-size: 36px;
+          }
+
+          .v52-kpi-body p {
+            font-size: 11px;
+          }
+
+          .v52-kpi-meta {
+            font-size: 9px;
+          }
+
+          .v52-portfolio-card,
+          .v52-panel,
+          .v52-executive-status {
+            padding: 17px;
+            border-radius: 23px;
+          }
+
+          .v52-progress-row {
+            grid-template-columns: 1fr;
+          }
+
+          .v52-progress-row > strong {
+            font-size: 38px;
+          }
+
+          .v52-status-copy h3 {
+            font-size: 20px;
+          }
+
+          .v52-status-actions {
+            display: grid;
             grid-template-columns: 1fr;
           }
         }
       `;
 
-      document.head
-        .appendChild(style);
+      document.head.appendChild(style);
     },
 
     /* =======================================================
@@ -2362,108 +2120,76 @@
         .replace(/_/g, "-");
     },
 
-    toSafeNumber(
-      value,
-      fallback = 0
-    ) {
-      const number =
-        Number(value);
-
-      return Number.isFinite(number)
-        ? number
-        : fallback;
+    toSafeNumber(value, fallback = 0) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number : fallback;
     },
 
-    numberOrFallback(
-      value,
-      fallback = 0
-    ) {
-      const number =
-        Number(value);
-
-      return Number.isFinite(number)
-        ? number
-        : fallback;
+    numberOrFallback(value, fallback = 0) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number : fallback;
     },
 
-    normalizePercent(
-      value,
-      fallback = 0
-    ) {
+    normalizePercent(value, fallback = 0) {
       return Math.min(
         100,
         Math.max(
           0,
-          Math.round(
-            this.toSafeNumber(
-              value,
-              fallback
-            )
-          )
+          Math.round(this.toSafeNumber(value, fallback))
         )
       );
     },
 
-    firstFiniteNumber(
-      values = []
-    ) {
-      for (const value of values) {
-        const number =
-          Number(value);
+    countDistinctDepartments(ideas = [], projects = []) {
+      const departments = new Set();
 
-        if (
-          Number.isFinite(number)
-        ) {
-          return number;
-        }
-      }
+      [...ideas, ...projects].forEach(item => {
+        const department = String(
+          item?.department ??
+          item?.businessUnit ??
+          item?.portfolio ??
+          ""
+        ).trim();
 
-      return null;
-    },
-
-    countDistinctDepartments(
-      ideas = [],
-      projects = []
-    ) {
-      const departments =
-        new Set();
-
-      [
-        ...ideas,
-        ...projects
-      ].forEach(item => {
-        const department =
-          String(
-            item?.department ??
-            item?.businessUnit ??
-            item?.portfolio ??
-            ""
-          ).trim();
-
-        if (department) {
-          departments.add(
-            department
-          );
-        }
+        if (department) departments.add(department);
       });
 
       return departments.size;
     },
 
-    uniqueBy(
-      items = [],
-      selector
-    ) {
-      const seen =
-        new Set();
+    formatRelativeTime(value) {
+      if (!value) return "";
+
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+
+      const diff = Date.now() - date.getTime();
+      const minute = 60 * 1000;
+      const hour = 60 * minute;
+      const day = 24 * hour;
+
+      if (diff < minute) return "الآن";
+      if (diff < hour) return `قبل ${Math.max(1, Math.floor(diff / minute))} دقيقة`;
+      if (diff < day) return `قبل ${Math.max(1, Math.floor(diff / hour))} ساعة`;
+      if (diff < day * 7) return `قبل ${Math.max(1, Math.floor(diff / day))} يوم`;
+
+      try {
+        return new Intl.DateTimeFormat("ar-AE", {
+          day: "numeric",
+          month: "short"
+        }).format(date);
+      } catch (error) {
+        return date.toLocaleDateString();
+      }
+    },
+
+    uniqueBy(items = [], selector) {
+      const seen = new Set();
 
       return items.filter(item => {
-        const key =
-          String(selector(item));
+        const key = String(selector(item));
 
-        if (seen.has(key)) {
-          return false;
-        }
+        if (seen.has(key)) return false;
 
         seen.add(key);
         return true;
@@ -2471,25 +2197,11 @@
     },
 
     hashText(value) {
-      const text =
-        String(value || "");
-
+      const text = String(value || "");
       let hash = 0;
 
-      for (
-        let index = 0;
-        index < text.length;
-        index += 1
-      ) {
-        hash =
-          (
-            (
-              hash << 5
-            ) -
-            hash
-          ) +
-          text.charCodeAt(index);
-
+      for (let index = 0; index < text.length; index += 1) {
+        hash = ((hash << 5) - hash) + text.charCodeAt(index);
         hash |= 0;
       }
 
