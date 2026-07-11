@@ -1,18 +1,19 @@
 /* =========================================================
-   AI Work - Executive Dashboard V5.2
+   AI Work - Executive Dashboard V5.3
    Enterprise Biometric Intelligence Platform
    Store V2.2 Native Architecture
 
    File Path:
    js/modules/dashboard/dashboard.js
 
-   V5.2 Dashboard Redesign:
+   V5.3 Dashboard Refinement:
    - Preserves the premium blue hero section
    - Replaces unclear health/readiness indicators
    - Focuses on executive actions and operational value
+   - Final layout: hero, executive KPIs, portfolio progress and priorities
    - Shows ideas, active projects, pending decisions and blockers
-   - Adds portfolio progress, priorities and recent activity
-   - Improves Executive Status with clear recommendations
+   - Keeps portfolio progress and current priorities only
+   - Removes recent activity, duplicate support cards and repeated executive summary
    - Fully synchronized with AIW.Store V2.2
    - No direct localStorage or AIW.Data fallback
 ========================================================= */
@@ -27,7 +28,7 @@
     id: "dashboard",
     title: "الرئيسية",
     icon: "🏠",
-    version: "5.2.0",
+    version: "5.3.0",
 
     _container: null,
     _unsubscribeStore: null,
@@ -39,8 +40,7 @@
       refreshDelay: 90,
       targetIdeas: 100,
       defaultRoadmapPeriod: "2026–2030",
-      maxActivities: 4,
-      styleId: "aiw-dashboard-v52-styles"
+      styleId: "aiw-dashboard-v53-styles"
     },
 
     lifecycle: {
@@ -77,7 +77,7 @@
       const store = this.getStore();
 
       if (!store) {
-        console.error("AI Work Dashboard V5.2: AIW.Store is unavailable.");
+        console.error("AI Work Dashboard V5.3: AIW.Store is unavailable.");
         return {};
       }
 
@@ -93,7 +93,7 @@
         }
       } catch (error) {
         console.error(
-          "AI Work Dashboard V5.2: Unable to read Store state.",
+          "AI Work Dashboard V5.3: Unable to read Store state.",
           error
         );
       }
@@ -120,7 +120,7 @@
           if (Array.isArray(ideas)) return ideas;
         }
       } catch (error) {
-        console.warn("AI Work Dashboard V5.2: Ideas reader failed.", error);
+        console.warn("AI Work Dashboard V5.3: Ideas reader failed.", error);
       }
 
       return this.getCollection("ideas").filter(item => !item?.deletedAt);
@@ -140,7 +140,7 @@
           if (Array.isArray(projects)) return projects;
         }
       } catch (error) {
-        console.warn("AI Work Dashboard V5.2: Projects reader failed.", error);
+        console.warn("AI Work Dashboard V5.3: Projects reader failed.", error);
       }
 
       return this.getCollection("projects").filter(item => !item?.deletedAt);
@@ -155,7 +155,7 @@
           if (pipeline && typeof pipeline === "object") return pipeline;
         }
       } catch (error) {
-        console.warn("AI Work Dashboard V5.2: Pipeline reader failed.", error);
+        console.warn("AI Work Dashboard V5.3: Pipeline reader failed.", error);
       }
 
       const state = this.getState();
@@ -776,77 +776,6 @@
        Executive Content
     ======================================================= */
 
-    getExecutiveStatus(metrics) {
-      const {
-        alertMetrics,
-        projectMetrics,
-        ideaMetrics,
-        pendingApprovals,
-        riskMetrics
-      } = metrics;
-
-      if (alertMetrics.critical > 0 || riskMetrics.high > 0) {
-        return {
-          tone: "critical",
-          eyebrow: "EXECUTIVE ATTENTION",
-          title: "توجد عناصر عالية الأهمية تحتاج تدخلاً تنفيذياً",
-          text:
-            `يوجد ${alertMetrics.critical} تنبيه حرج و${riskMetrics.high} مخاطر عالية مفتوحة.`,
-          recommendation:
-            "ابدأ بمراجعة العناصر الحرجة ثم حدد مالك الإجراء والموعد المستهدف للإغلاق."
-        };
-      }
-
-      if (projectMetrics.blocked > 0) {
-        return {
-          tone: "warning",
-          eyebrow: "DELIVERY ATTENTION",
-          title: "بعض المشاريع تحتاج دعماً للعودة إلى المسار",
-          text:
-            `يوجد ${projectMetrics.blocked} مشروع متوقف، ومتوسط إنجاز المحفظة ${projectMetrics.averageProgress}%.`,
-          recommendation:
-            "راجع أسباب التعثر والاعتماد والموارد المطلوبة قبل بدء مشاريع إضافية."
-        };
-      }
-
-      if (pendingApprovals > 0 || ideaMetrics.pending > 0) {
-        return {
-          tone: "attention",
-          eyebrow: "DECISION REQUIRED",
-          title: "يوجد مسار اعتماد يحتاج قراراً",
-          text:
-            `توجد ${Math.max(
-              pendingApprovals,
-              ideaMetrics.pending
-            )} عناصر بانتظار الاعتماد، و${ideaMetrics.approved} أفكار جاهزة للخطوة التالية.`,
-          recommendation:
-            "ابدأ بالفرص الأعلى أولوية، واعتمد الجاهز منها أو أعده لاستكمال المتطلبات."
-        };
-      }
-
-      if (projectMetrics.active > 0) {
-        return {
-          tone: "stable",
-          eyebrow: "EXECUTIVE STATUS",
-          title: "المحفظة مستقرة والتنفيذ يسير بصورة منظمة",
-          text:
-            `يوجد ${projectMetrics.active} مشروع نشط، و${projectMetrics.onTrack} مشاريع على المسار.`,
-          recommendation:
-            "استمر في متابعة التقدم الأسبوعي وركز على المشاريع الأقرب للتجربة أو التشغيل."
-        };
-      }
-
-      return {
-        tone: "neutral",
-        eyebrow: "EXECUTIVE STATUS",
-        title: "المنصة جاهزة للانتقال من الفرص إلى التنفيذ",
-        text:
-          `تم تسجيل ${ideaMetrics.total} فكرة، منها ${ideaMetrics.approved} أفكار معتمدة و${ideaMetrics.converted} محولة إلى مشاريع.`,
-        recommendation:
-          "ابدأ بتحويل أفضل الأفكار المعتمدة إلى مشاريع وحدد المالك والمدة ومؤشر النجاح."
-      };
-    },
-
     buildPriorities(metrics) {
       const priorities = [];
 
@@ -917,115 +846,6 @@
       return priorities.slice(0, 4);
     },
 
-    getRecentActivities(metrics) {
-      const state = metrics.state || {};
-      const rawActivities = [];
-
-      [
-        state.activityLog,
-        state.activities,
-        state.auditLog,
-        state.history,
-        state.metadata?.activityLog,
-        state.automation?.executionHistory
-      ].forEach(source => {
-        if (Array.isArray(source)) rawActivities.push(...source);
-      });
-
-      const normalized = rawActivities
-        .map((item, index) => {
-          if (typeof item === "string") {
-            return {
-              id: `activity-${index}`,
-              title: item,
-              time: "",
-              icon: "•"
-            };
-          }
-
-          if (!item || typeof item !== "object") return null;
-
-          return {
-            id: item.id || `activity-${index}`,
-            title:
-              item.title ||
-              item.message ||
-              item.action ||
-              item.type ||
-              "تم تحديث بيانات المنصة",
-            time: this.formatRelativeTime(
-              item.createdAt ||
-              item.updatedAt ||
-              item.timestamp ||
-              item.date
-            ),
-            icon: this.getActivityIcon(item)
-          };
-        })
-        .filter(Boolean)
-        .sort((a, b) => {
-          const aTime = new Date(
-            rawActivities.find(item => item?.id === a.id)?.createdAt || 0
-          ).getTime();
-          const bTime = new Date(
-            rawActivities.find(item => item?.id === b.id)?.createdAt || 0
-          ).getTime();
-          return bTime - aTime;
-        })
-        .slice(0, this.config.maxActivities);
-
-      if (normalized.length) return normalized;
-
-      const fallback = [];
-
-      if (metrics.ideaMetrics.total > 0) {
-        fallback.push({
-          icon: "💡",
-          title: `تم تسجيل ${metrics.ideaMetrics.total} فكرة في المحفظة`,
-          time: "البيانات الحالية"
-        });
-      }
-
-      if (metrics.ideaMetrics.converted > 0) {
-        fallback.push({
-          icon: "🔄",
-          title: `تم تحويل ${metrics.ideaMetrics.converted} فكرة إلى مشروع`,
-          time: "البيانات الحالية"
-        });
-      }
-
-      if (metrics.projectMetrics.active > 0) {
-        fallback.push({
-          icon: "📁",
-          title: `${metrics.projectMetrics.active} مشروع قيد التنفيذ`,
-          time: "البيانات الحالية"
-        });
-      }
-
-      if (!fallback.length) {
-        fallback.push({
-          icon: "✨",
-          title: "لا توجد أنشطة مسجلة حتى الآن",
-          time: "ابدأ بإضافة فكرة جديدة"
-        });
-      }
-
-      return fallback.slice(0, this.config.maxActivities);
-    },
-
-    getActivityIcon(item = {}) {
-      const text = this.normalizeStatus(
-        `${item.type || ""} ${item.action || ""} ${item.title || ""}`
-      );
-
-      if (text.includes("idea") || text.includes("فكرة")) return "💡";
-      if (text.includes("project") || text.includes("مشروع")) return "📁";
-      if (text.includes("approval") || text.includes("اعتماد")) return "✅";
-      if (text.includes("risk") || text.includes("خطر")) return "⚠️";
-      if (text.includes("report") || text.includes("تقرير")) return "📊";
-      return "•";
-    },
-
     /* =======================================================
        Main Render
     ======================================================= */
@@ -1040,9 +860,7 @@
         this.injectStyles();
 
         const metrics = this.calculateMetrics();
-        const status = this.getExecutiveStatus(metrics);
         const priorities = this.buildPriorities(metrics);
-        const activities = this.getRecentActivities(metrics);
 
         const approvalCount = Math.max(
           metrics.ideaMetrics.pending,
@@ -1151,7 +969,7 @@
             <section class="v52-portfolio-card">
               <div class="v52-portfolio-main">
                 <div class="v52-card-title">
-                  <span class="v52-status-dot ${status.tone}"></span>
+                  <span class="v52-status-dot"></span>
                   <div>
                     <small>PORTFOLIO DELIVERY</small>
                     <h3>تقدم المحفظة التنفيذية</h3>
@@ -1195,7 +1013,7 @@
               </div>
             </section>
 
-            <section class="v52-two-column">
+            <section class="v52-priority-section">
               <article class="v52-panel">
                 <div class="v52-panel-head">
                   <div>
@@ -1213,75 +1031,6 @@
                     .join("")}
                 </div>
               </article>
-
-              <article class="v52-panel">
-                <div class="v52-panel-head">
-                  <div>
-                    <span>RECENT ACTIVITY</span>
-                    <h3>آخر تحديثات المنصة</h3>
-                  </div>
-                  <span class="v52-live-pill">مباشر</span>
-                </div>
-
-                <div class="v52-activity-list">
-                  ${activities
-                    .map(item => this.activityItem(item))
-                    .join("")}
-                </div>
-              </article>
-            </section>
-
-            <section class="v52-support-grid">
-              ${this.supportCard({
-                icon: "🛡️",
-                label: "الضوابط المفعلة",
-                value: metrics.governanceMetrics.active,
-                note: `من أصل ${metrics.governanceMetrics.total} ضابط رقابي`,
-                route: "governance"
-              })}
-
-              ${this.supportCard({
-                icon: "🔄",
-                label: "الأفكار المحولة",
-                value: metrics.ideaMetrics.converted,
-                note: `معدل التحويل ${metrics.conversionRate}%`,
-                route: "ideas"
-              })}
-
-              ${this.supportCard({
-                icon: "🚀",
-                label: "جاهزة للبدء",
-                value: metrics.executionReady,
-                note: "أفكار معتمدة ومشاريع جاهزة",
-                route: "projects"
-              })}
-            </section>
-
-            <section class="v52-executive-status ${status.tone}">
-              <div class="v52-status-copy">
-                <span>${this.escapeHtml(status.eyebrow)}</span>
-                <h3>${this.escapeHtml(status.title)}</h3>
-                <p>${this.escapeHtml(status.text)}</p>
-              </div>
-
-              <div class="v52-recommendation">
-                <small>التوصية التنفيذية</small>
-                <p>${this.escapeHtml(status.recommendation)}</p>
-
-                <div class="v52-status-actions">
-                  <button type="button" data-aiw-route="ideas">
-                    فتح الأفكار
-                  </button>
-
-                  <button type="button" data-aiw-route="projects">
-                    فتح المشاريع
-                  </button>
-
-                  <button type="button" data-aiw-route="reports">
-                    التقرير التنفيذي
-                  </button>
-                </div>
-              </div>
             </section>
 
           </section>
@@ -1328,24 +1077,6 @@
       `;
     },
 
-    supportCard({ icon, label, value, note, route }) {
-      return `
-        <article
-          class="v52-support-card"
-          data-aiw-route="${this.escapeHtml(route)}"
-          role="button"
-          tabindex="0"
-        >
-          <div class="v52-support-icon">${this.escapeHtml(icon)}</div>
-          <div>
-            <span>${this.escapeHtml(label)}</span>
-            <strong>${this.escapeHtml(value)}</strong>
-            <p>${this.escapeHtml(note)}</p>
-          </div>
-        </article>
-      `;
-    },
-
     priorityItem(item, number) {
       return `
         <button
@@ -1361,18 +1092,6 @@
           </span>
           <span class="v52-row-arrow">‹</span>
         </button>
-      `;
-    },
-
-    activityItem(item) {
-      return `
-        <div class="v52-activity-item">
-          <span class="v52-activity-icon">${this.escapeHtml(item.icon)}</span>
-          <div>
-            <strong>${this.escapeHtml(item.title)}</strong>
-            <small>${this.escapeHtml(item.time || "الآن")}</small>
-          </div>
-        </div>
       `;
     },
 
@@ -1511,8 +1230,7 @@
 
         .v52-section-head span,
         .v52-panel-head span,
-        .v52-card-title small,
-        .v52-status-copy > span {
+        .v52-card-title small {
           display: block;
           color: #7a8699;
           font-size: 10px;
@@ -1744,9 +1462,9 @@
           font-size: 24px;
         }
 
-        .v52-two-column {
+        .v52-priority-section {
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-columns: minmax(0, 1fr);
           gap: 16px;
         }
 
@@ -1771,27 +1489,8 @@
         }
 
         .v52-count-pill,
-        .v52-live-pill {
-          display: inline-flex !important;
-          align-items: center;
-          justify-content: center;
-          min-width: 34px;
-          height: 30px;
-          padding: 0 10px;
-          border-radius: 999px;
-          background: #edf4ff;
-          color: #4167a7 !important;
-          font-size: 11px !important;
-          letter-spacing: 0 !important;
-        }
 
-        .v52-live-pill {
-          background: #e7f8ee;
-          color: #1a9c57 !important;
-        }
-
-        .v52-priority-list,
-        .v52-activity-list {
+        .v52-priority-list {
           display: grid;
           gap: 9px;
         }
@@ -1823,36 +1522,23 @@
           font-weight: 900;
         }
 
-        .v52-priority-icon,
-        .v52-activity-icon {
-          display: grid;
-          place-items: center;
-          border-radius: 13px;
-          background: #fff;
-          font-size: 20px;
-        }
-
         .v52-priority-icon {
           width: 38px;
           height: 38px;
         }
 
         .v52-priority-copy strong,
-        .v52-priority-copy small,
-        .v52-activity-item strong,
-        .v52-activity-item small {
+        .v52-priority-copy small {
           display: block;
         }
 
-        .v52-priority-copy strong,
-        .v52-activity-item strong {
+        .v52-priority-copy strong {
           color: #263247;
           font-size: 13px;
           line-height: 1.45;
         }
 
-        .v52-priority-copy small,
-        .v52-activity-item small {
+        .v52-priority-copy small {
           margin-top: 3px;
           color: #8893a5;
           font-size: 10px;
@@ -1864,166 +1550,12 @@
           font-size: 22px;
         }
 
-        .v52-activity-item {
-          display: grid;
-          grid-template-columns: 42px minmax(0, 1fr);
-          gap: 11px;
-          align-items: center;
-          padding: 12px;
-          border-radius: 17px;
-          background: #fbfcfe;
-        }
-
-        .v52-activity-icon {
-          width: 40px;
-          height: 40px;
-          border: 1px solid rgba(15, 23, 42, .05);
-        }
-
-        .v52-support-grid {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 14px;
-        }
-
-        .v52-support-card {
-          display: grid;
-          grid-template-columns: 52px minmax(0, 1fr);
-          gap: 13px;
-          align-items: center;
-          padding: 17px;
-          border: 1px solid rgba(15, 23, 42, .07);
-          border-radius: 22px;
-          background: #fff;
-          box-shadow: 0 12px 30px rgba(15, 23, 42, .045);
-          cursor: pointer;
-        }
-
-        .v52-support-icon {
-          display: grid;
-          width: 50px;
-          height: 50px;
-          place-items: center;
-          border-radius: 17px;
-          background: #f1f5fa;
-          font-size: 23px;
-        }
-
-        .v52-support-card span,
-        .v52-support-card strong {
-          display: block;
-        }
-
-        .v52-support-card span {
-          color: #69758a;
-          font-size: 12px;
-          font-weight: 800;
-        }
-
-        .v52-support-card strong {
-          margin-top: 3px;
-          color: #132036;
-          font-size: 27px;
-        }
-
-        .v52-support-card p {
-          margin: 3px 0 0;
-          color: #8994a5;
-          font-size: 10px;
-          line-height: 1.5;
-        }
-
-        .v52-executive-status {
-          display: grid;
-          grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr);
-          gap: 22px;
-          padding: 24px;
-          border: 1px solid rgba(26, 165, 91, .2);
-          border-radius: 28px;
-          background:
-            linear-gradient(135deg, rgba(229, 248, 237, .92), #fff);
-          box-shadow: 0 16px 42px rgba(15, 23, 42, .06);
-        }
-
-        .v52-executive-status.critical {
-          border-color: rgba(229, 72, 77, .22);
-          background: linear-gradient(135deg, rgba(255, 234, 234, .9), #fff);
-        }
-
-        .v52-executive-status.warning,
-        .v52-executive-status.attention {
-          border-color: rgba(245, 158, 11, .24);
-          background: linear-gradient(135deg, rgba(255, 246, 224, .92), #fff);
-        }
-
-        .v52-executive-status.neutral {
-          border-color: rgba(70, 104, 163, .18);
-          background: linear-gradient(135deg, rgba(234, 241, 252, .92), #fff);
-        }
-
-        .v52-status-copy h3 {
-          margin: 8px 0 0;
-          color: #132036;
-          font-size: 23px;
-          line-height: 1.55;
-        }
-
-        .v52-status-copy p {
-          margin: 10px 0 0;
-          color: #6f7c90;
-          font-size: 14px;
-          line-height: 1.85;
-        }
-
-        .v52-recommendation {
-          padding: 17px;
-          border: 1px solid rgba(15, 23, 42, .06);
-          border-radius: 20px;
-          background: rgba(255, 255, 255, .72);
-        }
-
-        .v52-recommendation small {
-          color: #7a8699;
-          font-size: 10px;
-          font-weight: 900;
-        }
-
-        .v52-recommendation p {
-          margin: 7px 0 0;
-          color: #2c394f;
-          font-size: 12px;
-          font-weight: 700;
-          line-height: 1.75;
-        }
-
-        .v52-status-actions {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          margin-top: 15px;
-        }
-
-        .v52-status-actions button {
-          min-height: 36px;
-          padding: 0 13px;
-          border: 1px solid rgba(15, 23, 42, .08);
-          border-radius: 12px;
-          background: #fff;
-          color: #2e3b50;
-          font-size: 11px;
-          font-weight: 800;
-          cursor: pointer;
-        }
-
         @media (max-width: 980px) {
           .v52-kpi-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
           .v52-portfolio-card,
-          .v52-executive-status {
-            grid-template-columns: 1fr;
-          }
         }
 
         @media (max-width: 720px) {
@@ -2033,9 +1565,6 @@
           }
 
           .v52-two-column,
-          .v52-support-grid {
-            grid-template-columns: 1fr;
-          }
         }
 
         @media (max-width: 520px) {
@@ -2081,10 +1610,6 @@
 
           .v52-portfolio-card,
           .v52-panel,
-          .v52-executive-status {
-            padding: 17px;
-            border-radius: 23px;
-          }
 
           .v52-progress-row {
             grid-template-columns: 1fr;
@@ -2092,15 +1617,6 @@
 
           .v52-progress-row > strong {
             font-size: 38px;
-          }
-
-          .v52-status-copy h3 {
-            font-size: 20px;
-          }
-
-          .v52-status-actions {
-            display: grid;
-            grid-template-columns: 1fr;
           }
         }
       `;
@@ -2155,32 +1671,6 @@
       });
 
       return departments.size;
-    },
-
-    formatRelativeTime(value) {
-      if (!value) return "";
-
-      const date = new Date(value);
-      if (Number.isNaN(date.getTime())) return "";
-
-      const diff = Date.now() - date.getTime();
-      const minute = 60 * 1000;
-      const hour = 60 * minute;
-      const day = 24 * hour;
-
-      if (diff < minute) return "الآن";
-      if (diff < hour) return `قبل ${Math.max(1, Math.floor(diff / minute))} دقيقة`;
-      if (diff < day) return `قبل ${Math.max(1, Math.floor(diff / hour))} ساعة`;
-      if (diff < day * 7) return `قبل ${Math.max(1, Math.floor(diff / day))} يوم`;
-
-      try {
-        return new Intl.DateTimeFormat("ar-AE", {
-          day: "numeric",
-          month: "short"
-        }).format(date);
-      } catch (error) {
-        return date.toLocaleDateString();
-      }
     },
 
     uniqueBy(items = [], selector) {
