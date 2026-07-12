@@ -24,7 +24,7 @@
 
   <meta
     name="color-scheme"
-    content="light dark"
+    content="light"
   />
 
   <meta
@@ -44,12 +44,12 @@
 
   <link
     rel="stylesheet"
-    href="css/style.css?v=5.0.1"
+    href="css/style.css?v=5.0.2"
   />
 
   <link
     rel="stylesheet"
-    href="css/enterprise.css?v=5.0.1"
+    href="css/enterprise.css?v=5.0.2"
   />
 </head>
 
@@ -74,7 +74,7 @@
     id="app"
     class="aiw-app enterprise-app"
     data-aiw-root
-    data-version="5.4.0"
+    data-version="5.4.1"
   >
     <header
       id="appHeader"
@@ -192,14 +192,12 @@
 
   <!-- ===================================================== -->
   <!-- 2. Central Store V2.3                                -->
-  <!-- Store must load before Enterprise Seed Data.         -->
   <!-- ===================================================== -->
 
   <script src="js/store.js?v=2.3.0"></script>
 
   <!-- ===================================================== -->
   <!-- 3. Enterprise Seed Data                              -->
-  <!-- Seeds and migrates the biometric AI opportunities.   -->
   <!-- ===================================================== -->
 
   <script src="js/data/aiw-data.js?v=5.0.1"></script>
@@ -212,7 +210,6 @@
 
   <!-- ===================================================== -->
   <!-- 5. External Libraries                                -->
-  <!-- Chart.js must load before charts.js.                 -->
   <!-- ===================================================== -->
 
   <script
@@ -242,46 +239,14 @@
 
   <!-- ===================================================== -->
   <!-- 8. Core Navigation and Shell                         -->
-  <!-- Router must load before App.                         -->
-  <!-- Shell loads before modules and App.                  -->
+  <!-- Shell is initialized only by app.js.                 -->
   <!-- ===================================================== -->
 
   <script src="js/core/router.js?v=5.0.1"></script>
   <script src="js/core/shell.js?v=5.0.1"></script>
 
-  <!-- Register Shell initialization before App bootstrap. -->
-  <script>
-    (function () {
-      "use strict";
-
-      const initializeShell = function () {
-        if (
-          window.AIW?.Shell &&
-          typeof window.AIW.Shell.init === "function"
-        ) {
-          window.AIW.Shell.init(
-            document.getElementById("app")
-          );
-        }
-      };
-
-      if (document.readyState === "loading") {
-        document.addEventListener(
-          "DOMContentLoaded",
-          initializeShell,
-          {
-            once: true
-          }
-        );
-      } else {
-        initializeShell();
-      }
-    })();
-  </script>
-
   <!-- ===================================================== -->
   <!-- 9. Application Modules                               -->
-  <!-- All modules register themselves before App starts.   -->
   <!-- ===================================================== -->
 
   <script src="js/modules/dashboard/dashboard.js?v=5.0.1"></script>
@@ -299,10 +264,14 @@
   <script src="js/modules/settings/settings.js?v=5.0.1"></script>
 
   <!-- ===================================================== -->
-  <!-- 10. AI Intelligence Extensions - Phase 7             -->
-  <!-- Core must load first, UI must load last.              -->
-  <!-- These files extend the platform without modifying     -->
-  <!-- Dashboard, Ideas, Projects, or other core modules.    -->
+  <!-- 10. Application Bootstrap                            -->
+  <!-- App registers its DOM-ready startup before extensions. -->
+  <!-- ===================================================== -->
+
+  <script src="js/core/app.js?v=5.0.2"></script>
+
+  <!-- ===================================================== -->
+  <!-- 11. AI Intelligence Extensions - Phase 7             -->
   <!-- ===================================================== -->
 
   <script src="js/extensions/ai/ai-intelligence-core.js?v=1.0.0"></script>
@@ -314,10 +283,7 @@
   <script src="js/extensions/ai/ai-intelligence-ui.js?v=1.0.0"></script>
 
   <!-- ===================================================== -->
-  <!-- 11. Enterprise Integration Layer - Phase 8           -->
-  <!-- Load in the exact dependency order below.            -->
-  <!-- Event Bus and Integration Core must load first.      -->
-  <!-- Bootstrap Manager and Orchestrator must load last.   -->
+  <!-- 12. Enterprise Integration Layer - Phase 8           -->
   <!-- ===================================================== -->
 
   <script src="js/extensions/integration/event-bus.js?v=1.0.0"></script>
@@ -332,13 +298,5 @@
   <script src="js/extensions/integration/integration-test-suite.js?v=1.0.0"></script>
   <script src="js/extensions/integration/integration-bootstrap-manager.js?v=1.0.0"></script>
   <script src="js/extensions/integration/integration-orchestrator.js?v=1.0.0"></script>
-
-  <!-- ===================================================== -->
-  <!-- 12. Application Bootstrap                            -->
-  <!-- app.js initializes itself once after DOM readiness.  -->
-  <!-- Do not add a second window.load navigation call.     -->
-  <!-- ===================================================== -->
-
-  <script src="js/core/app.js?v=5.0.1"></script>
 </body>
 </html>
