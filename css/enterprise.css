@@ -1,17 +1,16 @@
 /* =========================================================
    AI Work
-   Enterprise Styles V3.1.2
+   Enterprise Styles V3.1.4
    Dashboard V5.3.1 Mobile Stabilization
 
    File Path:
    css/enterprise.css
 
-   V3.1.2:
-   - Replaces the Home emoji/SVG with a stable CSS-drawn icon
-   - Prevents iOS glyph substitution inside the active Home item
-   - Neutralizes legacy navigation pseudo-icons
-   - Preserves all other navigation icons
-   - Keeps all V3.1 mobile overflow and Hero fixes
+   V3.1.4:
+   - Final permanent Home navigation icon fix
+   - Removes broken inherited glyphs and pseudo-icons
+   - Uses a stable CSS background icon for iPhone Safari
+   - Preserves all existing navigation, mobile, Hero, and layout fixes
 ========================================================= */
 
 :root {
@@ -418,7 +417,6 @@ video {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Disable obsolete generated icons from style.css or old shells. */
 .aiw-nav-item::before,
 .aiw-nav-item::after,
 .enterprise-bottom-nav .nav-item::before,
@@ -465,47 +463,6 @@ video {
   opacity: 1 !important;
 }
 
-/* Stable CSS-drawn Home icon. */
-.aiw-nav-item > .nav-icon-home,
-.enterprise-bottom-nav .nav-item > .nav-icon-home {
-  font-family: inherit !important;
-  color: inherit !important;
-}
-
-.nav-icon-home .home-roof {
-  position: absolute;
-  top: 4px;
-  left: 7px;
-  width: 14px;
-  height: 14px;
-  border-top: 2.2px solid currentColor;
-  border-left: 2.2px solid currentColor;
-  transform: rotate(45deg);
-  transform-origin: center;
-}
-
-.nav-icon-home .home-body {
-  position: absolute;
-  left: 6px;
-  bottom: 3px;
-  width: 16px;
-  height: 12px;
-  border: 2.2px solid currentColor;
-  border-top: 0;
-  border-radius: 0 0 2px 2px;
-}
-
-.nav-icon-home .home-door {
-  position: absolute;
-  left: 12px;
-  bottom: 3px;
-  width: 5px;
-  height: 8px;
-  border: 2px solid currentColor;
-  border-bottom: 0;
-  border-radius: 2px 2px 0 0;
-}
-
 .aiw-nav-item small {
   display: block !important;
   width: 100%;
@@ -538,6 +495,106 @@ video {
 
 .aiw-nav-item:active {
   transform: scale(0.96);
+}
+
+/* =========================================================
+   Final Home Navigation Icon Fix V3.1.4
+========================================================= */
+
+#bottomNav button[data-route="dashboard"]::before,
+#bottomNav button[data-route="dashboard"]::after,
+#bottomNav button[data-route="dashboard"] > .nav-icon::before,
+#bottomNav button[data-route="dashboard"] > .nav-icon::after,
+#bottomNav button[data-route="dashboard"] > .nav-icon > * {
+  content: none !important;
+  display: none !important;
+}
+
+#bottomNav button[data-route="dashboard"] {
+  position: relative !important;
+  inset: auto !important;
+  display: flex !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: 60px !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 22px !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: 1 !important;
+  text-indent: 0 !important;
+  letter-spacing: 0 !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+#bottomNav button[data-route="dashboard"] > .nav-icon {
+  position: relative !important;
+  inset: auto !important;
+  display: block !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  max-width: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
+  flex: 0 0 24px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  text-indent: -9999px !important;
+  letter-spacing: 0 !important;
+  background-color: transparent !important;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475467' stroke-width='2.15' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 11.5 12 4l9 7.5'/%3E%3Cpath d='M5.5 10v10h13V10'/%3E%3Cpath d='M9.5 20v-6h5v6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: 22px 22px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+#bottomNav button[data-route="dashboard"].active > .nav-icon,
+#bottomNav button[data-route="dashboard"][aria-current="page"] > .nav-icon {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.15' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 11.5 12 4l9 7.5'/%3E%3Cpath d='M5.5 10v10h13V10'/%3E%3Cpath d='M9.5 20v-6h5v6'/%3E%3C/svg%3E") !important;
+}
+
+#bottomNav button[data-route="dashboard"] > small {
+  position: static !important;
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  color: inherit !important;
+  font-family: inherit !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+  line-height: 1.1 !important;
+  text-indent: 0 !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  background: transparent !important;
+  transform: none !important;
+  filter: none !important;
 }
 
 /* =========================================================
@@ -632,7 +689,8 @@ video {
   }
 
   .aiw-nav-item,
-  .enterprise-bottom-nav .nav-item {
+  .enterprise-bottom-nav .nav-item,
+  #bottomNav button[data-route="dashboard"] {
     height: 58px !important;
     border-radius: 20px !important;
   }
@@ -648,7 +706,19 @@ video {
     line-height: 27px !important;
   }
 
-  .aiw-nav-item small {
+  #bottomNav button[data-route="dashboard"] > .nav-icon {
+    width: 23px !important;
+    height: 23px !important;
+    min-width: 23px !important;
+    max-width: 23px !important;
+    min-height: 23px !important;
+    max-height: 23px !important;
+    flex-basis: 23px !important;
+    background-size: 21px 21px !important;
+  }
+
+  .aiw-nav-item small,
+  #bottomNav button[data-route="dashboard"] > small {
     font-size: 9px !important;
   }
 }
@@ -713,7 +783,8 @@ video {
     padding-inline: 7px !important;
   }
 
-  .aiw-nav-item small {
+  .aiw-nav-item small,
+  #bottomNav button[data-route="dashboard"] > small {
     font-size: 8.4px !important;
   }
 }
@@ -763,135 +834,4 @@ video {
   line-height: 1.4;
   font-weight: 700;
   overflow-wrap: anywhere;
-}
-
-
-/* =========================================================
-   Stable Home Navigation Icon V3.1.3
-   Pure CSS icon — no emoji, SVG, font, or generated letter
-========================================================= */
-
-#bottomNav [data-route="dashboard"]::before,
-#bottomNav [data-route="dashboard"]::after,
-#bottomNav [data-route="dashboard"] .nav-icon-home::before,
-#bottomNav [data-route="dashboard"] .nav-icon-home::after,
-#bottomNav [data-route="dashboard"] .home-roof::before,
-#bottomNav [data-route="dashboard"] .home-roof::after,
-#bottomNav [data-route="dashboard"] .home-body::before,
-#bottomNav [data-route="dashboard"] .home-body::after,
-#bottomNav [data-route="dashboard"] .home-door::before,
-#bottomNav [data-route="dashboard"] .home-door::after {
-  content: none !important;
-  display: none !important;
-}
-
-#bottomNav [data-route="dashboard"] .nav-icon-home {
-  position: relative !important;
-  inset: auto !important;
-
-  display: block !important;
-  width: 24px !important;
-  height: 24px !important;
-  min-width: 24px !important;
-  max-width: 24px !important;
-  flex: 0 0 24px !important;
-
-  margin: 0 !important;
-  padding: 0 !important;
-
-  overflow: visible !important;
-
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-
-  color: inherit !important;
-  font-size: 0 !important;
-  line-height: 0 !important;
-  letter-spacing: 0 !important;
-  text-indent: 0 !important;
-
-  opacity: 1 !important;
-  transform: none !important;
-  filter: none !important;
-}
-
-#bottomNav [data-route="dashboard"] .home-roof {
-  position: absolute !important;
-  top: 3px !important;
-  left: 50% !important;
-
-  display: block !important;
-  width: 15px !important;
-  height: 15px !important;
-
-  border-top: 2.2px solid currentColor !important;
-  border-left: 2.2px solid currentColor !important;
-  border-radius: 1px !important;
-
-  background: transparent !important;
-
-  transform:
-    translateX(-50%)
-    rotate(45deg) !important;
-
-  transform-origin: center !important;
-}
-
-#bottomNav [data-route="dashboard"] .home-body {
-  position: absolute !important;
-  right: 4px !important;
-  bottom: 2px !important;
-  left: 4px !important;
-
-  display: block !important;
-  height: 13px !important;
-
-  border:
-    2.2px solid currentColor !important;
-  border-top: 0 !important;
-  border-radius:
-    0 0 2px 2px !important;
-
-  background: transparent !important;
-}
-
-#bottomNav [data-route="dashboard"] .home-door {
-  position: absolute !important;
-  bottom: 2px !important;
-  left: 50% !important;
-
-  display: block !important;
-  width: 5px !important;
-  height: 8px !important;
-
-  border:
-    2px solid currentColor !important;
-  border-bottom: 0 !important;
-  border-radius:
-    2px 2px 0 0 !important;
-
-  background: transparent !important;
-
-  transform:
-    translateX(-50%) !important;
-}
-
-#bottomNav [data-route="dashboard"].active .nav-icon-home,
-#bottomNav [data-route="dashboard"].active .home-roof,
-#bottomNav [data-route="dashboard"].active .home-body,
-#bottomNav [data-route="dashboard"].active .home-door {
-  color: #ffffff !important;
-  filter: none !important;
-}
-
-@media (max-width: 430px) {
-  #bottomNav [data-route="dashboard"] .nav-icon-home {
-    width: 23px !important;
-    height: 23px !important;
-    min-width: 23px !important;
-    max-width: 23px !important;
-    flex-basis: 23px !important;
-  }
 }
