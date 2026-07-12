@@ -1,19 +1,21 @@
 /* =========================================================
-   AI Work - Enterprise Application Shell V5.1
+   AI Work - Enterprise Application Shell V5.2
    Enterprise Biometric Intelligence Platform
    Store V2.3 Native Architecture
 
    File Path:
    js/core/shell.js
 
-   V5.1 Performance Stabilization:
-   - Removes legacy is-active navigation class
+   V5.2 Final Navigation Stabilization:
+   - Preserves the existing index.html application layout
+   - Never replaces the static bottom navigation
+   - Permanently restores the Dashboard/Home SVG icon
+   - Removes conflicting generated navigation pseudo-icons
+   - Re-applies icon protection after route and DOM changes
    - Keeps App as the single route-state owner
-   - Reduces Shell refresh work during navigation
    - Filters background integration Store events
    - Debounces platform-health refreshes
-   - Prevents repeated route-state recalculation
-   - Preserves language, appearance, footer, and legacy ATCShell
+   - Preserves language, appearance, footer, and ATCShell compatibility
 ========================================================= */
 
 (function () {
@@ -21,14 +23,28 @@
 
   window.AIW = window.AIW || {};
 
+  const HOME_ICON_SVG = `
+    <svg
+      viewBox="0 0 24 24"
+      focusable="false"
+      aria-hidden="true"
+    >
+      <path d="M3 11.5L12 4l9 7.5"></path>
+      <path d="M5.5 10v10h13V10"></path>
+      <path d="M9.5 20v-6h5v6"></path>
+    </svg>
+  `;
+
   const Shell = {
     id: "shell",
-    version: "5.1.0",
+    version: "5.2.0",
 
     _initialized: false,
     _eventsBound: false,
     _storeUnsubscribe: null,
     _refreshTimer: null,
+    _navigationRepairTimer: null,
+    _navigationObserver: null,
     _mountedByShell: false,
     _lastRoute: null,
     _lastStatusSignature: null,
@@ -226,9 +242,13 @@
 
     init(root = null) {
       if (this._initialized) {
-        if (root) this.root = root;
+        if (root) {
+          this.root = root;
+        }
 
         this.cacheElements();
+        this.installNavigationProtection();
+        this.ensureBottomNavigationIntegrity();
         this.applySettings();
         this.updateRouteState();
         this.scheduleStatusRefresh("shell-reinit");
@@ -242,10 +262,13 @@
         root ||
         document.getElementById("app") ||
         document.getElementById("appRoot") ||
-        document.querySelector("[data-aiw-shell]") ||
+        document.querySelector("[data-aiw-root]") ||
         document.body;
 
       this.cacheElements();
+      this.installNavigationProtection();
+      this.ensureBottomNavigationIntegrity();
+      this.observeBottomNavigation();
       this.bindEvents();
       this.bindStore();
       this.applySettings();
@@ -254,14 +277,8 @@
 
       this.emit("aiw:shellReady", {
         version: this.version,
-        mounted:
-          Boolean(
-            document.querySelector(
-              "[data-aiw-shell]"
-            )
-          ),
-        timestamp:
-          new Date().toISOString()
+        mounted: Boolean(this.root),
+        timestamp: new Date().toISOString()
       });
 
       return this;
@@ -270,18 +287,14 @@
     cacheElements() {
       this.main =
         document.getElementById("appMain") ||
-        document.querySelector(
-          "[data-app-main]"
-        ) ||
+        document.querySelector("[data-app-main]") ||
         null;
 
       if (!this.root) {
         this.root =
           document.getElementById("app") ||
           document.getElementById("appRoot") ||
-          document.querySelector(
-            "[data-aiw-shell]"
-          ) ||
+          document.querySelector("[data-aiw-root]") ||
           document.body;
       }
 
@@ -289,6 +302,208 @@
         root: this.root,
         main: this.main
       };
+    },
+
+    /* =======================================================
+       Permanent Bottom Navigation Protection
+    ======================================================= */
+
+    installNavigationProtection() {
+      const styleId =
+        "aiw-shell-navigation-protection";
+
+      if (document.getElementById(styleId)) {
+        return true;
+      }
+
+      const style =
+        document.createElement("style");
+
+      style.id = styleId;
+
+      style.textContent = `
+        #bottomNav [data-aiw-home-button]::before,
+        #bottomNav [data-aiw-home-button]::after,
+        #bottomNav [data-aiw-home-button] .nav-icon::before,
+        #bottomNav [data-aiw-home-button] .nav-icon::after {
+          content: none !important;
+          display: none !important;
+        }
+
+        #bottomNav [data-aiw-home-button] {
+          text-indent: 0 !important;
+          font-size: inherit !important;
+        }
+
+        #bottomNav [data-aiw-home-button] > .aiw-home-icon {
+          position: static !important;
+          inset: auto !important;
+          display: grid !important;
+          width: 28px !important;
+          height: 28px !important;
+          min-width: 28px !important;
+          max-width: 28px !important;
+          flex: 0 0 28px !important;
+          place-items: center !important;
+          overflow: visible !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+          color: currentColor !important;
+          font-size: 0 !important;
+          line-height: 1 !important;
+          letter-spacing: 0 !important;
+          text-indent: 0 !important;
+          transform: none !important;
+          box-shadow: none !important;
+          filter: none !important;
+          opacity: 1 !important;
+        }
+
+        #bottomNav [data-aiw-home-button] > .aiw-home-icon svg {
+          display: block !important;
+          width: 23px !important;
+          height: 23px !important;
+          max-width: none !important;
+          overflow: visible !important;
+          fill: none !important;
+          stroke: currentColor !important;
+          stroke-width: 2 !important;
+          stroke-linecap: round !important;
+          stroke-linejoin: round !important;
+          pointer-events: none !important;
+          transform: none !important;
+          filter: none !important;
+          opacity: 1 !important;
+        }
+
+        #bottomNav [data-aiw-home-button].active > .aiw-home-icon,
+        #bottomNav [data-aiw-home-button][aria-current="page"] > .aiw-home-icon {
+          color: #ffffff !important;
+        }
+      `;
+
+      document.head.appendChild(style);
+
+      return true;
+    },
+
+    ensureBottomNavigationIntegrity() {
+      const bottomNav =
+        document.getElementById("bottomNav");
+
+      if (!bottomNav) {
+        return false;
+      }
+
+      const homeButton =
+        bottomNav.querySelector(
+          '[data-route="dashboard"], [data-module="dashboard"]'
+        );
+
+      if (!homeButton) {
+        return false;
+      }
+
+      homeButton.setAttribute(
+        "data-aiw-home-button",
+        ""
+      );
+
+      let icon =
+        homeButton.querySelector(
+          ":scope > .nav-icon"
+        );
+
+      if (!icon) {
+        icon = document.createElement("span");
+        icon.className =
+          "nav-icon aiw-home-icon";
+        icon.setAttribute(
+          "aria-hidden",
+          "true"
+        );
+
+        homeButton.prepend(icon);
+      }
+
+      icon.classList.add(
+        "nav-icon",
+        "aiw-home-icon"
+      );
+
+      const currentMarkup =
+        icon.innerHTML
+          .replace(/\s+/g, "")
+          .toLowerCase();
+
+      const expectedMarker =
+        'viewbox="002424"';
+
+      if (
+        !currentMarkup.includes("<svg") ||
+        !currentMarkup.includes(expectedMarker)
+      ) {
+        icon.innerHTML =
+          HOME_ICON_SVG;
+      }
+
+      Array
+        .from(homeButton.childNodes)
+        .filter(node =>
+          node.nodeType === Node.TEXT_NODE &&
+          node.textContent.trim()
+        )
+        .forEach(node => node.remove());
+
+      return true;
+    },
+
+    scheduleNavigationRepair() {
+      window.clearTimeout(
+        this._navigationRepairTimer
+      );
+
+      this._navigationRepairTimer =
+        window.setTimeout(
+          () => {
+            this.installNavigationProtection();
+            this.ensureBottomNavigationIntegrity();
+          },
+          0
+        );
+    },
+
+    observeBottomNavigation() {
+      if (this._navigationObserver) {
+        return;
+      }
+
+      const bottomNav =
+        document.getElementById("bottomNav");
+
+      if (!bottomNav) {
+        return;
+      }
+
+      this._navigationObserver =
+        new MutationObserver(() => {
+          this.scheduleNavigationRepair();
+        });
+
+      this._navigationObserver.observe(
+        bottomNav,
+        {
+          childList: true,
+          subtree: true,
+          characterData: true,
+          attributes: true,
+          attributeFilter: [
+            "class",
+            "aria-current"
+          ]
+        }
+      );
     },
 
     /* =======================================================
@@ -318,7 +533,7 @@
         }
       } catch (error) {
         console.warn(
-          "[AIW.Shell V5.1] Unable to read Store data:",
+          "[AIW.Shell V5.2] Unable to read Store data:",
           error
         );
       }
@@ -354,7 +569,7 @@
         }
       } catch (error) {
         console.warn(
-          "[AIW.Shell V5.1] Unable to read settings:",
+          "[AIW.Shell V5.2] Unable to read settings:",
           error
         );
       }
@@ -425,7 +640,7 @@
         }
       } catch (error) {
         console.warn(
-          "[AIW.Shell V5.1] Settings update failed:",
+          "[AIW.Shell V5.2] Settings update failed:",
           error
         );
       }
@@ -1005,6 +1220,8 @@
         route ||
         this.getCurrentRoute();
 
+      this.ensureBottomNavigationIntegrity();
+
       if (
         currentRoute === this._lastRoute
       ) {
@@ -1046,6 +1263,8 @@
             );
           }
         });
+
+      this.ensureBottomNavigationIntegrity();
 
       this.updateCurrentPageLabel(
         currentRoute
@@ -1165,6 +1384,7 @@
             event?.detail?.route
           );
 
+          this.scheduleNavigationRepair();
           this.closeNavigation();
         }
       );
@@ -1188,6 +1408,7 @@
         "aiw:dataUpdated",
         "aiw:storeChanged",
         "aiw:moduleRegistered",
+        "aiw:moduleRendered",
         "aiw:appReady"
       ].forEach(eventName => {
         window.addEventListener(
@@ -1196,15 +1417,35 @@
             this.scheduleStatusRefresh(
               eventName
             );
+
+            this.scheduleNavigationRepair();
           }
         );
       });
+
+      window.addEventListener(
+        "pageshow",
+        () => {
+          this.scheduleNavigationRepair();
+        }
+      );
 
       window.addEventListener(
         "resize",
         () => {
           if (window.innerWidth > 1024) {
             this.closeNavigation();
+          }
+        }
+      );
+
+      document.addEventListener(
+        "visibilitychange",
+        () => {
+          if (
+            document.visibilityState === "visible"
+          ) {
+            this.scheduleNavigationRepair();
           }
         }
       );
@@ -1285,7 +1526,7 @@
         }
       } catch (error) {
         console.warn(
-          "[AIW.Shell V5.1] Store subscription failed:",
+          "[AIW.Shell V5.2] Store subscription failed:",
           error
         );
       }
@@ -1379,7 +1620,9 @@
     },
 
     /* =======================================================
-       Render Helpers
+       Legacy Render Helpers
+       These remain for compatibility only.
+       They are never used to replace the current index layout.
     ======================================================= */
 
     renderNavigation() {
@@ -1421,200 +1664,7 @@
     },
 
     render() {
-      const language =
-        this.getLanguage();
-
-      const status =
-        this.getPlatformStatus();
-
-      const appConfig =
-        this.getAppConfig();
-
-      const appName =
-        appConfig.shortName ||
-        "AI Work";
-
-      const platformName =
-        appConfig.englishName ||
-        appConfig.name ||
-        "Enterprise Biometric Intelligence Platform";
-
-      const currentRoute =
-        this.getCurrentRoute();
-
-      const currentItem =
-        this.getNavigationItems()
-          .find(
-            item =>
-              item.id === currentRoute
-          );
-
-      const currentLabel =
-        currentItem
-          ? (
-              language === "en"
-                ? currentItem.titleEn
-                : currentItem.title
-            )
-          : (
-              language === "en"
-                ? "Dashboard"
-                : "الرئيسية"
-            );
-
-      return `
-        <div
-          class="atc-shell"
-          data-aiw-shell
-          data-shell-version="${this.version}"
-        >
-          <header class="atc-topbar">
-            <div class="atc-brand">
-              <div
-                class="atc-logo"
-                aria-hidden="true"
-              >
-                AI
-              </div>
-
-              <div>
-                <strong>
-                  ${this.escapeHTML(appName)}
-                </strong>
-
-                <span>
-                  ${this.escapeHTML(platformName)}
-                </span>
-              </div>
-            </div>
-
-            <div class="atc-topbar-center">
-              <div
-                class="atc-platform-status ${status.className}"
-                data-platform-status
-                data-health="${status.health}"
-                data-core-ready="${status.coreReady}"
-                title="Platform Health ${status.health}%"
-              >
-                <span
-                  class="atc-status-dot"
-                  aria-hidden="true"
-                ></span>
-
-                <span data-platform-health-label>
-                  ${
-                    language === "en"
-                      ? status.labelEn
-                      : status.label
-                  }
-                </span>
-
-                <strong data-platform-health-value>
-                  ${status.health}%
-                </strong>
-              </div>
-            </div>
-
-            <div class="atc-top-actions">
-              <button
-                class="atc-icon-btn"
-                type="button"
-                data-shell-menu-toggle
-                aria-label="${
-                  language === "en"
-                    ? "Open navigation"
-                    : "فتح قائمة التنقل"
-                }"
-                aria-expanded="false"
-              >
-                ☰
-              </button>
-
-              <button
-                class="atc-icon-btn"
-                id="atcLangBtn"
-                type="button"
-                data-language-toggle
-                aria-label="${
-                  language === "en"
-                    ? "Switch to Arabic"
-                    : "التبديل إلى الإنجليزية"
-                }"
-              >
-                ${
-                  language === "en"
-                    ? "العربية"
-                    : "EN"
-                }
-              </button>
-            </div>
-          </header>
-
-          <nav
-            class="atc-shell-navigation"
-            aria-label="${
-              language === "en"
-                ? "Main navigation"
-                : "التنقل الرئيسي"
-            }"
-          >
-            <div class="atc-shell-navigation-inner">
-              ${this.renderNavigation()}
-            </div>
-          </nav>
-
-          <button
-            class="atc-shell-navigation-overlay"
-            type="button"
-            data-shell-navigation-overlay
-            aria-label="${
-              language === "en"
-                ? "Close navigation"
-                : "إغلاق قائمة التنقل"
-            }"
-          ></button>
-
-          <div class="atc-shell-context">
-            <span>
-              Executive Operating System
-            </span>
-
-            <strong data-current-page-label>
-              ${this.escapeHTML(currentLabel)}
-            </strong>
-          </div>
-
-          <main
-            id="appMain"
-            class="atc-app-main"
-            data-app-main
-            tabindex="-1"
-          ></main>
-
-          <footer class="atc-footer">
-            <div>
-              <strong>
-                ${this.escapeHTML(platformName)}
-              </strong>
-
-              <span>
-                ${this.escapeHTML(appName)}
-                · Shell V${this.version}
-              </span>
-            </div>
-
-            <div class="aiw-global-credit">
-              <span>
-                Designed &amp; Developed by
-              </span>
-
-              <strong>
-                يوسف الحوسني
-              </strong>
-            </div>
-          </footer>
-        </div>
-      `;
+      return "";
     },
 
     mount(container = null) {
@@ -1624,31 +1674,18 @@
         document.getElementById("appRoot") ||
         document.body;
 
-      if (!target) return false;
-
-      const existingShell =
-        target.querySelector?.(
-          ":scope > [data-aiw-shell]"
-        );
-
-      if (existingShell) {
-        this.root = target;
-        this.cacheElements();
-        this.init(target);
-
-        return true;
+      if (!target) {
+        return false;
       }
 
-      target.innerHTML =
-        this.render();
-
+      /*
+       * The live application layout is already provided by index.html.
+       * Shell V5.2 deliberately does not replace target.innerHTML.
+       */
       this.root = target;
-      this._mountedByShell = true;
-
       this.cacheElements();
       this.init(target);
-      this.updateRouteState();
-      this.updatePlatformStatus();
+      this.ensureBottomNavigationIntegrity();
 
       const app = this.getApp();
 
@@ -1662,14 +1699,10 @@
       this.emit(
         "aiw:shellMounted",
         {
-          version:
-            this.version,
-
-          mainFound:
-            Boolean(this.main),
-
-          timestamp:
-            new Date().toISOString()
+          version: this.version,
+          preservedStaticLayout: true,
+          mainFound: Boolean(this.main),
+          timestamp: new Date().toISOString()
         }
       );
 
@@ -1690,7 +1723,7 @@
         return true;
       } catch (error) {
         console.warn(
-          `[AIW.Shell V5.1] Event "${name}" failed:`,
+          `[AIW.Shell V5.2] Event "${name}" failed:`,
           error
         );
 
@@ -1716,6 +1749,12 @@
         this._refreshTimer
       );
 
+      window.clearTimeout(
+        this._navigationRepairTimer
+      );
+
+      this._navigationObserver?.disconnect();
+
       if (
         typeof this._storeUnsubscribe === "function"
       ) {
@@ -1723,22 +1762,26 @@
           this._storeUnsubscribe();
         } catch (error) {
           console.warn(
-            "[AIW.Shell V5.1] Store unsubscribe failed:",
+            "[AIW.Shell V5.2] Store unsubscribe failed:",
             error
           );
         }
       }
 
       if (
-        options.remove === true &&
-        this._mountedByShell &&
-        this.root
+        options.removeProtection === true
       ) {
-        this.root.innerHTML = "";
+        document
+          .getElementById(
+            "aiw-shell-navigation-protection"
+          )
+          ?.remove();
       }
 
       this._storeUnsubscribe = null;
       this._refreshTimer = null;
+      this._navigationRepairTimer = null;
+      this._navigationObserver = null;
       this._initialized = false;
       this._mountedByShell = false;
       this._lastRoute = null;
