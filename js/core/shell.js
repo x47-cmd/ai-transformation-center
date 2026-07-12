@@ -1,23 +1,19 @@
 /* =========================================================
-   AI Work - Enterprise Application Shell V5.0
+   AI Work - Enterprise Application Shell V5.1
    Enterprise Biometric Intelligence Platform
-   Store V2.2 Native Architecture
+   Store V2.3 Native Architecture
 
    File Path:
    js/core/shell.js
 
-   Responsibilities:
-   - Stable application layout
-   - Dynamic navigation from AIW.Config
-   - Global header and platform status
-   - Main module container
-   - Language and appearance synchronization
-   - AIW.Store V2.2 integration
-   - AIW.Router and AIW.App route synchronization
-   - Global footer credit
-   - Mobile navigation state
-   - Legacy ATCShell compatibility
-   - No dashboard content duplication
+   V5.1 Performance Stabilization:
+   - Removes legacy is-active navigation class
+   - Keeps App as the single route-state owner
+   - Reduces Shell refresh work during navigation
+   - Filters background integration Store events
+   - Debounces platform-health refreshes
+   - Prevents repeated route-state recalculation
+   - Preserves language, appearance, footer, and legacy ATCShell
 ========================================================= */
 
 (function () {
@@ -27,13 +23,15 @@
 
   const Shell = {
     id: "shell",
-    version: "5.0.0",
+    version: "5.1.0",
 
     _initialized: false,
     _eventsBound: false,
     _storeUnsubscribe: null,
     _refreshTimer: null,
     _mountedByShell: false,
+    _lastRoute: null,
+    _lastStatusSignature: null,
 
     root: null,
     main: null,
@@ -43,7 +41,7 @@
         id: "dashboard",
         title: "الرئيسية",
         titleEn: "Dashboard",
-        icon: "⌂",
+        icon: "🏠",
         enabled: true,
         order: 1
       },
@@ -51,7 +49,7 @@
         id: "strategy",
         title: "الاستراتيجية",
         titleEn: "Strategy",
-        icon: "◎",
+        icon: "🎯",
         enabled: true,
         order: 2
       },
@@ -59,7 +57,7 @@
         id: "projects",
         title: "المشاريع",
         titleEn: "Projects",
-        icon: "▣",
+        icon: "📁",
         enabled: true,
         order: 3
       },
@@ -67,7 +65,7 @@
         id: "ideas",
         title: "الأفكار",
         titleEn: "Ideas",
-        icon: "✦",
+        icon: "💡",
         enabled: true,
         order: 4
       },
@@ -75,7 +73,7 @@
         id: "governance",
         title: "الحوكمة",
         titleEn: "Governance",
-        icon: "◇",
+        icon: "🛡️",
         enabled: true,
         order: 5
       },
@@ -83,7 +81,7 @@
         id: "maturity",
         title: "النضج",
         titleEn: "Maturity",
-        icon: "◫",
+        icon: "📈",
         enabled: true,
         order: 6
       },
@@ -91,7 +89,7 @@
         id: "reports",
         title: "التقارير",
         titleEn: "Reports",
-        icon: "▤",
+        icon: "📊",
         enabled: true,
         order: 7
       },
@@ -99,7 +97,7 @@
         id: "kpis",
         title: "المؤشرات",
         titleEn: "KPIs",
-        icon: "◈",
+        icon: "📌",
         enabled: true,
         order: 8
       },
@@ -107,7 +105,7 @@
         id: "business",
         title: "الجدوى",
         titleEn: "Business Case",
-        icon: "◉",
+        icon: "💼",
         enabled: true,
         order: 9
       },
@@ -115,7 +113,7 @@
         id: "automation",
         title: "الأتمتة",
         titleEn: "Automation",
-        icon: "⚙",
+        icon: "⚙️",
         enabled: true,
         order: 10
       },
@@ -123,7 +121,7 @@
         id: "decision",
         title: "القرار",
         titleEn: "Decision",
-        icon: "⌘",
+        icon: "🧠",
         enabled: true,
         order: 11
       },
@@ -131,15 +129,15 @@
         id: "settings",
         title: "المزيد",
         titleEn: "More",
-        icon: "•••",
+        icon: "⋮",
         enabled: true,
         order: 12
       }
     ],
 
-    /* =========================================================
+    /* =======================================================
        Configuration
-    ========================================================= */
+    ======================================================= */
 
     getConfig() {
       return (
@@ -151,17 +149,12 @@
     },
 
     getAppConfig() {
-      return (
-        this.getConfig().app ||
-        {}
-      );
+      return this.getConfig().app || {};
     },
 
     getNavigationItems() {
       const configured =
-        this.getConfig()
-          ?.navigation
-          ?.modules;
+        this.getConfig()?.navigation?.modules;
 
       const source =
         Array.isArray(configured) &&
@@ -170,10 +163,11 @@
           : this.fallbackNavigationItems;
 
       return source
-        .filter(item =>
-          item &&
-          item.id &&
-          item.enabled !== false
+        .filter(
+          item =>
+            item &&
+            item.id &&
+            item.enabled !== false
         )
         .map((item, index) => ({
           ...item,
@@ -221,27 +215,23 @@
 
     getDefaultRoute() {
       return (
-        this.getConfig()
-          ?.navigation
-          ?.defaultModule ||
+        this.getConfig()?.navigation?.defaultModule ||
         "dashboard"
       );
     },
 
-    /* =========================================================
+    /* =======================================================
        Initialization
-    ========================================================= */
+    ======================================================= */
 
     init(root = null) {
       if (this._initialized) {
-        if (root) {
-          this.root = root;
-        }
+        if (root) this.root = root;
 
         this.cacheElements();
         this.applySettings();
         this.updateRouteState();
-        this.updatePlatformStatus();
+        this.scheduleStatusRefresh("shell-reinit");
 
         return this;
       }
@@ -261,7 +251,6 @@
       this.applySettings();
       this.updateRouteState();
       this.updatePlatformStatus();
-      this.registerMetadata();
 
       this.emit("aiw:shellReady", {
         version: this.version,
@@ -302,46 +291,34 @@
       };
     },
 
-    /* =========================================================
+    /* =======================================================
        Store and Data Access
-    ========================================================= */
+    ======================================================= */
 
     getStore() {
-      return (
-        window.AIW?.Store ||
-        null
-      );
+      return window.AIW?.Store || null;
     },
 
     getData() {
-      const store =
-        this.getStore();
+      const store = this.getStore();
 
       try {
         if (
           store &&
-          typeof store.getState ===
-            "function"
+          typeof store.getState === "function"
         ) {
-          return (
-            store.getState() ||
-            {}
-          );
+          return store.getState() || {};
         }
 
         if (
           store &&
-          typeof store.getData ===
-            "function"
+          typeof store.getData === "function"
         ) {
-          return (
-            store.getData() ||
-            {}
-          );
+          return store.getData() || {};
         }
       } catch (error) {
         console.warn(
-          "[AIW.Shell V5.0] Unable to read Store data:",
+          "[AIW.Shell V5.1] Unable to read Store data:",
           error
         );
       }
@@ -350,49 +327,41 @@
     },
 
     getSettings() {
-      const store =
-        this.getStore();
+      const store = this.getStore();
 
       try {
         if (
           store &&
-          typeof store.getSettings ===
-            "function"
+          typeof store.getSettings === "function"
         ) {
-          const settings =
-            store.getSettings();
+          const settings = store.getSettings();
 
           if (
             settings &&
-            typeof settings ===
-              "object"
+            typeof settings === "object"
           ) {
             return settings;
           }
         }
 
-        const state =
-          this.getData();
+        const state = this.getData();
 
         if (
           state.settings &&
-          typeof state.settings ===
-            "object"
+          typeof state.settings === "object"
         ) {
           return state.settings;
         }
       } catch (error) {
         console.warn(
-          "[AIW.Shell V5.0] Unable to read settings:",
+          "[AIW.Shell V5.1] Unable to read settings:",
           error
         );
       }
 
       return {
         language:
-          this.getConfig()
-            ?.language
-            ?.default ||
+          this.getConfig()?.language?.default ||
           "ar",
 
         locale:
@@ -404,9 +373,7 @@
           "rtl",
 
         theme:
-          this.getConfig()
-            ?.theme
-            ?.default ||
+          this.getConfig()?.theme?.default ||
           "light",
 
         compactMode: false
@@ -414,8 +381,7 @@
     },
 
     updateSettings(changes = {}) {
-      const store =
-        this.getStore();
+      const store = this.getStore();
 
       if (
         !changes ||
@@ -427,8 +393,7 @@
       try {
         if (
           store &&
-          typeof store.saveSettings ===
-            "function"
+          typeof store.saveSettings === "function"
         ) {
           return store.saveSettings({
             ...this.getSettings(),
@@ -438,8 +403,7 @@
 
         if (
           store &&
-          typeof store.setSettings ===
-            "function"
+          typeof store.setSettings === "function"
         ) {
           return store.setSettings({
             ...this.getSettings(),
@@ -449,8 +413,7 @@
 
         if (
           store &&
-          typeof store.patch ===
-            "function"
+          typeof store.patch === "function"
         ) {
           return store.patch(
             "settings",
@@ -462,7 +425,7 @@
         }
       } catch (error) {
         console.warn(
-          "[AIW.Shell V5.0] Settings update failed:",
+          "[AIW.Shell V5.1] Settings update failed:",
           error
         );
       }
@@ -470,20 +433,18 @@
       return false;
     },
 
-    /* =========================================================
+    /* =======================================================
        Platform Status
-    ========================================================= */
+    ======================================================= */
 
     getPlatformStatus() {
-      const data =
-        this.getData();
+      const data = this.getData();
 
       const configuredModules =
         this.getNavigationItems();
 
       const registeredModules =
-        window.AIW?.Modules ||
-        {};
+        window.AIW?.Modules || {};
 
       const totalModules =
         configuredModules.length;
@@ -491,121 +452,71 @@
       const readyModules =
         configuredModules.filter(item => {
           const module =
-            registeredModules[
-              item.id
-            ];
+            registeredModules[item.id];
 
           return Boolean(
             module &&
-            typeof module.render ===
-              "function"
+            typeof module.render === "function"
           );
         }).length;
 
       const engines = {
-        Store:
-          Boolean(
-            window.AIW?.Store
-          ),
-
-        Router:
-          Boolean(
-            window.AIW?.Router ||
-            window.ATCRouter
-          ),
-
-        App:
-          Boolean(
-            window.AIW?.App ||
-            window.ATCApp
-          ),
-
-        Shell:
-          true,
-
-        Widgets:
-          Boolean(
-            window.AIW?.Widgets
-          ),
-
-        Charts:
-          Boolean(
-            window.AIW?.Charts
-          ),
-
-        Analytics:
-          Boolean(
-            window.AIW?.Analytics
-          ),
-
-        BiometricAnalytics:
-          Boolean(
-            window.AIW
-              ?.BiometricAnalytics
-          ),
-
-        Automation:
-          Boolean(
-            window.AIW?.Automation
-          ),
-
-        AI:
-          Boolean(
-            window.AIW?.AI ||
-            window.AIW?.AIEngine
-          ),
-
-        Decision:
-          Boolean(
-            window.AIW
-              ?.Decision ||
-            window.AIW
-              ?.DecisionEngine ||
-            window.ATCDecisionEngine
-          ),
-
-        Recommendation:
-          Boolean(
-            window.AIW
-              ?.Recommendation ||
-            window.AIW
-              ?.RecommendationEngine ||
-            window.ATCRecommendationEngine
-          ),
-
-        Notifications:
-          Boolean(
-            window.AIW
-              ?.Notifications ||
-            window.ATCNotifications
-          ),
-
-        Permissions:
-          Boolean(
-            window.AIW
-              ?.Permissions ||
-            window.ATCPermissions
-          ),
-
-        Export:
-          Boolean(
-            window.AIW?.Export ||
-            window.ATCExport
-          )
+        Store: Boolean(window.AIW?.Store),
+        Router: Boolean(
+          window.AIW?.Router ||
+          window.ATCRouter
+        ),
+        App: Boolean(
+          window.AIW?.App ||
+          window.ATCApp
+        ),
+        Shell: true,
+        Widgets: Boolean(window.AIW?.Widgets),
+        Charts: Boolean(window.AIW?.Charts),
+        Analytics: Boolean(window.AIW?.Analytics),
+        BiometricAnalytics: Boolean(
+          window.AIW?.BiometricAnalytics
+        ),
+        Automation: Boolean(
+          window.AIW?.Automation
+        ),
+        AI: Boolean(
+          window.AIW?.AI ||
+          window.AIW?.AIEngine
+        ),
+        Decision: Boolean(
+          window.AIW?.Decision ||
+          window.AIW?.DecisionEngine ||
+          window.ATCDecisionEngine
+        ),
+        Recommendation: Boolean(
+          window.AIW?.Recommendation ||
+          window.AIW?.RecommendationEngine ||
+          window.ATCRecommendationEngine
+        ),
+        Notifications: Boolean(
+          window.AIW?.Notifications ||
+          window.ATCNotifications
+        ),
+        Permissions: Boolean(
+          window.AIW?.Permissions ||
+          window.ATCPermissions
+        ),
+        Export: Boolean(
+          window.AIW?.Export ||
+          window.ATCExport
+        )
       };
 
       const engineEntries =
-        Object.entries(
-          engines
-        );
+        Object.entries(engines);
 
       const totalEngines =
         engineEntries.length;
 
       const activeEngines =
         engineEntries.filter(
-          ([, active]) =>
-            active
+          ([, active]) => active
         ).length;
 
       const coreReady =
@@ -630,23 +541,17 @@
       ];
 
       const availableCollections =
-        collections.filter(
-          value => {
-            if (
-              Array.isArray(value)
-            ) {
-              return value.length > 0;
-            }
-
-            return Boolean(
-              value &&
-              typeof value ===
-                "object" &&
-              Object.keys(value)
-                .length > 0
-            );
+        collections.filter(value => {
+          if (Array.isArray(value)) {
+            return value.length > 0;
           }
-        ).length;
+
+          return Boolean(
+            value &&
+            typeof value === "object" &&
+            Object.keys(value).length > 0
+          );
+        }).length;
 
       const moduleScore =
         totalModules
@@ -680,21 +585,12 @@
         );
 
       if (!coreReady) {
-        health =
-          Math.min(
-            health,
-            54
-          );
+        health = Math.min(health, 54);
       }
 
-      let label =
-        "يحتاج مراجعة";
-
-      let labelEn =
-        "Needs Review";
-
-      let className =
-        "orange";
+      let label = "يحتاج مراجعة";
+      let labelEn = "Needs Review";
+      let className = "orange";
 
       if (
         coreReady &&
@@ -710,23 +606,16 @@
         label = "مستقر";
         labelEn = "Stable";
         className = "green";
-      } else if (
-        health >= 55
-      ) {
+      } else if (health >= 55) {
         label = "قيد التطوير";
         labelEn = "In Development";
         className = "orange";
       }
 
       if (!coreReady) {
-        label =
-          "Core غير مكتمل";
-
-        labelEn =
-          "Core Incomplete";
-
-        className =
-          "orange";
+        label = "Core غير مكتمل";
+        labelEn = "Core Incomplete";
+        className = "orange";
       }
 
       return {
@@ -749,6 +638,25 @@
     updatePlatformStatus() {
       const status =
         this.getPlatformStatus();
+
+      const signature = [
+        status.health,
+        status.label,
+        status.className,
+        status.readyModules,
+        status.activeEngines,
+        status.availableCollections
+      ].join("|");
+
+      if (
+        signature ===
+        this._lastStatusSignature
+      ) {
+        return status;
+      }
+
+      this._lastStatusSignature =
+        signature;
 
       const language =
         this.getLanguage();
@@ -802,27 +710,22 @@
         );
 
         indicatorElement.dataset.health =
-          String(
-            status.health
-          );
+          String(status.health);
 
         indicatorElement.dataset.coreReady =
-          String(
-            status.coreReady
-          );
+          String(status.coreReady);
       }
 
       return status;
     },
 
-    /* =========================================================
+    /* =======================================================
        Language and Appearance
-    ========================================================= */
+    ======================================================= */
 
     getLanguage() {
       return (
-        this.getSettings()
-          .language === "en"
+        this.getSettings().language === "en"
           ? "en"
           : "ar"
       );
@@ -861,9 +764,7 @@
 
       document.body.classList.toggle(
         "aiw-compact-mode",
-        Boolean(
-          settings.compactMode
-        )
+        Boolean(settings.compactMode)
       );
 
       document.body.classList.toggle(
@@ -876,11 +777,8 @@
         theme !== "dark"
       );
 
-      this.updateLanguageLabels(
-        language
-      );
-
-      this.updatePlatformStatus();
+      this.updateLanguageLabels(language);
+      this.scheduleStatusRefresh("settings");
 
       return settings;
     },
@@ -906,12 +804,9 @@
 
       const updated =
         this.updateSettings({
-          language:
-            nextLanguage,
-          direction:
-            nextDirection,
-          locale:
-            nextLocale
+          language: nextLanguage,
+          direction: nextDirection,
+          locale: nextLocale
         });
 
       document.documentElement.lang =
@@ -927,14 +822,10 @@
       this.emit(
         "aiw:languageChanged",
         {
-          language:
-            nextLanguage,
-          direction:
-            nextDirection,
-          locale:
-            nextLocale,
-          persisted:
-            Boolean(updated),
+          language: nextLanguage,
+          direction: nextDirection,
+          locale: nextLocale,
+          persisted: Boolean(updated),
           timestamp:
             new Date().toISOString()
         }
@@ -945,7 +836,9 @@
       return nextLanguage;
     },
 
-    updateLanguageLabels(language = this.getLanguage()) {
+    updateLanguageLabels(
+      language = this.getLanguage()
+    ) {
       document
         .querySelectorAll(
           "[data-route-label]"
@@ -1003,9 +896,9 @@
       this.updateCurrentPageLabel();
     },
 
-    /* =========================================================
+    /* =======================================================
        Navigation
-    ========================================================= */
+    ======================================================= */
 
     getRouter() {
       return (
@@ -1024,15 +917,13 @@
     },
 
     navigate(route, options = {}) {
-      const router =
-        this.getRouter();
+      const app = this.getApp();
 
       if (
-        router &&
-        typeof router.navigate ===
-          "function"
+        app &&
+        typeof app.go === "function"
       ) {
-        return router.navigate(
+        return app.go(
           route,
           {
             source:
@@ -1043,15 +934,14 @@
         );
       }
 
-      const app =
-        this.getApp();
+      const router =
+        this.getRouter();
 
       if (
-        app &&
-        typeof app.go ===
-          "function"
+        router &&
+        typeof router.navigate === "function"
       ) {
-        return app.go(
+        return router.navigate(
           route,
           {
             source:
@@ -1070,13 +960,28 @@
     },
 
     getCurrentRoute() {
+      const app = this.getApp();
+
+      if (
+        app &&
+        typeof app.getCurrentRoute === "function"
+      ) {
+        try {
+          return (
+            app.getCurrentRoute() ||
+            this.getDefaultRoute()
+          );
+        } catch (error) {
+          // Router fallback below.
+        }
+      }
+
       const router =
         this.getRouter();
 
       if (
         router &&
-        typeof router.getCurrentRoute ===
-          "function"
+        typeof router.getCurrentRoute === "function"
       ) {
         try {
           return (
@@ -1084,22 +989,8 @@
             this.getDefaultRoute()
           );
         } catch (error) {
-          // App fallback below.
+          // Hash fallback below.
         }
-      }
-
-      const app =
-        this.getApp();
-
-      if (
-        app &&
-        typeof app.getCurrentRoute ===
-          "function"
-      ) {
-        return (
-          app.getCurrentRoute() ||
-          this.getDefaultRoute()
-        );
       }
 
       return (
@@ -1114,10 +1005,21 @@
         route ||
         this.getCurrentRoute();
 
+      if (
+        currentRoute === this._lastRoute
+      ) {
+        this.updateCurrentPageLabel(
+          currentRoute
+        );
+
+        return currentRoute;
+      }
+
+      this._lastRoute =
+        currentRoute;
+
       document
-        .querySelectorAll(
-          "[data-route]"
-        )
+        .querySelectorAll("[data-route]")
         .forEach(element => {
           const elementRoute =
             element.getAttribute(
@@ -1130,11 +1032,6 @@
 
           element.classList.toggle(
             "active",
-            active
-          );
-
-          element.classList.toggle(
-            "is-active",
             active
           );
 
@@ -1195,13 +1092,11 @@
     },
 
     refreshCurrentModule() {
-      const app =
-        this.getApp();
+      const app = this.getApp();
 
       if (
         app &&
-        typeof app.refresh ===
-          "function"
+        typeof app.refresh === "function"
       ) {
         app.refresh();
         return true;
@@ -1210,22 +1105,19 @@
       this.emit(
         "aiw:refreshCurrentModule",
         {
-          source:
-            "shell"
+          source: "shell"
         }
       );
 
       return false;
     },
 
-    /* =========================================================
+    /* =======================================================
        Events
-    ========================================================= */
+    ======================================================= */
 
     bindEvents() {
-      if (this._eventsBound) {
-        return;
-      }
+      if (this._eventsBound) return;
 
       this._eventsBound = true;
 
@@ -1296,26 +1188,22 @@
         "aiw:dataUpdated",
         "aiw:storeChanged",
         "aiw:moduleRegistered",
-        "aiw:moduleRendered",
         "aiw:appReady"
-      ].forEach(
-        eventName => {
-          window.addEventListener(
-            eventName,
-            () => {
-              this.scheduleStatusRefresh();
-            }
-          );
-        }
-      );
+      ].forEach(eventName => {
+        window.addEventListener(
+          eventName,
+          () => {
+            this.scheduleStatusRefresh(
+              eventName
+            );
+          }
+        );
+      });
 
       window.addEventListener(
         "resize",
         () => {
-          if (
-            window.innerWidth >
-            1024
-          ) {
+          if (window.innerWidth > 1024) {
             this.closeNavigation();
           }
         }
@@ -1324,10 +1212,7 @@
       document.addEventListener(
         "keydown",
         event => {
-          if (
-            event.key ===
-            "Escape"
-          ) {
+          if (event.key === "Escape") {
             this.closeNavigation();
           }
         }
@@ -1335,8 +1220,7 @@
     },
 
     bindStore() {
-      const store =
-        this.getStore();
+      const store = this.getStore();
 
       if (
         !store ||
@@ -1345,45 +1229,71 @@
         return;
       }
 
+      const ignoredTypes = new Set([
+        "aiw:metadataChanged",
+        "metadata",
+        "persist",
+        "routeChanged",
+        "integration:updated",
+        "integration:sync",
+        "dashboard:sync",
+        "dashboard:updated",
+        "kpi:recalculated",
+        "kpi:updated",
+        "reports:rebuilt",
+        "reports:updated",
+        "recommendations:updated",
+        "health:updated",
+        "timeline:updated",
+        "notification:updated",
+        "ai-analysis-updated",
+        "aiw:ai-ui:updated"
+      ]);
+
       try {
         if (
-          typeof store.subscribe ===
-            "function"
+          typeof store.subscribe === "function"
         ) {
           this._storeUnsubscribe =
-            store.subscribe(
-              change => {
-                const type =
-                  String(
-                    change?.type ||
-                    change?.event ||
-                    change?.action ||
-                    ""
-                  );
+            store.subscribe(change => {
+              const type =
+                String(
+                  change?.type ||
+                  change?.event ||
+                  change?.action ||
+                  ""
+                );
 
-                if (
-                  type
-                    .toLowerCase()
-                    .includes(
-                      "settings"
-                    )
-                ) {
-                  this.applySettings();
-                }
-
-                this.scheduleStatusRefresh();
+              if (ignoredTypes.has(type)) {
+                return;
               }
-            );
+
+              if (
+                type
+                  .toLowerCase()
+                  .includes("settings")
+              ) {
+                this.applySettings();
+                return;
+              }
+
+              this.scheduleStatusRefresh(
+                type ||
+                "store-change"
+              );
+            });
         }
       } catch (error) {
         console.warn(
-          "[AIW.Shell V5.0] Store subscription failed:",
+          "[AIW.Shell V5.1] Store subscription failed:",
           error
         );
       }
     },
 
-    scheduleStatusRefresh() {
+    scheduleStatusRefresh(
+      source = "shell"
+    ) {
       window.clearTimeout(
         this._refreshTimer
       );
@@ -1392,15 +1302,21 @@
         window.setTimeout(
           () => {
             this.updatePlatformStatus();
-            this.updateRouteState();
+
+            if (
+              source === "aiw:appReady" ||
+              source === "aiw:moduleRegistered"
+            ) {
+              this.updateRouteState();
+            }
           },
-          100
+          240
         );
     },
 
-    /* =========================================================
+    /* =======================================================
        Mobile Navigation
-    ========================================================= */
+    ======================================================= */
 
     toggleNavigation() {
       const shell =
@@ -1408,9 +1324,7 @@
           ".atc-shell"
         );
 
-      if (!shell) {
-        return false;
-      }
+      if (!shell) return false;
 
       const opened =
         shell.classList.toggle(
@@ -1464,53 +1378,9 @@
       }
     },
 
-    /* =========================================================
-       Metadata
-    ========================================================= */
-
-    registerMetadata() {
-      const store =
-        this.getStore();
-
-      if (!store) {
-        return false;
-      }
-
-      try {
-        if (
-          typeof store.setMetadata ===
-            "function"
-        ) {
-          store.setMetadata({
-            shellVersion:
-              this.version,
-
-            shellArchitecture:
-              "Enterprise Application Shell",
-
-            shellNavigationCount:
-              this.getNavigationItems()
-                .length,
-
-            lastShellInitialization:
-              new Date().toISOString()
-          });
-
-          return true;
-        }
-      } catch (error) {
-        console.warn(
-          "[AIW.Shell V5.0] Metadata registration skipped:",
-          error
-        );
-      }
-
-      return false;
-    },
-
-    /* =========================================================
+    /* =======================================================
        Render Helpers
-    ========================================================= */
+    ======================================================= */
 
     renderNavigation() {
       const language =
@@ -1522,9 +1392,7 @@
           <button
             class="atc-icon-btn"
             type="button"
-            data-route="${this.escapeHTML(
-              item.id
-            )}"
+            data-route="${this.escapeHTML(item.id)}"
             aria-label="${this.escapeHTML(
               language === "en"
                 ? item.titleEn
@@ -1535,15 +1403,11 @@
               class="atc-nav-icon"
               aria-hidden="true"
             >
-              ${this.escapeHTML(
-                item.icon
-              )}
+              ${this.escapeHTML(item.icon)}
             </span>
 
             <span
-              data-route-label="${this.escapeHTML(
-                item.id
-              )}"
+              data-route-label="${this.escapeHTML(item.id)}"
             >
               ${this.escapeHTML(
                 language === "en"
@@ -1582,8 +1446,7 @@
         this.getNavigationItems()
           .find(
             item =>
-              item.id ===
-              currentRoute
+              item.id === currentRoute
           );
 
       const currentLabel =
@@ -1616,15 +1479,11 @@
 
               <div>
                 <strong>
-                  ${this.escapeHTML(
-                    appName
-                  )}
+                  ${this.escapeHTML(appName)}
                 </strong>
 
                 <span>
-                  ${this.escapeHTML(
-                    platformName
-                  )}
+                  ${this.escapeHTML(platformName)}
                 </span>
               </div>
             </div>
@@ -1721,9 +1580,7 @@
             </span>
 
             <strong data-current-page-label>
-              ${this.escapeHTML(
-                currentLabel
-              )}
+              ${this.escapeHTML(currentLabel)}
             </strong>
           </div>
 
@@ -1737,15 +1594,11 @@
           <footer class="atc-footer">
             <div>
               <strong>
-                ${this.escapeHTML(
-                  platformName
-                )}
+                ${this.escapeHTML(platformName)}
               </strong>
 
               <span>
-                ${this.escapeHTML(
-                  appName
-                )}
+                ${this.escapeHTML(appName)}
                 · Shell V${this.version}
               </span>
             </div>
@@ -1771,9 +1624,7 @@
         document.getElementById("appRoot") ||
         document.body;
 
-      if (!target) {
-        return false;
-      }
+      if (!target) return false;
 
       const existingShell =
         target.querySelector?.(
@@ -1799,15 +1650,13 @@
       this.updateRouteState();
       this.updatePlatformStatus();
 
-      const app =
-        this.getApp();
+      const app = this.getApp();
 
       if (
         app &&
         !app.main
       ) {
-        app.main =
-          this.main;
+        app.main = this.main;
       }
 
       this.emit(
@@ -1817,9 +1666,7 @@
             this.version,
 
           mainFound:
-            Boolean(
-              this.main
-            ),
+            Boolean(this.main),
 
           timestamp:
             new Date().toISOString()
@@ -1836,16 +1683,14 @@
         window.dispatchEvent(
           new CustomEvent(
             name,
-            {
-              detail
-            }
+            { detail }
           )
         );
 
         return true;
       } catch (error) {
         console.warn(
-          `[AIW.Shell V5.0] Event "${name}" failed:`,
+          `[AIW.Shell V5.1] Event "${name}" failed:`,
           error
         );
 
@@ -1862,9 +1707,9 @@
         .replace(/'/g, "&#039;");
     },
 
-    /* =========================================================
+    /* =======================================================
        Cleanup
-    ========================================================= */
+    ======================================================= */
 
     destroy(options = {}) {
       window.clearTimeout(
@@ -1872,14 +1717,13 @@
       );
 
       if (
-        typeof this._storeUnsubscribe ===
-          "function"
+        typeof this._storeUnsubscribe === "function"
       ) {
         try {
           this._storeUnsubscribe();
         } catch (error) {
           console.warn(
-            "[AIW.Shell V5.0] Store unsubscribe failed:",
+            "[AIW.Shell V5.1] Store unsubscribe failed:",
             error
           );
         }
@@ -1890,22 +1734,23 @@
         this._mountedByShell &&
         this.root
       ) {
-        this.root.innerHTML =
-          "";
+        this.root.innerHTML = "";
       }
 
       this._storeUnsubscribe = null;
       this._refreshTimer = null;
       this._initialized = false;
       this._mountedByShell = false;
+      this._lastRoute = null;
+      this._lastStatusSignature = null;
       this.root = null;
       this.main = null;
     }
   };
 
-  /* =========================================================
+  /* =======================================================
      Global References
-  ========================================================= */
+  ======================================================= */
 
   AIW.Shell = Shell;
   window.ATCShell = Shell;
