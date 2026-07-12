@@ -1,16 +1,17 @@
 /* =========================================================
    AI Work
-   Enterprise Styles V3.1.4
+   Enterprise Styles V3.1.5
    Dashboard V5.3.1 Mobile Stabilization
 
    File Path:
    css/enterprise.css
 
-   V3.1.4:
-   - Final permanent Home navigation icon fix
-   - Removes broken inherited glyphs and pseudo-icons
-   - Uses a stable CSS background icon for iPhone Safari
-   - Preserves all existing navigation, mobile, Hero, and layout fixes
+   V3.1.5:
+   - Definitive Home navigation icon fix for the CURRENT index markup
+   - Removes the broken ⌂ glyph visually without changing index.html
+   - Uses an iPhone-safe CSS mask icon
+   - Removes invalid <style> tags from CSS
+   - Preserves Hero, mobile layout, bottom navigation, and global credit
 ========================================================= */
 
 :root {
@@ -498,47 +499,19 @@ video {
 }
 
 /* =========================================================
-   Final Home Navigation Icon Fix V3.1.4
+   Definitive Dashboard Home Icon Fix V3.1.5
+
+   CURRENT index.html markup:
+   <button data-route="dashboard" data-module="dashboard">
+     <span class="nav-icon">⌂</span>
+   </button>
 ========================================================= */
 
-#bottomNav button[data-route="dashboard"]::before,
-#bottomNav button[data-route="dashboard"]::after,
-#bottomNav button[data-route="dashboard"] > .nav-icon::before,
-#bottomNav button[data-route="dashboard"] > .nav-icon::after,
-#bottomNav button[data-route="dashboard"] > .nav-icon > * {
-  content: none !important;
-  display: none !important;
-}
-
-#bottomNav button[data-route="dashboard"] {
+#bottomNav button[data-route="dashboard"] > .nav-icon,
+#bottomNav button[data-module="dashboard"] > .nav-icon {
   position: relative !important;
   inset: auto !important;
-  display: flex !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  height: 60px !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 4px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-  border: 0 !important;
-  border-radius: 22px !important;
-  font-family: inherit !important;
-  font-size: inherit !important;
-  line-height: 1 !important;
-  text-indent: 0 !important;
-  letter-spacing: 0 !important;
-  transform: none !important;
-  filter: none !important;
-}
 
-#bottomNav button[data-route="dashboard"] > .nav-icon {
-  position: relative !important;
-  inset: auto !important;
   display: block !important;
   width: 24px !important;
   height: 24px !important;
@@ -547,54 +520,60 @@ video {
   min-height: 24px !important;
   max-height: 24px !important;
   flex: 0 0 24px !important;
+
   margin: 0 !important;
   padding: 0 !important;
-  overflow: hidden !important;
+  overflow: visible !important;
+
   border: 0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
-  color: transparent !important;
+
+  color: inherit !important;
+  font-family: inherit !important;
   font-size: 0 !important;
   line-height: 0 !important;
-  text-indent: -9999px !important;
   letter-spacing: 0 !important;
-  background-color: transparent !important;
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475467' stroke-width='2.15' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 11.5 12 4l9 7.5'/%3E%3Cpath d='M5.5 10v10h13V10'/%3E%3Cpath d='M9.5 20v-6h5v6'/%3E%3C/svg%3E") !important;
-  background-repeat: no-repeat !important;
-  background-position: center !important;
-  background-size: 22px 22px !important;
-  opacity: 1 !important;
-  visibility: visible !important;
+  text-indent: -9999px !important;
+
+  background-color: currentColor !important;
+  background-image: none !important;
+
+  -webkit-mask-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2.65 2.5 10.4a1 1 0 0 0 1.26 1.55L5 10.94V20a1 1 0 0 0 1 1h4.25a1 1 0 0 0 1-1v-5h1.5v5a1 1 0 0 0 1 1H18a1 1 0 0 0 1-1v-9.06l1.24 1.01a1 1 0 1 0 1.26-1.55L12 2.65Z'/%3E%3C/svg%3E") !important;
+
+  mask-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2.65 2.5 10.4a1 1 0 0 0 1.26 1.55L5 10.94V20a1 1 0 0 0 1 1h4.25a1 1 0 0 0 1-1v-5h1.5v5a1 1 0 0 0 1 1H18a1 1 0 0 0 1-1v-9.06l1.24 1.01a1 1 0 1 0 1.26-1.55L12 2.65Z'/%3E%3C/svg%3E") !important;
+
+  -webkit-mask-repeat: no-repeat !important;
+  mask-repeat: no-repeat !important;
+
+  -webkit-mask-position: center !important;
+  mask-position: center !important;
+
+  -webkit-mask-size: contain !important;
+  mask-size: contain !important;
+
   transform: none !important;
   filter: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+#bottomNav button[data-route="dashboard"] > .nav-icon::before,
+#bottomNav button[data-route="dashboard"] > .nav-icon::after,
+#bottomNav button[data-module="dashboard"] > .nav-icon::before,
+#bottomNav button[data-module="dashboard"] > .nav-icon::after {
+  content: none !important;
+  display: none !important;
 }
 
 #bottomNav button[data-route="dashboard"].active > .nav-icon,
-#bottomNav button[data-route="dashboard"][aria-current="page"] > .nav-icon {
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.15' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 11.5 12 4l9 7.5'/%3E%3Cpath d='M5.5 10v10h13V10'/%3E%3Cpath d='M9.5 20v-6h5v6'/%3E%3C/svg%3E") !important;
-}
-
-#bottomNav button[data-route="dashboard"] > small {
-  position: static !important;
-  display: block !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-  color: inherit !important;
-  font-family: inherit !important;
-  font-size: 10px !important;
-  font-weight: 900 !important;
-  line-height: 1.1 !important;
-  text-indent: 0 !important;
-  white-space: nowrap !important;
-  text-overflow: ellipsis !important;
-  background: transparent !important;
-  transform: none !important;
-  filter: none !important;
+#bottomNav button[data-route="dashboard"][aria-current="page"] > .nav-icon,
+#bottomNav button[data-module="dashboard"].active > .nav-icon,
+#bottomNav button[data-module="dashboard"][aria-current="page"] > .nav-icon {
+  color: #ffffff !important;
+  background-color: #ffffff !important;
 }
 
 /* =========================================================
@@ -689,8 +668,7 @@ video {
   }
 
   .aiw-nav-item,
-  .enterprise-bottom-nav .nav-item,
-  #bottomNav button[data-route="dashboard"] {
+  .enterprise-bottom-nav .nav-item {
     height: 58px !important;
     border-radius: 20px !important;
   }
@@ -706,19 +684,18 @@ video {
     line-height: 27px !important;
   }
 
-  #bottomNav button[data-route="dashboard"] > .nav-icon {
-    width: 23px !important;
-    height: 23px !important;
-    min-width: 23px !important;
-    max-width: 23px !important;
-    min-height: 23px !important;
-    max-height: 23px !important;
-    flex-basis: 23px !important;
-    background-size: 21px 21px !important;
+  #bottomNav button[data-route="dashboard"] > .nav-icon,
+  #bottomNav button[data-module="dashboard"] > .nav-icon {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    max-width: 22px !important;
+    min-height: 22px !important;
+    max-height: 22px !important;
+    flex-basis: 22px !important;
   }
 
-  .aiw-nav-item small,
-  #bottomNav button[data-route="dashboard"] > small {
+  .aiw-nav-item small {
     font-size: 9px !important;
   }
 }
@@ -783,8 +760,7 @@ video {
     padding-inline: 7px !important;
   }
 
-  .aiw-nav-item small,
-  #bottomNav button[data-route="dashboard"] > small {
+  .aiw-nav-item small {
     font-size: 8.4px !important;
   }
 }
@@ -823,7 +799,7 @@ video {
   font-size: 10px;
   line-height: 1.4;
   font-weight: 500;
-  letter-spacing: .35px;
+  letter-spacing: 0.35px;
   overflow-wrap: anywhere;
 }
 
@@ -835,88 +811,3 @@ video {
   font-weight: 700;
   overflow-wrap: anywhere;
 }
-
-<style id="aiw-final-home-icon">
-  #bottomNav [data-aiw-home-button]::before,
-  #bottomNav [data-aiw-home-button]::after,
-  #bottomNav [data-aiw-home-button] .aiw-home-icon::before,
-  #bottomNav [data-aiw-home-button] .aiw-home-icon::after,
-  #bottomNav [data-aiw-home-button] .aiw-home-roof::before,
-  #bottomNav [data-aiw-home-button] .aiw-home-roof::after,
-  #bottomNav [data-aiw-home-button] .aiw-home-body::before,
-  #bottomNav [data-aiw-home-button] .aiw-home-body::after,
-  #bottomNav [data-aiw-home-button] .aiw-home-door::before,
-  #bottomNav [data-aiw-home-button] .aiw-home-door::after {
-    content: none !important;
-    display: none !important;
-  }
-
-  #bottomNav [data-aiw-home-button] .aiw-home-icon {
-    position: relative !important;
-    display: block !important;
-    width: 24px !important;
-    height: 24px !important;
-    min-width: 24px !important;
-    max-width: 24px !important;
-    min-height: 24px !important;
-    max-height: 24px !important;
-    flex: 0 0 24px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
-    border: 0 !important;
-    background: transparent !important;
-    color: inherit !important;
-    font-family: Arial, sans-serif !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-    text-indent: 0 !important;
-    transform: none !important;
-    filter: none !important;
-  }
-
-  #bottomNav [data-aiw-home-button] .aiw-home-roof {
-    position: absolute !important;
-    top: 3px !important;
-    left: 50% !important;
-    display: block !important;
-    width: 15px !important;
-    height: 15px !important;
-    border-top: 2.2px solid currentColor !important;
-    border-left: 2.2px solid currentColor !important;
-    background: transparent !important;
-    transform: translateX(-50%) rotate(45deg) !important;
-  }
-
-  #bottomNav [data-aiw-home-button] .aiw-home-body {
-    position: absolute !important;
-    right: 4px !important;
-    bottom: 2px !important;
-    left: 4px !important;
-    display: block !important;
-    height: 13px !important;
-    border: 2.2px solid currentColor !important;
-    border-top: 0 !important;
-    border-radius: 0 0 2px 2px !important;
-    background: transparent !important;
-  }
-
-  #bottomNav [data-aiw-home-button] .aiw-home-door {
-    position: absolute !important;
-    bottom: 2px !important;
-    left: 50% !important;
-    display: block !important;
-    width: 5px !important;
-    height: 8px !important;
-    border: 2px solid currentColor !important;
-    border-bottom: 0 !important;
-    border-radius: 2px 2px 0 0 !important;
-    background: transparent !important;
-    transform: translateX(-50%) !important;
-  }
-
-  #bottomNav [data-aiw-home-button].active .aiw-home-icon,
-  #bottomNav [data-aiw-home-button][aria-current="page"] .aiw-home-icon {
-    color: #ffffff !important;
-  }
-</style>
