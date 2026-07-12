@@ -4221,3 +4221,146 @@ button:disabled {
     flex-direction: column;
   }
 }
+
+
+/* =========================================================
+   AI Work - Final Home Icon Fix
+   Append this block at the VERY END of:
+   css/style.css
+
+   Purpose:
+   - Forces the Home SVG to render correctly on iPhone
+   - Prevents legacy pseudo-elements from covering the icon
+   - Prevents inherited span rules from deforming the icon
+   - Leaves all other page styles unchanged
+========================================================= */
+
+#bottomNav [data-aiw-home-button]::before,
+#bottomNav [data-aiw-home-button]::after,
+#bottomNav [data-aiw-home-button] .aiw-home-icon::before,
+#bottomNav [data-aiw-home-button] .aiw-home-icon::after,
+#bottomNav [data-aiw-home-button] .aiw-home-icon svg::before,
+#bottomNav [data-aiw-home-button] .aiw-home-icon svg::after {
+  content: none !important;
+  display: none !important;
+}
+
+#bottomNav [data-aiw-home-button] {
+  position: relative !important;
+}
+
+#bottomNav [data-aiw-home-button] .aiw-home-icon {
+  position: relative !important;
+  inset: auto !important;
+
+  display: grid !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  max-width: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
+  flex: 0 0 24px !important;
+
+  place-items: center !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+
+  color: inherit !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  letter-spacing: 0 !important;
+  text-indent: 0 !important;
+  text-transform: none !important;
+
+  transform: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+#bottomNav [data-aiw-home-button] .aiw-home-icon svg {
+  position: static !important;
+
+  display: block !important;
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  max-width: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+
+  color: inherit !important;
+  transform: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+
+  pointer-events: none !important;
+}
+
+#bottomNav [data-aiw-home-button] .aiw-home-icon svg path {
+  display: block !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  vector-effect: non-scaling-stroke;
+}
+
+#bottomNav [data-aiw-home-button].active .aiw-home-icon,
+#bottomNav [data-aiw-home-button][aria-current="page"] .aiw-home-icon,
+#bottomNav [data-aiw-home-button].active .aiw-home-icon svg,
+#bottomNav [data-aiw-home-button][aria-current="page"] .aiw-home-icon svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  background: transparent !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+#bottomNav [data-aiw-home-button].active .aiw-home-icon svg path,
+#bottomNav [data-aiw-home-button][aria-current="page"] .aiw-home-icon svg path {
+  stroke: #ffffff !important;
+}
+
+@media (max-width: 430px) {
+  #bottomNav [data-aiw-home-button] .aiw-home-icon {
+    width: 23px !important;
+    height: 23px !important;
+    min-width: 23px !important;
+    max-width: 23px !important;
+    min-height: 23px !important;
+    max-height: 23px !important;
+    flex-basis: 23px !important;
+  }
+
+  #bottomNav [data-aiw-home-button] .aiw-home-icon svg {
+    width: 21px !important;
+    height: 21px !important;
+    min-width: 21px !important;
+    max-width: 21px !important;
+    min-height: 21px !important;
+    max-height: 21px !important;
+  }
+}
