@@ -1,23 +1,20 @@
 /* =========================================================
-   AI Work - Core Router V5.0
-   Enterprise Safe Navigation Bridge
-   Store V2.2 Native Architecture
+   AI Work - Core Router V5.1
+   Enterprise Lightweight Navigation Bridge
+   Store V2.3 Native Architecture
 
    File Path:
    js/core/router.js
 
-   Features:
-   - Dynamic routes from AIW.Config navigation registry
-   - AIW.Router unified interface
-   - AIW.App and ATCApp compatibility
-   - Legacy ATCRouter compatibility
-   - Route validation and aliases
-   - Hash navigation and history support
-   - Current and previous route persistence
-   - Invalid route fallback
-   - Duplicate navigation prevention
-   - Safe navigation event emission
-   - No operational data inside the router
+   V5.1 Performance Stabilization:
+   - AIW.App remains the single owner of module rendering
+   - Router acts only as a lightweight navigation API
+   - Removes independent hashchange listeners
+   - Removes duplicate route persistence
+   - Removes duplicate routeChanged emissions
+   - Prevents Router → App → Router navigation loops
+   - Uses AIW.App History API behavior
+   - Preserves ATCRouter legacy compatibility
 ========================================================= */
 
 (function () {
@@ -27,14 +24,13 @@
 
   const Router = {
     id: "router",
-    version: "5.0.0",
+    version: "5.1.0",
 
     _initialized: false,
-    _hashBound: false,
     _navigating: false,
     _lastNavigationKey: null,
-    _previousRoute: null,
     _currentRoute: null,
+    _previousRoute: null,
 
     fallbackRoutes: [
       "dashboard",
@@ -95,9 +91,9 @@
       preferences: "settings"
     },
 
-    /* =========================================================
+    /* =======================================================
        Configuration
-    ========================================================= */
+    ======================================================= */
 
     getConfig() {
       return (
@@ -108,11 +104,17 @@
       );
     },
 
+    getApp() {
+      return (
+        window.AIW?.App ||
+        window.ATCApp ||
+        null
+      );
+    },
+
     getDefaultRoute() {
       const configured =
-        this.getConfig()
-          ?.navigation
-          ?.defaultModule;
+        this.getConfig()?.navigation?.defaultModule;
 
       const normalized =
         this.normalize(configured);
@@ -129,17 +131,16 @@
 
     getRoutes() {
       const modules =
-        this.getConfig()
-          ?.navigation
-          ?.modules;
+        this.getConfig()?.navigation?.modules;
 
       if (Array.isArray(modules)) {
         const configuredRoutes =
           modules
-            .filter(module =>
-              module &&
-              module.enabled !== false &&
-              module.id
+            .filter(
+              module =>
+                module &&
+                module.enabled !== false &&
+                module.id
             )
             .sort(
               (first, second) =>
@@ -167,19 +168,9 @@
       return this.getDefaultRoute();
     },
 
-    getStorageKey() {
-      return (
-        this.getConfig()
-          ?.storage
-          ?.currentModule ||
-        window.AIW?.KEYS?.currentModule ||
-        "aiwCurrentModule"
-      );
-    },
-
-    /* =========================================================
+    /* =======================================================
        Route Resolution
-    ========================================================= */
+    ======================================================= */
 
     normalize(route) {
       const raw =
@@ -212,8 +203,7 @@
       }
 
       if (
-        !this.getRoutes()
-          .includes(normalizedRoute)
+        !this.getRoutes().includes(normalizedRoute)
       ) {
         return this.getDefaultRoute();
       }
@@ -230,8 +220,7 @@
       }
 
       return Boolean(
-        this.getRoutes()
-          .includes(normalizedRoute) ||
+        this.getRoutes().includes(normalizedRoute) ||
         this.aliases[normalizedRoute]
       );
     },
@@ -245,9 +234,7 @@
         this.resolve(route);
 
       const modules =
-        this.getConfig()
-          ?.navigation
-          ?.modules;
+        this.getConfig()?.navigation?.modules;
 
       if (Array.isArray(modules)) {
         const moduleInfo =
@@ -265,8 +252,7 @@
         }
       }
 
-      const app =
-        this.getApp();
+      const app = this.getApp();
 
       if (
         app &&
@@ -276,12 +262,10 @@
           const appRoute =
             app.getRoute(resolvedRoute);
 
-          if (appRoute) {
-            return appRoute;
-          }
+          if (appRoute) return appRoute;
         } catch (error) {
           console.warn(
-            "AI Work Router V5.0: App route lookup failed.",
+            "[AIW.Router V5.1] App route lookup failed:",
             error
           );
         }
@@ -294,68 +278,44 @@
       };
     },
 
-    /* =========================================================
-       App Access
-    ========================================================= */
-
-    getApp() {
-      return (
-        window.AIW?.App ||
-        window.ATCApp ||
-        null
-      );
-    },
-
-    /* =========================================================
+    /* =======================================================
        Navigation
-    ========================================================= */
+    ======================================================= */
 
     navigate(route, options = {}) {
-      const normalizedOptions =
+      const config =
         this.normalizeOptions(options);
 
       const resolvedRoute =
         this.resolve(route);
 
+      const currentRoute =
+        this.getCurrentRoute();
+
       const navigationKey =
         [
           resolvedRoute,
-          normalizedOptions.updateHash,
-          normalizedOptions.replaceHash,
-          normalizedOptions.force,
-          normalizedOptions.source
+          config.updateHash,
+          config.replaceHash,
+          config.force
         ].join("|");
 
       if (
-        !normalizedOptions.force &&
-        this._lastNavigationKey ===
-          navigationKey &&
-        this.getCurrentRoute() ===
-          resolvedRoute
+        !config.force &&
+        currentRoute === resolvedRoute &&
+        this._lastNavigationKey === navigationKey
       ) {
         return resolvedRoute;
       }
 
-      this._lastNavigationKey =
-        navigationKey;
-
       if (this._navigating) {
-        if (normalizedOptions.updateHash) {
-          this.updateHash(
-            resolvedRoute,
-            normalizedOptions
-          );
-        }
-
         return resolvedRoute;
       }
 
       this._navigating = true;
+      this._lastNavigationKey = navigationKey;
 
       try {
-        const currentRoute =
-          this.getCurrentRoute();
-
         if (
           currentRoute &&
           currentRoute !== resolvedRoute
@@ -367,88 +327,46 @@
         this._currentRoute =
           resolvedRoute;
 
-        this.persistRoute(
-          resolvedRoute
+        const app = this.getApp();
+
+        if (
+          app &&
+          typeof app.go === "function"
+        ) {
+          app.go(
+            resolvedRoute,
+            {
+              updateHash:
+                config.updateHash,
+
+              replaceHash:
+                config.replaceHash,
+
+              force:
+                config.force,
+
+              scrollToTop:
+                config.scrollToTop,
+
+              source:
+                config.source ||
+                "router"
+            }
+          );
+
+          return resolvedRoute;
+        }
+
+        this.emitNavigationRequest(
+          resolvedRoute,
+          config
         );
 
-        const app =
-          this.getApp();
-
-        let handledByApp = false;
-
-        if (
-          app &&
-          typeof app.go === "function" &&
-          app !== this
-        ) {
-          try {
-            app.go(
-              resolvedRoute,
-              {
-                ...normalizedOptions,
-                source:
-                  normalizedOptions.source ||
-                  "router"
-              }
-            );
-
-            handledByApp = true;
-          } catch (error) {
-            console.error(
-              "AI Work Router V5.0: App navigation failed.",
-              error
-            );
-          }
-        }
-
-        if (
-          !handledByApp &&
-          app &&
-          typeof app.renderModule ===
-            "function"
-        ) {
-          try {
-            app.renderModule(
-              resolvedRoute,
-              {
-                force:
-                  normalizedOptions.force,
-                source:
-                  normalizedOptions.source ||
-                  "router"
-              }
-            );
-
-            handledByApp = true;
-          } catch (error) {
-            console.error(
-              "AI Work Router V5.0: App render failed.",
-              error
-            );
-          }
-        }
-
-        if (
-          normalizedOptions.updateHash
-        ) {
-          this.updateHash(
-            resolvedRoute,
-            normalizedOptions
-          );
-        }
-
-        if (
-          normalizedOptions.scrollToTop
-        ) {
-          this.scrollToTop();
-        }
-
-        this.emitNavigation(
-          resolvedRoute,
-          {
-            ...normalizedOptions,
-            handledByApp
-          }
+        return resolvedRoute;
+      } catch (error) {
+        console.error(
+          "[AIW.Router V5.1] Navigation failed:",
+          error
         );
 
         return resolvedRoute;
@@ -458,10 +376,7 @@
     },
 
     go(route, options = {}) {
-      return this.navigate(
-        route,
-        options
-      );
+      return this.navigate(route, options);
     },
 
     push(route, options = {}) {
@@ -496,13 +411,11 @@
       const resolvedRoute =
         this.resolve(route);
 
-      const app =
-        this.getApp();
+      const app = this.getApp();
 
       if (
         app &&
-        typeof app.renderModule ===
-          "function"
+        typeof app.renderModule === "function"
       ) {
         try {
           app.renderModule(
@@ -518,25 +431,10 @@
           this._currentRoute =
             resolvedRoute;
 
-          this.persistRoute(
-            resolvedRoute
-          );
-
-          this.emitNavigation(
-            resolvedRoute,
-            {
-              ...this.normalizeOptions(options),
-              force: true,
-              source:
-                options.source ||
-                "router-render"
-            }
-          );
-
           return resolvedRoute;
         } catch (error) {
           console.error(
-            "AI Work Router V5.0: renderModule failed.",
+            "[AIW.Router V5.1] renderModule failed:",
             error
           );
         }
@@ -555,35 +453,24 @@
     },
 
     refresh() {
-      const app =
-        this.getApp();
+      const app = this.getApp();
 
       if (
         app &&
-        typeof app.refresh ===
-          "function"
+        typeof app.refresh === "function"
       ) {
         try {
           app.refresh();
           return true;
         } catch (error) {
           console.error(
-            "AI Work Router V5.0: App refresh failed.",
+            "[AIW.Router V5.1] App refresh failed:",
             error
           );
         }
       }
 
-      this.render(
-        this.getCurrentRoute(),
-        {
-          force: true,
-          updateHash: false,
-          source: "router-refresh"
-        }
-      );
-
-      return true;
+      return false;
     },
 
     reload() {
@@ -597,26 +484,25 @@
       );
     },
 
-    /* =========================================================
+    /* =======================================================
        History
-    ========================================================= */
+    ======================================================= */
 
     back() {
       if (
         window.history &&
-        typeof window.history.back ===
-          "function"
+        typeof window.history.back === "function"
       ) {
         window.history.back();
         return true;
       }
 
       if (this._previousRoute) {
-        this.navigate(
+        this.replace(
           this._previousRoute,
           {
-            replaceHash: true,
-            source: "router-back-fallback"
+            source:
+              "router-back-fallback"
           }
         );
 
@@ -629,8 +515,7 @@
     forward() {
       if (
         window.history &&
-        typeof window.history.forward ===
-          "function"
+        typeof window.history.forward === "function"
       ) {
         window.history.forward();
         return true;
@@ -639,18 +524,16 @@
       return false;
     },
 
-    /* =========================================================
+    /* =======================================================
        Current Route
-    ========================================================= */
+    ======================================================= */
 
     getCurrentRoute() {
-      const app =
-        this.getApp();
+      const app = this.getApp();
 
       if (
         app &&
-        typeof app.getCurrentRoute ===
-          "function"
+        typeof app.getCurrentRoute === "function"
       ) {
         try {
           const route =
@@ -661,7 +544,7 @@
           }
         } catch (error) {
           console.warn(
-            "AI Work Router V5.0: getCurrentRoute failed.",
+            "[AIW.Router V5.1] getCurrentRoute failed:",
             error
           );
         }
@@ -682,24 +565,15 @@
         return this.resolve(hashRoute);
       }
 
-      const storedRoute =
-        this.readPersistedRoute();
-
-      if (storedRoute) {
-        return this.resolve(storedRoute);
-      }
-
       return this.getDefaultRoute();
     },
 
     getPreviousRoute() {
-      const app =
-        this.getApp();
+      const app = this.getApp();
 
       if (
         app &&
-        typeof app.getPreviousRoute ===
-          "function"
+        typeof app.getPreviousRoute === "function"
       ) {
         try {
           const route =
@@ -710,236 +584,74 @@
           }
         } catch (error) {
           console.warn(
-            "AI Work Router V5.0: getPreviousRoute failed.",
+            "[AIW.Router V5.1] getPreviousRoute failed:",
             error
           );
         }
       }
 
       return this._previousRoute
-        ? this.resolve(
-            this._previousRoute
-          )
+        ? this.resolve(this._previousRoute)
         : null;
     },
 
-    /* =========================================================
-       Hash Navigation
-    ========================================================= */
+    /* =======================================================
+       Lightweight Event Fallback
+    ======================================================= */
 
-    updateHash(route, options = {}) {
-      const resolvedRoute =
-        this.resolve(route);
-
-      const normalizedOptions =
-        this.normalizeOptions(options);
-
-      const nextHash =
-        `#${resolvedRoute}`;
-
-      if (
-        window.location.hash === nextHash
-      ) {
-        return resolvedRoute;
-      }
-
-      try {
-        if (
-          normalizedOptions.replaceHash &&
-          window.history &&
-          typeof window.history.replaceState ===
-            "function"
-        ) {
-          const nextUrl =
-            `${window.location.pathname}${window.location.search}${nextHash}`;
-
-          window.history.replaceState(
-            {
-              route: resolvedRoute
-            },
-            "",
-            nextUrl
-          );
-
-          return resolvedRoute;
-        }
-
-        window.location.hash =
-          resolvedRoute;
-      } catch (error) {
-        console.warn(
-          "AI Work Router V5.0: Hash update failed.",
-          error
-        );
-
-        window.location.hash =
-          resolvedRoute;
-      }
-
-      return resolvedRoute;
-    },
-
-    handleHashChange() {
-      if (this._navigating) {
-        return;
-      }
-
-      const rawRoute =
-        this.normalize(
-          window.location.hash
-        );
-
-      const resolvedRoute =
-        this.resolve(rawRoute);
-
-      if (
-        rawRoute &&
-        rawRoute !== resolvedRoute
-      ) {
-        this.updateHash(
-          resolvedRoute,
-          {
-            replaceHash: true,
-            source:
-              "router-invalid-hash"
-          }
-        );
-      }
-
-      this.navigate(
-        resolvedRoute,
-        {
-          updateHash: false,
-          replaceHash: false,
-          scrollToTop: true,
-          source: "router-hashchange"
-        }
-      );
-    },
-
-    bindHashNavigation() {
-      if (this._hashBound) {
-        return;
-      }
-
-      this._hashBound = true;
-
-      window.addEventListener(
-        "hashchange",
-        () => this.handleHashChange()
-      );
-    },
-
-    /* =========================================================
-       Persistence
-    ========================================================= */
-
-    persistRoute(route) {
-      try {
-        window.localStorage.setItem(
-          this.getStorageKey(),
-          this.resolve(route)
-        );
-      } catch (error) {
-        console.warn(
-          "AI Work Router V5.0: Route persistence failed.",
-          error
-        );
-      }
-    },
-
-    readPersistedRoute() {
-      try {
-        const stored =
-          window.localStorage.getItem(
-            this.getStorageKey()
-          );
-
-        return stored || null;
-      } catch (error) {
-        return null;
-      }
-    },
-
-    /* =========================================================
-       Events
-    ========================================================= */
-
-    emitNavigation(route, options = {}) {
-      const resolvedRoute =
-        this.resolve(route);
-
+    emitNavigationRequest(
+      route,
+      options = {}
+    ) {
       const detail = {
-        route: resolvedRoute,
-        previousRoute:
-          this.getPreviousRoute(),
-        routeInfo:
-          this.getRouteInfo(
-            resolvedRoute
-          ),
+        route:
+          this.resolve(route),
+
+        updateHash:
+          options.updateHash !== false,
+
+        replaceHash:
+          options.replaceHash === true,
+
+        force:
+          options.force === true,
+
+        scrollToTop:
+          options.scrollToTop !== false,
+
+        source:
+          options.source ||
+          "router",
+
         timestamp:
-          new Date().toISOString(),
-        ...this.normalizeOptions(options)
+          new Date().toISOString()
       };
 
       try {
         window.dispatchEvent(
           new CustomEvent(
             "aiw:navigate",
-            {
-              detail
-            }
+            { detail }
           )
         );
 
-        window.dispatchEvent(
-          new CustomEvent(
-            "aiw:routeChanged",
-            {
-              detail
-            }
-          )
-        );
-
-        const configuredEvent =
-          this.getConfig()
-            ?.events
-            ?.ROUTE_CHANGED;
-
-        if (
-          configuredEvent &&
-          ![
-            "aiw:navigate",
-            "aiw:routeChanged"
-          ].includes(configuredEvent)
-        ) {
-          window.dispatchEvent(
-            new CustomEvent(
-              configuredEvent,
-              {
-                detail
-              }
-            )
-          );
-        }
+        return true;
       } catch (error) {
         console.warn(
-          "AI Work Router V5.0: Navigation event failed.",
+          "[AIW.Router V5.1] Navigation request event failed:",
           error
         );
-      }
 
-      return resolvedRoute;
+        return false;
+      }
     },
 
-    /* =========================================================
+    /* =======================================================
        Options
-    ========================================================= */
+    ======================================================= */
 
     normalizeOptions(options) {
-      if (
-        typeof options === "boolean"
-      ) {
+      if (typeof options === "boolean") {
         return {
           updateHash: options,
           replaceHash: false,
@@ -974,21 +686,9 @@
       };
     },
 
-    scrollToTop() {
-      try {
-        window.scrollTo({
-          top: 0,
-          left: 0,
-          behavior: "auto"
-        });
-      } catch (error) {
-        window.scrollTo(0, 0);
-      }
-    },
-
-    /* =========================================================
+    /* =======================================================
        Initialization
-    ========================================================= */
+    ======================================================= */
 
     init(options = {}) {
       if (this._initialized) {
@@ -997,42 +697,34 @@
 
       this._initialized = true;
 
-      this.bindHashNavigation();
-
       const hashRoute =
         this.normalize(
           window.location.hash
         );
 
-      const storedRoute =
-        this.readPersistedRoute();
-
       const initialRoute =
         this.resolve(
           hashRoute ||
-          storedRoute ||
           this.getDefaultRoute()
         );
 
       this._currentRoute =
         initialRoute;
 
-      this.persistRoute(
-        initialRoute
-      );
-
-      if (
-        options.navigate !== false
-      ) {
+      if (options.navigate !== false) {
         this.navigate(
           initialRoute,
           {
             updateHash:
               options.updateHash !== false,
+
             replaceHash: true,
+
             force:
               options.force === true,
+
             scrollToTop: false,
+
             source:
               options.source ||
               "router-init"
@@ -1041,18 +733,28 @@
       }
 
       return initialRoute;
+    },
+
+    getStatus() {
+      return {
+        name: "Core Router",
+        version: this.version,
+        initialized:
+          this._initialized,
+        navigating:
+          this._navigating,
+        currentRoute:
+          this.getCurrentRoute(),
+        previousRoute:
+          this.getPreviousRoute()
+      };
     }
   };
 
-  /* =========================================================
+  /* =======================================================
      Global References
-  ========================================================= */
+  ======================================================= */
 
   AIW.Router = Router;
   window.ATCRouter = Router;
-
-  /*
-   * The router does not auto-render modules before AIW.App is ready.
-   * App bootstrap may call AIW.Router.init() after registering routes.
-   */
 })();
