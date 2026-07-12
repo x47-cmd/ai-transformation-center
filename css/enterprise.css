@@ -1,15 +1,16 @@
 /* =========================================================
    AI Work
-   Enterprise Styles V3.1.1
+   Enterprise Styles V3.1.2
    Dashboard V5.3.1 Mobile Stabilization
 
    File Path:
    css/enterprise.css
 
-   V3.1.1:
-   - Fixes the broken active Home navigation icon
+   V3.1.2:
+   - Replaces the Home emoji/SVG with a stable CSS-drawn icon
+   - Prevents iOS glyph substitution inside the active Home item
    - Neutralizes legacy navigation pseudo-icons
-   - Preserves emoji icons exactly as written in index.html
+   - Preserves all other navigation icons
    - Keeps all V3.1 mobile overflow and Hero fixes
 ========================================================= */
 
@@ -430,10 +431,9 @@ video {
   display: none !important;
 }
 
-/* Keep the real icon written in index.html. */
 .aiw-nav-item > .nav-icon,
 .enterprise-bottom-nav .nav-item > .nav-icon {
-  position: static !important;
+  position: relative !important;
   inset: auto !important;
   display: flex !important;
   width: 28px !important;
@@ -463,6 +463,47 @@ video {
   transform: none !important;
   box-shadow: none !important;
   opacity: 1 !important;
+}
+
+/* Stable CSS-drawn Home icon. */
+.aiw-nav-item > .nav-icon-home,
+.enterprise-bottom-nav .nav-item > .nav-icon-home {
+  font-family: inherit !important;
+  color: inherit !important;
+}
+
+.nav-icon-home .home-roof {
+  position: absolute;
+  top: 4px;
+  left: 7px;
+  width: 14px;
+  height: 14px;
+  border-top: 2.2px solid currentColor;
+  border-left: 2.2px solid currentColor;
+  transform: rotate(45deg);
+  transform-origin: center;
+}
+
+.nav-icon-home .home-body {
+  position: absolute;
+  left: 6px;
+  bottom: 3px;
+  width: 16px;
+  height: 12px;
+  border: 2.2px solid currentColor;
+  border-top: 0;
+  border-radius: 0 0 2px 2px;
+}
+
+.nav-icon-home .home-door {
+  position: absolute;
+  left: 12px;
+  bottom: 3px;
+  width: 5px;
+  height: 8px;
+  border: 2px solid currentColor;
+  border-bottom: 0;
+  border-radius: 2px 2px 0 0;
 }
 
 .aiw-nav-item small {
