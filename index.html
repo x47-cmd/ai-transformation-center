@@ -408,7 +408,7 @@
     id="app"
     class="aiw-app enterprise-app"
     data-aiw-root
-    data-version="5.4.6"
+    data-version="6.0.0"
   >
     <header
       id="appHeader"
@@ -571,14 +571,38 @@
   <script src="js/core/shell.js?v=5.1.0"></script>
 
   <!-- ===================================================== -->
-  <!-- 9. Application Modules                               -->
+  <!-- 9. AI Opportunity Generator - 17 Files               -->
+  <!-- All generator engines load before Ideas Module V6.0  -->
+  <!-- Bootstrap intentionally loads last                   -->
+  <!-- ===================================================== -->
+
+  <script src="js/extensions/ai-idea-generator/idea-generator.js?v=1.0.0"></script>
+  <script src="js/extensions/ai-idea-generator/idea-prompt-builder.js?v=1.0.0"></script>
+  <script src="js/extensions/ai-idea-generator/idea-validator.js?v=1.0.0"></script>
+  <script src="js/extensions/ai-idea-generator/idea-ai-engine.js?v=1.0.0"></script>
+  <script src="js/extensions/ai-idea-generator/idea-similarity.js?v=1.0.0"></script>
+  <script src="js/extensions/ai-idea-generator/idea-classifier.js?v=1.0.0"></script>
+  <script src="js/extensions/ai-idea-generator/idea-risk-engine.js?v=1.0.0"></script>
+  <script src="js/extensions/ai-idea-generator/idea-kpi-builder.js?v=1.0.0"></script>
+  <script src="js/extensions/ai-idea-generator/idea-owner-engine.js?v=1.0.0"></script>
+  <script src="js/extensions/ai-idea-generator/idea-roadmap-engine.js?v=1.0.0"></script>
+  <script src="js/extensions/ai-idea-generator/idea-business-case-generator.js?v=1.0.0"></script>
+  <script src="js/extensions/ai-idea-generator/idea-project-readiness.js?v=1.0.0"></script>
+  <script src="js/extensions/ai-idea-generator/idea-executive-summary.js?v=1.0.0"></script>
+  <script src="js/extensions/ai-idea-generator/idea-cost-estimator.js?v=1.0.0"></script>
+  <script src="js/extensions/ai-idea-generator/idea-roi-estimator.js?v=1.0.0"></script>
+  <script src="js/extensions/ai-idea-generator/idea-decision-engine.js?v=1.0.0"></script>
+  <script src="js/extensions/ai-idea-generator/idea-generator-bootstrap.js?v=1.0.0"></script>
+
+  <!-- ===================================================== -->
+  <!-- 10. Application Modules                              -->
   <!-- ===================================================== -->
 
   <script src="js/modules/dashboard/dashboard.js?v=5.3.1"></script>
   <script src="js/modules/strategy/strategy.js?v=5.0.1"></script>
   <script src="js/modules/projects/projects.js?v=5.2.1"></script>
   <script src="js/modules/projects/project-phase-playbook.js?v=1.0.0"></script>
-  <script src="js/modules/ideas/ideas.js?v=5.1.0"></script>
+  <script src="js/modules/ideas/ideas.js?v=6.0.0"></script>
   <script src="js/modules/governance/governance.js?v=5.0.1"></script>
   <script src="js/modules/maturity/maturity.js?v=5.0.1"></script>
   <script src="js/modules/reports/reports.js?v=5.0.1"></script>
@@ -589,14 +613,14 @@
   <script src="js/modules/settings/settings.js?v=5.0.1"></script>
 
   <!-- ===================================================== -->
-  <!-- 10. Application Bootstrap                            -->
+  <!-- 11. Application Bootstrap                            -->
   <!-- ===================================================== -->
 
   <script src="js/core/app.js?v=5.1.0"></script>
 
   <!-- ===================================================== -->
-  <!-- 11. AI Intelligence Extensions - Phase 7             -->
-  <!-- Phase 7 Fully Enabled - Diagnostic Test              -->
+  <!-- 12. AI Intelligence Extensions - Phase 7             -->
+  <!-- Phase 7 Fully Enabled                                -->
   <!-- ===================================================== -->
 
   <script src="js/extensions/ai/ai-intelligence-core.js?v=1.0.1"></script>
@@ -607,38 +631,27 @@
   <script src="js/extensions/ai/executive-insights.js?v=1.0.1"></script>
   <script src="js/extensions/ai/ai-intelligence-ui.js?v=1.0.3"></script>
 
-<!-- ===================================================== -->
-<!-- 12. Enterprise Integration Layer - Phase 8           -->
-<!-- جميع ملفات المرحلة الثامنة مفعلة                     -->
-<!-- Dashboard Auto Sync V1.1.0 بعد إصلاح زر الرئيسية    -->
-<!-- ===================================================== -->
+  <!-- ===================================================== -->
+  <!-- 13. Enterprise Integration Layer - Phase 8           -->
+  <!-- All Phase 8 files enabled                            -->
+  <!-- Dashboard Auto Sync V1.1.0                           -->
+  <!-- ===================================================== -->
 
-<script src="js/extensions/integration/event-bus.js?v=1.0.0"></script>
-
-<script src="js/extensions/integration/integration-core.js?v=1.0.0"></script>
-
-<script src="js/extensions/integration/kpi-auto-engine.js?v=1.0.0"></script>
-
-<script src="js/extensions/integration/dashboard-auto-sync.js?v=1.1.0"></script>
-
-<script src="js/extensions/integration/reports-auto-builder.js?v=1.0.0"></script>
-
-<script src="js/extensions/integration/notification-integration-engine.js?v=1.0.0"></script>
-
-<script src="js/extensions/integration/executive-timeline-engine.js?v=1.0.0"></script>
-
-<script src="js/extensions/integration/smart-recommendation-engine.js?v=1.0.0"></script>
-
-<script src="js/extensions/integration/integration-health-monitor.js?v=1.0.0"></script>
-
-<script src="js/extensions/integration/integration-test-suite.js?v=1.0.0"></script>
-
-<script src="js/extensions/integration/integration-bootstrap-manager.js?v=1.0.0"></script>
-
-<script src="js/extensions/integration/integration-orchestrator.js?v=1.0.0"></script>
+  <script src="js/extensions/integration/event-bus.js?v=1.0.0"></script>
+  <script src="js/extensions/integration/integration-core.js?v=1.0.0"></script>
+  <script src="js/extensions/integration/kpi-auto-engine.js?v=1.0.0"></script>
+  <script src="js/extensions/integration/dashboard-auto-sync.js?v=1.1.0"></script>
+  <script src="js/extensions/integration/reports-auto-builder.js?v=1.0.0"></script>
+  <script src="js/extensions/integration/notification-integration-engine.js?v=1.0.0"></script>
+  <script src="js/extensions/integration/executive-timeline-engine.js?v=1.0.0"></script>
+  <script src="js/extensions/integration/smart-recommendation-engine.js?v=1.0.0"></script>
+  <script src="js/extensions/integration/integration-health-monitor.js?v=1.0.0"></script>
+  <script src="js/extensions/integration/integration-test-suite.js?v=1.0.0"></script>
+  <script src="js/extensions/integration/integration-bootstrap-manager.js?v=1.0.0"></script>
+  <script src="js/extensions/integration/integration-orchestrator.js?v=1.0.0"></script>
 
   <!-- ===================================================== -->
-  <!-- 13. Boot Loader Controller                           -->
+  <!-- 14. Boot Loader Controller                           -->
   <!-- ===================================================== -->
 
   <script>
