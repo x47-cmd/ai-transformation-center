@@ -1,18 +1,16 @@
 /* =========================================================
    AI Work
-   Enterprise Styles V3.1
+   Enterprise Styles V3.1.1
    Dashboard V5.3.1 Mobile Stabilization
 
    File Path:
    css/enterprise.css
 
-   Fixes:
-   - Prevents horizontal overflow on iPhone
-   - Stabilizes the premium Hero layout
-   - Fixes Hero statistics sizing
-   - Preserves the current bottom navigation
-   - Keeps the global footer credit
-   - Removes obsolete Dashboard V3 content styles
+   V3.1.1:
+   - Fixes the broken active Home navigation icon
+   - Neutralizes legacy navigation pseudo-icons
+   - Preserves emoji icons exactly as written in index.html
+   - Keeps all V3.1 mobile overflow and Hero fixes
 ========================================================= */
 
 :root {
@@ -389,6 +387,7 @@ video {
 
 .aiw-nav-item,
 .enterprise-bottom-nav .nav-item {
+  position: relative !important;
   display: flex !important;
   width: 100% !important;
   max-width: 100% !important;
@@ -411,18 +410,59 @@ video {
 
   font-family: inherit !important;
   font-weight: 900 !important;
+  line-height: 1 !important;
+  text-transform: none !important;
 
   box-shadow: none !important;
   -webkit-tap-highlight-color: transparent;
 }
 
-.aiw-nav-item span,
-.enterprise-bottom-nav .nav-icon {
-  display: block !important;
-  max-width: 100%;
-  overflow: hidden;
+/* Disable obsolete generated icons from style.css or old shells. */
+.aiw-nav-item::before,
+.aiw-nav-item::after,
+.enterprise-bottom-nav .nav-item::before,
+.enterprise-bottom-nav .nav-item::after,
+.aiw-nav-item .nav-icon::before,
+.aiw-nav-item .nav-icon::after,
+.enterprise-bottom-nav .nav-icon::before,
+.enterprise-bottom-nav .nav-icon::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Keep the real icon written in index.html. */
+.aiw-nav-item > .nav-icon,
+.enterprise-bottom-nav .nav-item > .nav-icon {
+  position: static !important;
+  inset: auto !important;
+  display: flex !important;
+  width: 28px !important;
+  height: 28px !important;
+  max-width: 28px !important;
+  min-width: 28px !important;
+  flex: 0 0 28px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: inherit !important;
+  font-family:
+    "Apple Color Emoji",
+    "Segoe UI Emoji",
+    "Noto Color Emoji",
+    sans-serif !important;
   font-size: 20px !important;
-  line-height: 1 !important;
+  font-style: normal !important;
+  font-weight: 400 !important;
+  line-height: 28px !important;
+  letter-spacing: 0 !important;
+  text-indent: 0 !important;
+  text-transform: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
 }
 
 .aiw-nav-item small {
@@ -445,6 +485,14 @@ video {
   color: #ffffff !important;
   box-shadow:
     0 10px 22px rgba(7, 20, 38, 0.22) !important;
+}
+
+.aiw-nav-item.active > .nav-icon,
+.enterprise-bottom-nav .nav-item.active > .nav-icon {
+  background: transparent !important;
+  color: inherit !important;
+  filter: none !important;
+  transform: none !important;
 }
 
 .aiw-nav-item:active {
@@ -548,9 +596,15 @@ video {
     border-radius: 20px !important;
   }
 
-  .aiw-nav-item span,
-  .enterprise-bottom-nav .nav-icon {
+  .aiw-nav-item > .nav-icon,
+  .enterprise-bottom-nav .nav-item > .nav-icon {
+    width: 27px !important;
+    height: 27px !important;
+    max-width: 27px !important;
+    min-width: 27px !important;
+    flex-basis: 27px !important;
     font-size: 19px !important;
+    line-height: 27px !important;
   }
 
   .aiw-nav-item small {
