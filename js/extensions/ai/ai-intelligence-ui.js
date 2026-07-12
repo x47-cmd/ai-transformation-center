@@ -1,25 +1,16 @@
 /* =========================================================
-   AI Work - AI Intelligence UI V1.0
+   AI Work - AI Intelligence UI V1.0.1
    Enterprise Biometric Intelligence Platform
 
    File Path:
    js/extensions/ai/ai-intelligence-ui.js
 
-   Depends on:
-   - ai-intelligence-core.js
-   - project-ai-advisor.js
-   - project-risk-intelligence.js
-   - idea-ai-scoring.js
-   - similarity-intelligence.js
-   - executive-insights.js
-
-   Purpose:
-   - Displays AI intelligence without modifying core modules
-   - Injects executive insights into Dashboard
-   - Injects project intelligence into project details
-   - Injects idea intelligence into idea details
-   - Adds lightweight badges, panels, and refresh controls
-   - Preserves the existing design and architecture
+   Fixes:
+   - Prevents Dashboard intelligence from attaching to a generic module page
+   - Renders Dashboard intelligence only while Dashboard is the active route
+   - Renders project and idea intelligence only inside their details modal
+   - Prevents MutationObserver feedback loops caused by this extension
+   - Adds mobile overflow protection
 ========================================================= */
 
 (function bootstrapAIIntelligenceUI(global) {
@@ -28,7 +19,7 @@
   global.AIW = global.AIW || {};
 
   const AIW = global.AIW;
-  const VERSION = "1.0.0";
+  const VERSION = "1.0.1";
   const STYLE_ID = "aiw-ai-intelligence-ui-style";
   const ROOT_ATTRIBUTE = "data-aiw-ai-ui";
   const UI_EVENT = "aiw:ai-ui:updated";
@@ -111,7 +102,6 @@
     if (!value) return "—";
 
     const date = new Date(value);
-
     if (Number.isNaN(date.getTime())) return "—";
 
     try {
@@ -125,6 +115,37 @@
     }
   }
 
+  function getActiveRoute() {
+    const activeNav =
+      document.querySelector(
+        '#bottomNav [data-route][aria-current="page"]'
+      ) ||
+      document.querySelector(
+        '#bottomNav [data-route].active'
+      );
+
+    const navRoute = activeNav?.getAttribute("data-route");
+    if (navRoute) return safeText(navRoute).toLowerCase();
+
+    const appRoute =
+      document.documentElement.getAttribute("data-route") ||
+      document.body.getAttribute("data-route") ||
+      document.getElementById("app")?.getAttribute("data-route");
+
+    if (appRoute) return safeText(appRoute).toLowerCase();
+
+    const hash = safeText(global.location?.hash)
+      .replace(/^#\/?/, "")
+      .split(/[/?]/)[0]
+      .toLowerCase();
+
+    return hash || "dashboard";
+  }
+
+  function isRouteActive(route) {
+    return getActiveRoute() === safeText(route).toLowerCase();
+  }
+
   function injectStyles() {
     if (document.getElementById(STYLE_ID)) return;
 
@@ -133,15 +154,33 @@
     style.textContent = `
       [${ROOT_ATTRIBUTE}] {
         direction: rtl;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
         margin-top: 18px;
+        box-sizing: border-box;
+        overflow: hidden;
+      }
+
+      [${ROOT_ATTRIBUTE}] *,
+      [${ROOT_ATTRIBUTE}] *::before,
+      [${ROOT_ATTRIBUTE}] *::after {
+        box-sizing: border-box;
+        min-width: 0;
       }
 
       .aiw-ai-shell {
         display: grid;
+        width: 100%;
+        max-width: 100%;
         gap: 14px;
       }
 
       .aiw-ai-card {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
         border: 1px solid rgba(15, 23, 42, 0.10);
         background: rgba(255,255,255,0.88);
         border-radius: 18px;
@@ -162,11 +201,18 @@
         display: flex;
         gap: 10px;
         align-items: center;
+        min-width: 0;
+      }
+
+      .aiw-ai-card-title > div:last-child {
+        min-width: 0;
       }
 
       .aiw-ai-card-title strong {
+        display: block;
         font-size: 15px;
         color: var(--text, #0f172a);
+        overflow-wrap: anywhere;
       }
 
       .aiw-ai-card-title small {
@@ -174,6 +220,7 @@
         margin-top: 2px;
         color: var(--muted, #64748b);
         font-size: 12px;
+        overflow-wrap: anywhere;
       }
 
       .aiw-ai-icon {
@@ -192,12 +239,14 @@
         align-items: center;
         gap: 6px;
         min-height: 28px;
+        max-width: 100%;
         padding: 4px 9px;
         border-radius: 999px;
         font-size: 11px;
         font-weight: 700;
         border: 1px solid transparent;
-        white-space: nowrap;
+        white-space: normal;
+        overflow-wrap: anywhere;
       }
 
       .aiw-ai-badge.success {
@@ -228,9 +277,11 @@
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 10px;
+        width: 100%;
       }
 
       .aiw-ai-metric {
+        min-width: 0;
         padding: 12px;
         border-radius: 14px;
         background: rgba(248,250,252,0.9);
@@ -242,6 +293,7 @@
         font-size: 11px;
         color: #64748b;
         margin-bottom: 4px;
+        overflow-wrap: anywhere;
       }
 
       .aiw-ai-metric strong {
@@ -270,6 +322,7 @@
         color: #334155;
         line-height: 1.8;
         font-size: 13px;
+        overflow-wrap: anywhere;
       }
 
       .aiw-ai-list {
@@ -284,6 +337,7 @@
         display: flex;
         align-items: flex-start;
         gap: 9px;
+        min-width: 0;
         padding: 10px 12px;
         border-radius: 12px;
         background: rgba(248,250,252,0.88);
@@ -293,6 +347,7 @@
       .aiw-ai-list li > b {
         color: #2563eb;
         line-height: 1.5;
+        flex: 0 0 auto;
       }
 
       .aiw-ai-list li div {
@@ -304,6 +359,7 @@
         color: #0f172a;
         font-size: 12px;
         margin-bottom: 2px;
+        overflow-wrap: anywhere;
       }
 
       .aiw-ai-list li p {
@@ -311,17 +367,20 @@
         color: #64748b;
         font-size: 12px;
         line-height: 1.65;
+        overflow-wrap: anywhere;
       }
 
       .aiw-ai-section-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
+        width: 100%;
       }
 
       .aiw-ai-table {
         display: grid;
         gap: 8px;
+        width: 100%;
       }
 
       .aiw-ai-table-row {
@@ -329,9 +388,17 @@
         grid-template-columns: minmax(0, 1fr) auto auto;
         align-items: center;
         gap: 10px;
+        width: 100%;
+        min-width: 0;
         padding: 10px 12px;
         border-radius: 12px;
         background: rgba(248,250,252,0.88);
+      }
+
+      .aiw-ai-table-row strong,
+      .aiw-ai-table-row span {
+        min-width: 0;
+        overflow-wrap: anywhere;
       }
 
       .aiw-ai-table-row strong {
@@ -352,6 +419,7 @@
       }
 
       .aiw-ai-button {
+        max-width: 100%;
         border: 0;
         cursor: pointer;
         border-radius: 12px;
@@ -361,6 +429,7 @@
         font-weight: 700;
         color: white;
         background: #2563eb;
+        white-space: normal;
       }
 
       .aiw-ai-button.secondary {
@@ -372,6 +441,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        flex-wrap: wrap;
         gap: 10px;
         color: #64748b;
         font-size: 11px;
@@ -415,6 +485,22 @@
           align-items: stretch;
           flex-direction: column;
         }
+
+        .aiw-ai-table-row {
+          grid-template-columns: minmax(0, 1fr);
+          align-items: start;
+        }
+      }
+
+      @media (max-width: 420px) {
+        .aiw-ai-metrics {
+          grid-template-columns: 1fr;
+        }
+
+        .aiw-ai-card {
+          padding: 14px;
+          border-radius: 16px;
+        }
       }
     `;
 
@@ -429,31 +515,25 @@
   }
 
   function findDashboardContainer() {
-    return (
+    if (!isRouteActive("dashboard")) return null;
+
+    const explicit =
       document.querySelector('[data-page="dashboard"]') ||
       document.querySelector("#dashboard") ||
       document.querySelector(".dashboard-page") ||
-      document.querySelector(".dashboard") ||
-      document.querySelector(".module-page")
-    );
-  }
+      document.querySelector(".dashboard-module") ||
+      document.querySelector('[data-module-page="dashboard"]');
 
-  function findProjectsContainer() {
-    return (
-      document.querySelector('[data-page="projects"]') ||
-      document.querySelector("#projects") ||
-      document.querySelector(".projects-page") ||
-      document.querySelector(".projects-module")
-    );
-  }
+    if (explicit) return explicit;
 
-  function findIdeasContainer() {
-    return (
-      document.querySelector('[data-page="ideas"]') ||
-      document.querySelector("#ideas") ||
-      document.querySelector(".ideas-page") ||
-      document.querySelector(".ideas-module")
+    const appMain = document.getElementById("appMain");
+    if (!appMain) return null;
+
+    const directModulePage = Array.from(appMain.children).find((child) =>
+      child.matches?.(".module-page")
     );
+
+    return directModulePage || null;
   }
 
   function findProjectModal() {
@@ -462,7 +542,7 @@
       document.querySelector(".project-modal:not([hidden])") ||
       document.querySelector(".modal.project-details:not([hidden])") ||
       document.querySelector(".modal:not([hidden]) .project-details") ||
-      document.querySelector(".project-details-modal")
+      document.querySelector(".project-details-modal:not([hidden])")
     );
   }
 
@@ -472,7 +552,7 @@
       document.querySelector(".idea-modal:not([hidden])") ||
       document.querySelector(".modal.idea-details:not([hidden])") ||
       document.querySelector(".modal:not([hidden]) .idea-details") ||
-      document.querySelector(".idea-details-modal")
+      document.querySelector(".idea-details-modal:not([hidden])")
     );
   }
 
@@ -510,11 +590,11 @@
       container?.querySelector?.("h1, h2, h3, .modal-title, .details-title");
 
     const title = normalizeText(heading?.textContent);
-
     if (!title) return null;
 
     return asArray(collection).find((entity) => {
       const entityTitle = normalizeText(entity?.title || entity?.name);
+
       return entityTitle && (
         entityTitle === title ||
         title.includes(entityTitle) ||
@@ -559,7 +639,7 @@
     return findEntityByTitle(ideas, container);
   }
 
-  function metricCard(label, value, level = "neutral") {
+  function metricCard(label, value) {
     return `
       <div class="aiw-ai-metric">
         <span>${escapeHTML(label)}</span>
@@ -591,7 +671,18 @@
     `;
   }
 
+  function removeRoot(id) {
+    document
+      .querySelectorAll(`[${ROOT_ATTRIBUTE}="${id}"]`)
+      .forEach((node) => node.remove());
+  }
+
   function renderExecutiveInsights() {
+    if (!isRouteActive("dashboard")) {
+      removeRoot("dashboard-intelligence");
+      return false;
+    }
+
     const container = findDashboardContainer();
     const insights = AIW.ExecutiveInsights?.getInsights?.();
 
@@ -736,9 +827,12 @@
   }
 
   function renderProjectIntelligence() {
-    const container = findProjectModal() || findProjectsContainer();
+    const container = findProjectModal();
 
-    if (!container) return false;
+    if (!container) {
+      removeRoot("project-intelligence");
+      return false;
+    }
 
     const project = getProjectEntity(container);
     if (!project) return false;
@@ -865,9 +959,12 @@
   }
 
   function renderIdeaIntelligence() {
-    const container = findIdeaModal() || findIdeasContainer();
+    const container = findIdeaModal();
 
-    if (!container) return false;
+    if (!container) {
+      removeRoot("idea-intelligence");
+      return false;
+    }
 
     const idea = getIdeaEntity(container);
     if (!idea) return false;
@@ -1003,10 +1100,8 @@
     const core = getCore();
     if (!core) return;
 
-    const projects = core.getProjects?.() || [];
-    const ideas = core.getIdeas?.() || [];
-
     document.querySelectorAll("[data-project-id]").forEach((element) => {
+      if (element.closest(`[${ROOT_ATTRIBUTE}]`)) return;
       if (element.querySelector(".aiw-ai-inline-badge")) return;
 
       const id = element.getAttribute("data-project-id");
@@ -1027,6 +1122,7 @@
     });
 
     document.querySelectorAll("[data-idea-id]").forEach((element) => {
+      if (element.closest(`[${ROOT_ATTRIBUTE}]`)) return;
       if (element.querySelector(".aiw-ai-inline-badge")) return;
 
       const id = element.getAttribute("data-idea-id");
@@ -1045,9 +1141,6 @@
 
       target.appendChild(badge);
     });
-
-    void projects;
-    void ideas;
   }
 
   function renderAll() {
@@ -1076,12 +1169,12 @@
     }
   }
 
-  function scheduleRender() {
+  function scheduleRender(delay = 160) {
     clearTimeout(runtime.refreshTimer);
 
     runtime.refreshTimer = setTimeout(() => {
       renderAll();
-    }, 120);
+    }, delay);
   }
 
   async function handleAction(event) {
@@ -1104,6 +1197,7 @@
 
       if (action === "refresh-project") {
         const projectId = button.getAttribute("data-project-id");
+
         if (projectId) {
           await core.analyzeProject?.(projectId, { force: true });
         }
@@ -1111,6 +1205,7 @@
 
       if (action === "refresh-idea") {
         const ideaId = button.getAttribute("data-idea-id");
+
         if (ideaId) {
           await core.analyzeIdea?.(ideaId, { force: true });
         }
@@ -1135,7 +1230,7 @@
         );
       }
 
-      scheduleRender();
+      scheduleRender(80);
     } catch (error) {
       console.error("[AIW.AIUI] Action failed.", error);
       global.alert?.("تعذر تحديث التحليل حالياً.");
@@ -1149,18 +1244,58 @@
     const core = getCore();
     if (!core?.on) return;
 
-    runtime.unsubscribers.push(
+    const subscriptions = [
       core.on("analysis:complete", scheduleRender),
       core.on("refresh:complete", scheduleRender),
       core.on("cache:invalidated", scheduleRender)
+    ];
+
+    runtime.unsubscribers.push(
+      ...subscriptions.filter((unsubscribe) => typeof unsubscribe === "function")
     );
   }
 
-  function observeDOM() {
-    if (runtime.observer) return;
+  function mutationBelongsToThisExtension(record) {
+    const target = record.target;
 
-    runtime.observer = new MutationObserver(() => {
-      scheduleRender();
+    if (
+      target?.nodeType === 1 &&
+      target.closest?.(`[${ROOT_ATTRIBUTE}]`)
+    ) {
+      return true;
+    }
+
+    const changedNodes = [
+      ...Array.from(record.addedNodes || []),
+      ...Array.from(record.removedNodes || [])
+    ];
+
+    if (!changedNodes.length) return false;
+
+    return changedNodes.every((node) => {
+      if (node.nodeType !== 1) return true;
+
+      return (
+        node.matches?.(`[${ROOT_ATTRIBUTE}]`) ||
+        node.closest?.(`[${ROOT_ATTRIBUTE}]`) ||
+        node.id === STYLE_ID
+      );
+    });
+  }
+
+  function observeDOM() {
+    if (runtime.observer || !document.body) return;
+
+    runtime.observer = new MutationObserver((records) => {
+      if (runtime.rendering) return;
+
+      const hasExternalChange = records.some(
+        (record) => !mutationBelongsToThisExtension(record)
+      );
+
+      if (hasExternalChange) {
+        scheduleRender();
+      }
     });
 
     runtime.observer.observe(document.body, {
@@ -1170,6 +1305,8 @@
       attributeFilter: [
         "class",
         "hidden",
+        "aria-current",
+        "data-route",
         "data-project-id",
         "data-idea-id"
       ]
@@ -1181,6 +1318,7 @@
       name: "AI Intelligence UI",
       version: VERSION,
       initialized: runtime.initialized,
+      activeRoute: getActiveRoute(),
       lastRenderedAt: runtime.lastRenderedAt
     };
   }
@@ -1196,7 +1334,6 @@
     document.addEventListener("click", handleAction);
 
     runtime.initialized = true;
-
     scheduleRender();
 
     global.dispatchEvent?.(
@@ -1226,6 +1363,11 @@
     runtime.unsubscribers = [];
 
     document.removeEventListener("click", handleAction);
+
+    document
+      .querySelectorAll(`[${ROOT_ATTRIBUTE}]`)
+      .forEach((node) => node.remove());
+
     runtime.initialized = false;
   }
 
@@ -1242,8 +1384,7 @@
   };
 
   AIW.Engines = AIW.Engines || {};
-  AIW.Engines.aiIntelligenceUI =
-    AIW.AIIntelligenceUI;
+  AIW.Engines.aiIntelligenceUI = AIW.AIIntelligenceUI;
 
   function autoInit() {
     try {
