@@ -1,23 +1,28 @@
 /* =========================================================
-   AI Work - Ideas Module V5.1
+   AI Work - Ideas Module V6.0
    Enterprise Biometric AI Opportunity Center
-   Store V2.2 Native Architecture
+   Store V2.3 Native Architecture
+   AI Opportunity Generator Integration
 
    File Path:
    js/modules/ideas/ideas.js
 
    Features:
-   - AIW.Store V2.2 as Single Source of Truth
+   - Preserves the approved Ideas Center design and workflow
+   - AIW.Store as Single Source of Truth
    - Persistent idea lifecycle
    - Submit / Approve / Reject / Reopen workflow
    - Safe idea-to-project conversion
    - Duplicate conversion prevention
    - Bidirectional idea/project linking
-   - Selected project navigation
-   - Dynamic portfolio calculations
+   - AI Opportunity Generator integration
+   - Short problem input → full executive opportunity draft
+   - Scope validation
+   - Similarity / duplicate analysis
+   - Classification, risk, KPI, owner and roadmap generation
+   - Business case, readiness, executive summary, cost, ROI and decision
+   - Human review before saving
    - Store subscription + cross-page synchronization
-   - Confirmation modal + toast notifications
-   - Workflow styles without changing core UI design
 ========================================================= */
 
 window.AIW = window.AIW || {};
@@ -27,18 +32,20 @@ AIW.Modules.ideas = {
   id: "ideas",
   title: "الأفكار",
   icon: "💡",
-  version: "5.1.0",
+  version: "6.0.0",
 
   _container: null,
   _unsubscribeStore: null,
   _refreshTimer: null,
   _modal: null,
+  _generatorModal: null,
   _pendingAction: null,
-  _selectedIdeaId: null,
+  _generatedPackage: null,
   _eventsBound: false,
   _syncBound: false,
   _isRendering: false,
   _isExecuting: false,
+  _isGenerating: false,
 
   config: {
     actor: "الإدارة",
@@ -46,7 +53,9 @@ AIW.Modules.ideas = {
     refreshDelay: 80,
     selectedProjectKey: "aiwSelectedProjectId",
     selectedIdeaKey: "aiwSelectedIdeaId",
-    styleId: "aiw-ideas-v51-styles"
+    styleId: "aiw-ideas-v60-styles",
+    minProblemLength: 8,
+    maxProblemLength: 1200
   },
 
   lifecycle: {
@@ -76,30 +85,24 @@ AIW.Modules.ideas = {
     return window.AIW?.Store || null;
   },
 
-  hasStore() {
-    return Boolean(this.getStore());
-  },
-
   getState() {
     const store = this.getStore();
 
     if (!store) {
-      console.error("AI Work Ideas V5.1: AIW.Store is unavailable.");
+      console.error("AI Work Ideas V6.0: AIW.Store is unavailable.");
       return {};
     }
 
     try {
       if (typeof store.getState === "function") {
-        const state = store.getState();
-        return state && typeof state === "object" ? state : {};
+        return store.getState() || {};
       }
 
       if (typeof store.getData === "function") {
-        const state = store.getData();
-        return state && typeof state === "object" ? state : {};
+        return store.getData() || {};
       }
     } catch (error) {
-      console.error("AI Work Ideas V5.1: Unable to read Store state.", error);
+      console.error("AI Work Ideas V6.0: Unable to read Store state.", error);
     }
 
     return {};
@@ -110,10 +113,6 @@ AIW.Modules.ideas = {
     return Array.isArray(collection) ? collection : [];
   },
 
-  /* =======================================================
-     Ideas & Projects Readers
-  ======================================================= */
-
   getRawIdeas() {
     const store = this.getStore();
 
@@ -123,7 +122,7 @@ AIW.Modules.ideas = {
         if (Array.isArray(ideas)) return ideas;
       }
     } catch (error) {
-      console.warn("AI Work Ideas V5.1: getIdeas failed.", error);
+      console.warn("AI Work Ideas V6.0: getIdeas failed.", error);
     }
 
     return this.getCollection("ideas");
@@ -138,7 +137,7 @@ AIW.Modules.ideas = {
         if (Array.isArray(projects)) return projects;
       }
     } catch (error) {
-      console.warn("AI Work Ideas V5.1: getProjects failed.", error);
+      console.warn("AI Work Ideas V6.0: getProjects failed.", error);
     }
 
     return this.getCollection("projects");
@@ -160,14 +159,12 @@ AIW.Modules.ideas = {
         if (idea) return idea;
       }
     } catch (error) {
-      console.warn("AI Work Ideas V5.1: Idea lookup failed.", error);
+      console.warn("AI Work Ideas V6.0: Idea lookup failed.", error);
     }
 
-    return (
-      this.getRawIdeas().find(
-        idea => String(idea?.id) === String(ideaId)
-      ) || null
-    );
+    return this.getRawIdeas().find(
+      idea => String(idea?.id) === String(ideaId)
+    ) || null;
   },
 
   getProjectById(projectId) {
@@ -188,14 +185,12 @@ AIW.Modules.ideas = {
         if (project) return project;
       }
     } catch (error) {
-      console.warn("AI Work Ideas V5.1: Project lookup failed.", error);
+      console.warn("AI Work Ideas V6.0: Project lookup failed.", error);
     }
 
-    return (
-      this.getProjects().find(
-        project => String(project?.id) === String(projectId)
-      ) || null
-    );
+    return this.getProjects().find(
+      project => String(project?.id) === String(projectId)
+    ) || null;
   },
 
   getProjectByIdeaId(ideaId) {
@@ -209,7 +204,7 @@ AIW.Modules.ideas = {
         if (project) return project;
       }
     } catch (error) {
-      console.warn("AI Work Ideas V5.1: getProjectByIdeaId failed.", error);
+      console.warn("AI Work Ideas V6.0: getProjectByIdeaId failed.", error);
     }
 
     const idea = this.getIdeaById(ideaId);
@@ -219,23 +214,20 @@ AIW.Modules.ideas = {
       if (linkedProject) return linkedProject;
     }
 
-    return (
-      this.getProjects().find(project => {
-        const sourceIdeaId =
-          project?.sourceIdeaId ??
-          project?.ideaId ??
-          project?.origin?.ideaId ??
-          project?.source?.ideaId ??
-          null;
+    return this.getProjects().find(project => {
+      const sourceIdeaId =
+        project?.sourceIdeaId ??
+        project?.ideaId ??
+        project?.origin?.ideaId ??
+        project?.source?.ideaId ??
+        null;
 
-        return String(sourceIdeaId) === String(ideaId);
-      }) || null
-    );
+      return String(sourceIdeaId) === String(ideaId);
+    }) || null;
   },
 
   getIdeas() {
     const storedIdeas = this.getRawIdeas();
-
     let enrichedIdeas = storedIdeas;
 
     try {
@@ -246,12 +238,10 @@ AIW.Modules.ideas = {
           storedIdeas.map(idea => ({ ...idea }))
         );
 
-        if (Array.isArray(result)) {
-          enrichedIdeas = result;
-        }
+        if (Array.isArray(result)) enrichedIdeas = result;
       }
     } catch (error) {
-      console.warn("AI Work Ideas V5.1: Idea enrichment failed.", error);
+      console.warn("AI Work Ideas V6.0: Idea enrichment failed.", error);
     }
 
     return enrichedIdeas.map((idea, index) => ({
@@ -269,10 +259,7 @@ AIW.Modules.ideas = {
     const store = this.getStore();
 
     if (!store) {
-      return {
-        success: false,
-        message: "مخزن بيانات المنصة غير متاح."
-      };
+      return { success: false, message: "مخزن بيانات المنصة غير متاح." };
     }
 
     const methodName = methodNames.find(
@@ -282,7 +269,7 @@ AIW.Modules.ideas = {
     if (!methodName) {
       return {
         success: false,
-        message: "العملية المطلوبة غير مدعومة في Store V2.2."
+        message: "العملية المطلوبة غير مدعومة في مخزن البيانات."
       };
     }
 
@@ -303,13 +290,8 @@ AIW.Modules.ideas = {
 
         const result = method(...args);
 
-        if (result?.success === false) {
-          return result;
-        }
-
-        if (result === false || result === null) {
-          continue;
-        }
+        if (result?.success === false) return result;
+        if (result === false || result === null) continue;
 
         return this.normalizeActionResult(result);
       } catch (error) {
@@ -317,12 +299,7 @@ AIW.Modules.ideas = {
       }
     }
 
-    if (lastError) {
-      console.error(
-        `AI Work Ideas V5.1: ${methodName} failed.`,
-        lastError
-      );
-    }
+    console.error(`AI Work Ideas V6.0: ${methodName} failed.`, lastError);
 
     return {
       success: false,
@@ -332,27 +309,14 @@ AIW.Modules.ideas = {
   },
 
   normalizeActionResult(result) {
-    if (result?.success === true) {
-      return result;
-    }
+    if (result?.success === true) return result;
 
     if (result && typeof result === "object") {
-      return {
-        success: true,
-        ...result,
-        result
-      };
+      return { success: true, ...result, result };
     }
 
-    return {
-      success: Boolean(result),
-      result
-    };
+    return { success: Boolean(result), result };
   },
-
-  /* =======================================================
-     CRUD
-  ======================================================= */
 
   addIdea(idea = {}) {
     return this.executeStoreMethod(
@@ -391,7 +355,478 @@ AIW.Modules.ideas = {
   },
 
   /* =======================================================
-     Lifecycle Resolution
+     AI Generator Access
+  ======================================================= */
+
+  getGenerator() {
+    return window.AIW?.IdeaGenerator ||
+      window.AIW?.Extensions?.IdeaGenerator ||
+      null;
+  },
+
+  getExtension(name) {
+    return window.AIW?.Extensions?.[name] || null;
+  },
+
+  getGeneratorStatus() {
+    const required = [
+      "IdeaGenerator",
+      "IdeaPromptBuilder",
+      "IdeaValidator",
+      "IdeaAIEngine",
+      "IdeaSimilarity",
+      "IdeaClassifier",
+      "IdeaRiskEngine",
+      "IdeaKPIBuilder",
+      "IdeaOwnerEngine",
+      "IdeaRoadmapEngine",
+      "IdeaBusinessCaseGenerator",
+      "IdeaProjectReadiness",
+      "IdeaExecutiveSummary",
+      "IdeaCostEstimator",
+      "IdeaROIEstimator",
+      "IdeaDecisionEngine"
+    ];
+
+    const missing = required.filter(name => {
+      if (name === "IdeaGenerator") return !this.getGenerator();
+      return !this.getExtension(name);
+    });
+
+    return {
+      ready: missing.length === 0,
+      missing,
+      loaded: required.length - missing.length,
+      total: required.length
+    };
+  },
+
+  async generateOpportunity(problemText) {
+    const problem = String(problemText || "").trim();
+
+    if (problem.length < this.config.minProblemLength) {
+      throw new Error(
+        `يرجى كتابة مشكلة أو تحدٍ واضح لا يقل عن ${this.config.minProblemLength} أحرف.`
+      );
+    }
+
+    if (problem.length > this.config.maxProblemLength) {
+      throw new Error(
+        `الحد الأقصى لوصف المشكلة هو ${this.config.maxProblemLength} حرفاً.`
+      );
+    }
+
+    const generator = this.getGenerator();
+
+    if (!generator?.generate && !generator?.analyze) {
+      throw new Error("محرك توليد الأفكار غير محمّل.");
+    }
+
+    const existingIdeas = this.getRawIdeas().map(idea => ({
+      id: idea.id,
+      title: idea.title,
+      problem: idea.challenge || idea.problemStatement || "",
+      department: idea.department
+    }));
+
+    const generationResult = await Promise.resolve(
+      typeof generator.generate === "function"
+        ? generator.generate(problem, {
+            source: "ideas-module",
+            existingIdeas
+          })
+        : generator.analyze(problem, {
+            source: "ideas-module",
+            existingIdeas
+          })
+    );
+
+    const draft =
+      generationResult?.draft ||
+      generationResult?.result?.draft ||
+      generationResult;
+
+    if (!draft || generationResult?.success === false) {
+      throw new Error(
+        generationResult?.message ||
+        generationResult?.reason ||
+        "تعذر إنشاء مسودة الفكرة."
+      );
+    }
+
+    const classifier = this.getExtension("IdeaClassifier");
+    const riskEngine = this.getExtension("IdeaRiskEngine");
+    const kpiBuilder = this.getExtension("IdeaKPIBuilder");
+    const ownerEngine = this.getExtension("IdeaOwnerEngine");
+    const roadmapEngine = this.getExtension("IdeaRoadmapEngine");
+    const similarityEngine = this.getExtension("IdeaSimilarity");
+    const businessCaseGenerator = this.getExtension(
+      "IdeaBusinessCaseGenerator"
+    );
+    const readinessEngine = this.getExtension("IdeaProjectReadiness");
+    const executiveSummaryEngine = this.getExtension(
+      "IdeaExecutiveSummary"
+    );
+    const costEstimator = this.getExtension("IdeaCostEstimator");
+    const roiEstimator = this.getExtension("IdeaROIEstimator");
+    const decisionEngine = this.getExtension("IdeaDecisionEngine");
+
+    const classification = classifier?.classify
+      ? classifier.classify([
+          draft.title,
+          draft.summary,
+          draft.problemStatement,
+          draft.proposedSolution
+        ].filter(Boolean).join(" "))
+      : {
+          portfolio: draft.scope || "الأنظمة البيومترية",
+          department: draft.department || "الأنظمة البيومترية",
+          confidence: 50
+        };
+
+    const risk = riskEngine?.analyze
+      ? riskEngine.analyze([
+          draft.title,
+          draft.problemStatement,
+          draft.proposedSolution
+        ].filter(Boolean).join(" "))
+      : {
+          riskLevel: draft.riskLevel || "متوسط",
+          riskScore: 55,
+          controls: []
+        };
+
+    const kpiResult = kpiBuilder?.build
+      ? kpiBuilder.build(classification.portfolio)
+      : { kpis: draft.kpis || [] };
+
+    const ownership = ownerEngine?.assign
+      ? ownerEngine.assign(classification.portfolio)
+      : {
+          owner: draft.owner || "يحدد لاحقاً",
+          stakeholders: [],
+          implementationTeam: []
+        };
+
+    const roadmap = roadmapEngine?.build
+      ? roadmapEngine.build(classification.portfolio)
+      : {
+          estimatedTimeline: draft.estimatedDuration || "يحدد لاحقاً",
+          milestones: [],
+          phases: []
+        };
+
+    const duplicateAnalysis = similarityEngine?.find
+      ? similarityEngine.find(problem, existingIdeas)
+      : draft.duplicateAnalysis || {
+          duplicate: false,
+          highestSimilarity: 0,
+          matchedIdea: null,
+          matches: []
+        };
+
+    const normalizedIdea = {
+      ...draft,
+      sourceProblem: problem,
+      title: draft.title || `حل ذكي لـ ${problem}`,
+      summary:
+        draft.summary ||
+        `فرصة ذكاء اصطناعي مقترحة لمعالجة: ${problem}`,
+      problemStatement:
+        draft.problemStatement ||
+        draft.challenge ||
+        problem,
+      challenge:
+        draft.challenge ||
+        draft.problemStatement ||
+        problem,
+      proposedSolution:
+        draft.proposedSolution ||
+        draft.solution ||
+        "استخدام الذكاء الاصطناعي لتحليل المشكلة واقتراح إجراءات قابلة للمراجعة.",
+      solution:
+        draft.solution ||
+        draft.proposedSolution ||
+        "استخدام الذكاء الاصطناعي لتحليل المشكلة واقتراح إجراءات قابلة للمراجعة.",
+      aiRole:
+        draft.aiRole ||
+        "تحليل البيانات واكتشاف الأنماط واقتراح أفضل الإجراءات.",
+      expectedBenefits:
+        draft.expectedBenefits ||
+        draft.benefits ||
+        [
+          "رفع الكفاءة التشغيلية",
+          "تقليل الأخطاء",
+          "تسريع اتخاذ القرار"
+        ],
+      benefits:
+        draft.benefits ||
+        draft.expectedBenefits ||
+        [
+          "رفع الكفاءة التشغيلية",
+          "تقليل الأخطاء",
+          "تسريع اتخاذ القرار"
+        ],
+      department:
+        classification.department ||
+        draft.department ||
+        "الأنظمة البيومترية",
+      portfolio:
+        classification.portfolio ||
+        draft.scope ||
+        "الأنظمة البيومترية",
+      classificationConfidence:
+        classification.confidence || 50,
+      owner:
+        ownership.owner ||
+        draft.owner ||
+        "يحدد لاحقاً",
+      stakeholders:
+        ownership.stakeholders || [],
+      implementationTeam:
+        ownership.implementationTeam || [],
+      riskLevel:
+        risk.riskLevel ||
+        draft.riskLevel ||
+        "متوسط",
+      riskScore:
+        Number(risk.riskScore ?? 55),
+      riskControls:
+        risk.controls || [],
+      priority:
+        draft.priority || "متوسطة",
+      readiness:
+        Number(draft.readiness ?? 45),
+      decisionScore:
+        Number(draft.decisionScore ?? 50),
+      kpis:
+        kpiResult?.kpis?.length
+          ? kpiResult.kpis
+          : draft.kpis || [],
+      roadmap,
+      estimatedDuration:
+        draft.estimatedDuration ||
+        roadmap.estimatedTimeline ||
+        "يحدد لاحقاً",
+      duplicateAnalysis
+    };
+
+    const businessCase = businessCaseGenerator?.generate
+      ? businessCaseGenerator.generate(normalizedIdea, {
+          source: "AI Idea Generator"
+        })
+      : null;
+
+    const readiness = readinessEngine?.assess
+      ? readinessEngine.assess(normalizedIdea, businessCase || {})
+      : null;
+
+    const cost = costEstimator?.estimate
+      ? costEstimator.estimate({
+          readiness:
+            readiness?.score ??
+            normalizedIdea.readiness,
+          riskScore:
+            readiness?.scores?.security ??
+            normalizedIdea.riskScore,
+          complexityScore:
+            Number(normalizedIdea.complexityScore ?? 60)
+        })
+      : null;
+
+    const roi = roiEstimator?.estimate
+      ? roiEstimator.estimate({
+          totalEstimatedCost:
+            cost?.totalEstimatedCost ||
+            150000
+        })
+      : null;
+
+    const strategicScore =
+      businessCase?.strategicValue?.score ??
+      normalizedIdea.decisionScore ??
+      60;
+
+    const decision = decisionEngine?.decide
+      ? decisionEngine.decide({
+          readinessScore:
+            readiness?.score ??
+            normalizedIdea.readiness,
+          riskScore:
+            normalizedIdea.riskScore,
+          roiPercent:
+            roi?.roiPercent ?? 0,
+          strategicScore
+        })
+      : null;
+
+    const executiveSummary = executiveSummaryEngine?.generate
+      ? executiveSummaryEngine.generate(
+          normalizedIdea,
+          businessCase || {},
+          readiness || {}
+        )
+      : null;
+
+    return {
+      generationResult,
+      idea: normalizedIdea,
+      classification,
+      risk,
+      kpis: kpiResult,
+      ownership,
+      roadmap,
+      duplicateAnalysis,
+      businessCase,
+      readiness,
+      cost,
+      roi,
+      decision,
+      executiveSummary,
+      generatedAt: new Date().toISOString()
+    };
+  },
+
+  mapGeneratedPackageToIdea(pkg) {
+    const idea = pkg?.idea || {};
+    const readiness = pkg?.readiness || {};
+    const cost = pkg?.cost || {};
+    const roi = pkg?.roi || {};
+    const decision = pkg?.decision || {};
+    const executiveSummary = pkg?.executiveSummary || {};
+    const businessCase = pkg?.businessCase || {};
+
+    const id =
+      idea.id ||
+      `idea-ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    return {
+      id,
+      title: idea.title,
+      department: idea.department,
+      portfolio: idea.portfolio,
+      challenge: idea.challenge || idea.problemStatement,
+      problemStatement: idea.problemStatement || idea.challenge,
+      solution: idea.solution || idea.proposedSolution,
+      proposedSolution: idea.proposedSolution || idea.solution,
+      aiRole: idea.aiRole,
+      benefits: idea.benefits || idea.expectedBenefits,
+      expectedBenefits: idea.expectedBenefits || idea.benefits,
+      owner: idea.owner,
+      stakeholders: idea.stakeholders || [],
+      implementationTeam: idea.implementationTeam || [],
+      priority: idea.priority || "متوسطة",
+      riskLevel: idea.riskLevel || "متوسط",
+      riskScore: Number(idea.riskScore ?? 55),
+      riskControls: idea.riskControls || [],
+      readiness: Number(readiness.score ?? idea.readiness ?? 45),
+      decisionScore: Number(
+        decision.confidenceScore ??
+        idea.decisionScore ??
+        50
+      ),
+      decisionLevel:
+        decision.decisionLabel ||
+        readiness.decision?.label ||
+        "يحتاج مراجعة",
+      duration:
+        idea.estimatedDuration ||
+        businessCase.estimatedDuration ||
+        idea.roadmap?.estimatedTimeline ||
+        "يحدد لاحقاً",
+      cost:
+        cost.totalEstimatedCost
+          ? `${this.formatNumber(cost.totalEstimatedCost)} AED`
+          : idea.estimatedCost || "يحدد لاحقاً",
+      costLevel:
+        cost.estimateLevel || "تقديري",
+      ease:
+        readiness.score >= 75
+          ? "متوسطة"
+          : "تحتاج دراسة",
+      kpis: idea.kpis || [],
+      roadmap: idea.roadmap || {},
+      milestones: idea.roadmap?.milestones || [],
+      implementationPhases:
+        idea.roadmap?.phases || [],
+      businessCase,
+      readinessAssessment: readiness,
+      costEstimate: cost,
+      roiEstimate: roi,
+      executiveSummary,
+      aiDecision: decision,
+      duplicateAnalysis:
+        pkg.duplicateAnalysis ||
+        idea.duplicateAnalysis ||
+        null,
+      sourceProblem: idea.sourceProblem,
+      generatedByAI: true,
+      generationVersion: "AI Opportunity Generator V1",
+      lifecycleStatus: this.lifecycle.DRAFT,
+      ideaStatus: this.lifecycle.DRAFT,
+      approvalStatus: this.approvalStatus.NOT_SUBMITTED,
+      approval: {
+        status: this.approvalStatus.NOT_SUBMITTED,
+        submittedAt: null,
+        submittedBy: null,
+        decidedAt: null,
+        decidedBy: null
+      },
+      convertedToProject: false,
+      projectId: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      metadata: {
+        source: "ai-idea-generator",
+        generatedAt: pkg.generatedAt || new Date().toISOString(),
+        humanReviewRequired: true
+      }
+    };
+  },
+
+  saveGeneratedIdea() {
+    if (!this._generatedPackage?.idea) {
+      this.showToast("لا توجد مسودة جاهزة للحفظ.", "error");
+      return;
+    }
+
+    const duplicate = this._generatedPackage.duplicateAnalysis;
+
+    if (
+      duplicate?.duplicate === true &&
+      duplicate?.highestSimilarity >= 90
+    ) {
+      const confirmed = window.confirm(
+        `يوجد تشابه مرتفع بنسبة ${duplicate.highestSimilarity}% مع فكرة موجودة. هل تريد حفظ الفكرة رغم ذلك؟`
+      );
+
+      if (!confirmed) return;
+    }
+
+    const ideaRecord = this.mapGeneratedPackageToIdea(
+      this._generatedPackage
+    );
+
+    const result = this.addIdea(ideaRecord);
+
+    if (!result?.success) {
+      this.showToast(
+        result?.message || "تعذر حفظ الفكرة الجديدة.",
+        "error"
+      );
+      return;
+    }
+
+    this.closeGeneratorModal();
+    this.showToast(
+      "تم حفظ الفكرة الذكية كمسودة بنجاح.",
+      "success"
+    );
+    this.scheduleRefresh();
+  },
+
+  /* =======================================================
+     Lifecycle
   ======================================================= */
 
   normalizeStatus(value) {
@@ -415,9 +850,6 @@ AIW.Modules.ideas = {
 
     if (status === "approved") return this.approvalStatus.APPROVED;
     if (status === "rejected") return this.approvalStatus.REJECTED;
-    if (["cancelled", "canceled"].includes(status)) {
-      return this.approvalStatus.CANCELLED;
-    }
 
     return this.approvalStatus.NOT_SUBMITTED;
   },
@@ -469,15 +901,10 @@ AIW.Modules.ideas = {
   },
 
   isConverted(idea = {}) {
-    if (this.getLifecycleStatus(idea) === this.lifecycle.CONVERTED) {
-      return true;
-    }
-
-    if (idea?.id && this.getProjectByIdeaId(idea.id)) {
-      return true;
-    }
-
-    return false;
+    return (
+      this.getLifecycleStatus(idea) === this.lifecycle.CONVERTED ||
+      Boolean(idea?.id && this.getProjectByIdeaId(idea.id))
+    );
   },
 
   isPendingApproval(idea = {}) {
@@ -492,17 +919,12 @@ AIW.Modules.ideas = {
     return this.getLifecycleStatus(idea) === this.lifecycle.REJECTED;
   },
 
-  isArchived(idea = {}) {
-    return this.getLifecycleStatus(idea) === this.lifecycle.ARCHIVED;
-  },
-
   canSubmit(idea = {}) {
     const status = this.getLifecycleStatus(idea);
 
     return (
       [this.lifecycle.IDEA, this.lifecycle.DRAFT].includes(status) &&
-      !this.isConverted(idea) &&
-      !this.isArchived(idea)
+      !this.isConverted(idea)
     );
   },
 
@@ -530,7 +952,6 @@ AIW.Modules.ideas = {
     const labels = {
       [this.lifecycle.IDEA]: "فكرة قابلة للدراسة",
       [this.lifecycle.DRAFT]: "مسودة فكرة",
-      [this.lifecycle.SUBMITTED]: "تم رفعها للاعتماد",
       [this.lifecycle.PENDING]: "بانتظار الاعتماد",
       [this.lifecycle.APPROVED]: "فكرة معتمدة",
       [this.lifecycle.REJECTED]: "غير معتمدة",
@@ -542,25 +963,20 @@ AIW.Modules.ideas = {
   },
 
   getLifecycleClass(idea = {}) {
-    const classes = {
-      [this.lifecycle.IDEA]: "idea",
-      [this.lifecycle.DRAFT]: "draft",
-      [this.lifecycle.SUBMITTED]: "pending",
-      [this.lifecycle.PENDING]: "pending",
-      [this.lifecycle.APPROVED]: "approved",
-      [this.lifecycle.REJECTED]: "rejected",
-      [this.lifecycle.CONVERTED]: "converted",
-      [this.lifecycle.ARCHIVED]: "archived"
-    };
+    const status = this.getLifecycleStatus(idea);
 
-    return classes[this.getLifecycleStatus(idea)] || "idea";
+    if (status === this.lifecycle.PENDING) return "pending";
+    if (status === this.lifecycle.APPROVED) return "approved";
+    if (status === this.lifecycle.REJECTED) return "rejected";
+    if (status === this.lifecycle.CONVERTED) return "converted";
+    if (status === this.lifecycle.ARCHIVED) return "archived";
+    return status === this.lifecycle.DRAFT ? "draft" : "idea";
   },
 
   getLifecycleIcon(idea = {}) {
     const icons = {
       [this.lifecycle.IDEA]: "💡",
       [this.lifecycle.DRAFT]: "📝",
-      [this.lifecycle.SUBMITTED]: "📤",
       [this.lifecycle.PENDING]: "⏳",
       [this.lifecycle.APPROVED]: "✅",
       [this.lifecycle.REJECTED]: "⛔",
@@ -572,22 +988,13 @@ AIW.Modules.ideas = {
   },
 
   /* =======================================================
-     Approval Workflow
+     Workflow Operations
   ======================================================= */
 
   submitForApproval(ideaId, options = {}) {
     const idea = this.getIdeaById(ideaId);
 
-    if (!idea) {
-      return { success: false, message: "لم يتم العثور على الفكرة." };
-    }
-
-    if (!this.canSubmit(idea)) {
-      return {
-        success: false,
-        message: "لا يمكن رفع الفكرة للاعتماد في حالتها الحالية."
-      };
-    }
+    if (!idea) return { success: false, message: "لم يتم العثور على الفكرة." };
 
     const actor = options.actor || this.config.actor;
     const notes = options.notes || "";
@@ -604,19 +1011,6 @@ AIW.Modules.ideas = {
   },
 
   approveIdea(ideaId, options = {}) {
-    const idea = this.getIdeaById(ideaId);
-
-    if (!idea) {
-      return { success: false, message: "لم يتم العثور على الفكرة." };
-    }
-
-    if (!this.canApprove(idea) && !this.isApproved(idea)) {
-      return {
-        success: false,
-        message: "الفكرة ليست في مرحلة انتظار الاعتماد."
-      };
-    }
-
     const actor = options.actor || this.config.actor;
     const notes = options.notes || "";
 
@@ -632,19 +1026,6 @@ AIW.Modules.ideas = {
   },
 
   rejectIdea(ideaId, options = {}) {
-    const idea = this.getIdeaById(ideaId);
-
-    if (!idea) {
-      return { success: false, message: "لم يتم العثور على الفكرة." };
-    }
-
-    if (!this.canReject(idea)) {
-      return {
-        success: false,
-        message: "الفكرة ليست في مرحلة تسمح بالرفض."
-      };
-    }
-
     const actor = options.actor || this.config.actor;
     const reason = options.reason || options.notes || "";
 
@@ -662,16 +1043,7 @@ AIW.Modules.ideas = {
   reopenIdea(ideaId, options = {}) {
     const idea = this.getIdeaById(ideaId);
 
-    if (!idea) {
-      return { success: false, message: "لم يتم العثور على الفكرة." };
-    }
-
-    if (!this.canReopen(idea)) {
-      return {
-        success: false,
-        message: "لا يمكن إعادة فتح الفكرة في حالتها الحالية."
-      };
-    }
+    if (!idea) return { success: false, message: "لم يتم العثور على الفكرة." };
 
     const actor = options.actor || this.config.actor;
     const notes = options.notes || "";
@@ -680,12 +1052,7 @@ AIW.Modules.ideas = {
     if (typeof store?.reopenIdea === "function") {
       return this.executeStoreMethod(
         ["reopenIdea"],
-        [
-          () => [ideaId, { actor, notes }],
-          method => method.length >= 3
-            ? [ideaId, actor, notes]
-            : [ideaId, { actor, notes }]
-        ]
+        [() => [ideaId, { actor, notes }]]
       );
     }
 
@@ -696,7 +1063,6 @@ AIW.Modules.ideas = {
       approval: {
         ...(idea.approval || {}),
         status: this.approvalStatus.NOT_SUBMITTED,
-        decision: null,
         reason: null,
         notes,
         decidedAt: null,
@@ -707,16 +1073,10 @@ AIW.Modules.ideas = {
     });
   },
 
-  /* =======================================================
-     Conversion Workflow
-  ======================================================= */
-
   createProjectFromIdea(ideaId, options = {}) {
     const idea = this.getIdeaById(ideaId);
 
-    if (!idea) {
-      return { success: false, message: "لم يتم العثور على الفكرة." };
-    }
+    if (!idea) return { success: false, message: "لم يتم العثور على الفكرة." };
 
     const existingProject = this.getProjectByIdeaId(ideaId);
 
@@ -739,25 +1099,52 @@ AIW.Modules.ideas = {
     const actor = options.actor || this.config.actor;
     const notes = options.notes || "";
 
+    const phases =
+      idea.implementationPhases?.length
+        ? idea.implementationPhases
+        : [
+            "تحليل المتطلبات",
+            "التصميم",
+            "التطوير",
+            "الاختبار",
+            "الإطلاق"
+          ];
+
     const projectData = {
       title: idea.title || "مشروع جديد",
       department: idea.department || "غير مصنف",
       description:
         idea.solution ||
+        idea.proposedSolution ||
         idea.challenge ||
         "مشروع تنفيذي منشأ من فكرة معتمدة.",
       owner: idea.owner || "غير محدد",
       status: "planned",
       progress: 0,
-      riskLevel: idea.riskLevel || idea.risk || "متوسط",
+      readiness:
+        idea.readinessAssessment?.score ??
+        idea.readiness ??
+        0,
+      riskLevel: idea.riskLevel || "متوسط",
       priority: idea.priority || "متوسطة",
       sourceIdeaId: idea.id,
       ideaId: idea.id,
-      origin: {
-        type: "idea",
-        ideaId: idea.id
-      },
+      origin: { type: "idea", ideaId: idea.id },
       createdFromIdea: true,
+      tasks: phases.map((phase, index) => ({
+        id: `task-${Date.now()}-${index + 1}`,
+        title:
+          typeof phase === "string"
+            ? phase
+            : phase.title || phase.name || `المرحلة ${index + 1}`,
+        completed: false,
+        order: index + 1
+      })),
+      businessCase: idea.businessCase || null,
+      kpis: idea.kpis || [],
+      roadmap: idea.roadmap || {},
+      costEstimate: idea.costEstimate || null,
+      roiEstimate: idea.roiEstimate || null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       ...(options.project || {})
@@ -780,42 +1167,15 @@ AIW.Modules.ideas = {
         ],
         method => method.length >= 3
           ? [ideaId, projectData, { actor, notes }]
-          : [
-              ideaId,
-              {
-                actor,
-                convertedBy: actor,
-                requireApproval: true,
-                notes,
-                project: projectData,
-                projectData
-              }
-            ]
+          : [ideaId, { actor, notes, project: projectData, projectData }]
       ]
     );
   },
 
   approveAndCreateProject(ideaId, options = {}) {
-    const idea = this.getIdeaById(ideaId);
-
-    if (!idea) {
-      return { success: false, message: "لم يتم العثور على الفكرة." };
-    }
-
-    const existingProject = this.getProjectByIdeaId(ideaId);
-
-    if (existingProject) {
-      return {
-        success: false,
-        duplicate: true,
-        project: existingProject,
-        message: "تم تحويل هذه الفكرة إلى مشروع مسبقاً."
-      };
-    }
-
+    const store = this.getStore();
     const actor = options.actor || this.config.actor;
     const notes = options.notes || "";
-    const store = this.getStore();
 
     if (typeof store?.approveAndCreateProject === "function") {
       return this.executeStoreMethod(
@@ -836,14 +1196,9 @@ AIW.Modules.ideas = {
       );
     }
 
-    const approvalResult = this.approveIdea(ideaId, {
-      actor,
-      notes
-    });
+    const approvalResult = this.approveIdea(ideaId, { actor, notes });
 
-    if (!approvalResult.success) {
-      return approvalResult;
-    }
+    if (!approvalResult.success) return approvalResult;
 
     return this.createProjectFromIdea(ideaId, {
       actor,
@@ -853,16 +1208,14 @@ AIW.Modules.ideas = {
   },
 
   /* =======================================================
-     Classification
+     Rendering Helpers
   ======================================================= */
 
   groupByDepartment(ideas = []) {
     return ideas.reduce((groups, idea) => {
       const department = idea?.department || "غير مصنف";
-
       if (!groups[department]) groups[department] = [];
       groups[department].push(idea);
-
       return groups;
     }, {});
   },
@@ -886,7 +1239,7 @@ AIW.Modules.ideas = {
   },
 
   isHighPriority(idea = {}) {
-    return ["عالية", "عالي", "high", "high-priority", "critical"].includes(
+    return ["عالية", "عالي", "high", "critical"].includes(
       this.normalizeStatus(idea.priority)
     );
   },
@@ -907,16 +1260,11 @@ AIW.Modules.ideas = {
     if (idea.quickWin === true || idea.isQuickWin === true) return true;
 
     const ease = this.normalizeStatus(
-      idea.ease ??
-      idea.difficulty ??
-      idea.complexity ??
-      ""
+      idea.ease ?? idea.difficulty ?? idea.complexity ?? ""
     );
 
     const cost = this.normalizeStatus(
-      idea.cost ??
-      idea.costLevel ??
-      ""
+      idea.cost ?? idea.costLevel ?? ""
     );
 
     return (
@@ -931,10 +1279,6 @@ AIW.Modules.ideas = {
     ).length;
   },
 
-  /* =======================================================
-     Text Helpers
-  ======================================================= */
-
   valueToText(value, fallback = "لا توجد تفاصيل متاحة.") {
     if (Array.isArray(value)) {
       const cleaned = value
@@ -942,7 +1286,6 @@ AIW.Modules.ideas = {
           if (item && typeof item === "object") {
             return item.title || item.name || item.description || "";
           }
-
           return String(item || "");
         })
         .filter(Boolean);
@@ -958,10 +1301,6 @@ AIW.Modules.ideas = {
     return text || fallback;
   },
 
-  /* =======================================================
-     Pipeline
-  ======================================================= */
-
   getPipeline(ideas = []) {
     const store = this.getStore();
 
@@ -976,7 +1315,7 @@ AIW.Modules.ideas = {
         if (pipeline && typeof pipeline === "object") return pipeline;
       }
     } catch (error) {
-      console.warn("AI Work Ideas V5.1: Pipeline reader failed.", error);
+      console.warn("AI Work Ideas V6.0: Pipeline reader failed.", error);
     }
 
     return {
@@ -989,25 +1328,16 @@ AIW.Modules.ideas = {
     };
   },
 
-  /* =======================================================
-     Actions Renderer
-  ======================================================= */
-
   renderIdeaActions(idea) {
     const ideaId = this.escapeAttribute(idea?.id ?? "");
 
     if (this.isConverted(idea)) {
       return `
         <div class="idea-workflow-actions">
-          <button
-            type="button"
-            class="idea-action-button primary"
-            data-idea-action="open-project"
-            data-idea-id="${ideaId}"
-          >
+          <button type="button" class="idea-action-button primary"
+            data-idea-action="open-project" data-idea-id="${ideaId}">
             📁 فتح المشروع
           </button>
-
           <span class="idea-action-note">
             تم إنشاء مشروع تنفيذي مرتبط بهذه الفكرة.
           </span>
@@ -1018,27 +1348,14 @@ AIW.Modules.ideas = {
     if (this.isPendingApproval(idea)) {
       return `
         <div class="idea-workflow-actions">
-          <button
-            type="button"
-            class="idea-action-button primary"
-            data-idea-action="approve-convert"
-            data-idea-id="${ideaId}"
-          >
+          <button type="button" class="idea-action-button primary"
+            data-idea-action="approve-convert" data-idea-id="${ideaId}">
             ✅ اعتماد وإنشاء مشروع
           </button>
-
-          <button
-            type="button"
-            class="idea-action-button danger"
-            data-idea-action="reject"
-            data-idea-id="${ideaId}"
-          >
+          <button type="button" class="idea-action-button danger"
+            data-idea-action="reject" data-idea-id="${ideaId}">
             رفض الفكرة
           </button>
-
-          <span class="idea-action-note">
-            الفكرة مرفوعة حالياً بانتظار القرار الإداري.
-          </span>
         </div>
       `;
     }
@@ -1046,18 +1363,10 @@ AIW.Modules.ideas = {
     if (this.isApproved(idea)) {
       return `
         <div class="idea-workflow-actions">
-          <button
-            type="button"
-            class="idea-action-button primary"
-            data-idea-action="create-project"
-            data-idea-id="${ideaId}"
-          >
+          <button type="button" class="idea-action-button primary"
+            data-idea-action="create-project" data-idea-id="${ideaId}">
             🚀 إنشاء مشروع تنفيذي
           </button>
-
-          <span class="idea-action-note">
-            الفكرة معتمدة وجاهزة للتحويل إلى مشروع.
-          </span>
         </div>
       `;
     }
@@ -1065,73 +1374,38 @@ AIW.Modules.ideas = {
     if (this.isRejected(idea)) {
       return `
         <div class="idea-workflow-actions">
-          <button
-            type="button"
-            class="idea-action-button secondary"
-            data-idea-action="reopen"
-            data-idea-id="${ideaId}"
-          >
+          <button type="button" class="idea-action-button secondary"
+            data-idea-action="reopen" data-idea-id="${ideaId}">
             ↩️ إعادة فتح الفكرة
           </button>
-
-          <span class="idea-action-note">
-            يمكن تحديث نطاق الفكرة ثم رفعها للاعتماد مرة أخرى.
-          </span>
-        </div>
-      `;
-    }
-
-    if (this.isArchived(idea)) {
-      return `
-        <div class="idea-workflow-actions">
-          <span class="idea-action-note">
-            الفكرة مؤرشفة ولا يمكن تحويلها حالياً.
-          </span>
         </div>
       `;
     }
 
     return `
       <div class="idea-workflow-actions">
-        <button
-          type="button"
-          class="idea-action-button primary"
-          data-idea-action="submit"
-          data-idea-id="${ideaId}"
-        >
+        <button type="button" class="idea-action-button primary"
+          data-idea-action="submit" data-idea-id="${ideaId}">
           📤 رفع للاعتماد
         </button>
-
-        <span class="idea-action-note">
-          يتم رفع الفكرة للاعتماد قبل إنشاء أي مشروع تنفيذي.
-        </span>
       </div>
     `;
   },
 
-  /* =======================================================
-     Card Renderer
-  ======================================================= */
-
   renderIdeaCard(idea, displayNumber = null) {
     const decisionScore = this.normalizePercent(idea?.decisionScore, 0);
-    const decisionLevel = idea?.decisionLevel || "قيد التقييم";
     const riskLevel = idea?.riskLevel || idea?.risk || "متوسط";
     const lifecycleLabel = this.getLifecycleLabel(idea);
     const lifecycleClass = this.getLifecycleClass(idea);
     const lifecycleIcon = this.getLifecycleIcon(idea);
 
     return `
-      <article
-        class="idea-card"
-        data-idea-id="${this.escapeAttribute(idea?.id ?? "")}"
-      >
+      <article class="idea-card" data-idea-id="${this.escapeAttribute(idea?.id ?? "")}">
         <div class="idea-card-head">
           <div>
             <span class="idea-dept">
               ${this.escapeHtml(idea?.department || "غير مصنف")}
             </span>
-
             <h3>
               ${displayNumber !== null ? `${displayNumber}. ` : ""}
               ${this.escapeHtml(idea?.title || "فكرة غير مسماة")}
@@ -1139,19 +1413,13 @@ AIW.Modules.ideas = {
           </div>
 
           <div class="idea-badges">
-            ${
-              this.isQuickWin(idea)
-                ? `<span class="idea-quickwin">Quick Win</span>`
-                : ""
-            }
-
+            ${idea.generatedByAI ? `<span class="idea-ai-badge">✨ مولّدة بالذكاء الاصطناعي</span>` : ""}
+            ${this.isQuickWin(idea) ? `<span class="idea-quickwin">Quick Win</span>` : ""}
             <span class="idea-priority ${this.badgeClass(idea?.priority)}">
               ${this.escapeHtml(idea?.priority || "قيد التقييم")}
             </span>
-
             <span class="idea-lifecycle-badge ${lifecycleClass}">
-              ${lifecycleIcon}
-              ${this.escapeHtml(lifecycleLabel)}
+              ${lifecycleIcon} ${this.escapeHtml(lifecycleLabel)}
             </span>
           </div>
         </div>
@@ -1159,19 +1427,19 @@ AIW.Modules.ideas = {
         <div class="idea-meta">
           <span>⏱️ ${this.escapeHtml(idea?.duration || "غير محددة")}</span>
           <span>💰 ${this.escapeHtml(idea?.cost || idea?.costLevel || "غير محددة")}</span>
-          <span>⚙️ ${this.escapeHtml(idea?.ease || idea?.difficulty || idea?.complexity || "غير محددة")}</span>
+          <span>⚙️ ${this.escapeHtml(idea?.ease || idea?.difficulty || "غير محددة")}</span>
           <span>📊 ${decisionScore}%</span>
           <span>🛡️ ${this.escapeHtml(riskLevel)}</span>
         </div>
 
         <div class="idea-detail">
           <strong>التحدي</strong>
-          <p>${this.escapeHtml(this.valueToText(idea?.challenge))}</p>
+          <p>${this.escapeHtml(this.valueToText(idea?.challenge || idea?.problemStatement))}</p>
         </div>
 
         <div class="idea-detail">
           <strong>الحل المقترح</strong>
-          <p>${this.escapeHtml(this.valueToText(idea?.solution))}</p>
+          <p>${this.escapeHtml(this.valueToText(idea?.solution || idea?.proposedSolution))}</p>
         </div>
 
         <div class="idea-detail">
@@ -1181,13 +1449,13 @@ AIW.Modules.ideas = {
 
         <div class="idea-detail">
           <strong>الفوائد المتوقعة</strong>
-          <p>${this.escapeHtml(this.valueToText(idea?.benefits))}</p>
+          <p>${this.escapeHtml(this.valueToText(idea?.benefits || idea?.expectedBenefits))}</p>
         </div>
 
         <div class="idea-detail">
           <strong>قرار مبدئي</strong>
           <p>
-            ${this.escapeHtml(decisionLevel)}
+            ${this.escapeHtml(idea?.decisionLevel || "قيد التقييم")}
             · Decision Score ${decisionScore}%
           </p>
         </div>
@@ -1206,7 +1474,6 @@ AIW.Modules.ideas = {
             <h2>${this.escapeHtml(department)}</h2>
             <p>${ideas.length} فرص قابلة للدراسة والتطوير</p>
           </div>
-
           <span class="idea-section-count">${ideas.length}</span>
         </div>
 
@@ -1226,9 +1493,7 @@ AIW.Modules.ideas = {
 
   renderPortfolioMap(departments = [], ideas = []) {
     if (!departments.length) {
-      const departmentNames = Object.keys(this.groupByDepartment(ideas));
-
-      departments = departmentNames.map(name => ({
+      departments = Object.keys(this.groupByDepartment(ideas)).map(name => ({
         name,
         maturity: 0
       }));
@@ -1236,20 +1501,18 @@ AIW.Modules.ideas = {
 
     return `
       <div class="department-grid">
-        ${departments
-          .map(department => {
-            const name = department?.name || "محفظة غير مسماة";
-            const count = this.getDepartmentCount(name, ideas);
-            const maturity = this.normalizePercent(department?.maturity, 0);
+        ${departments.map(department => {
+          const name = department?.name || "محفظة غير مسماة";
+          const count = this.getDepartmentCount(name, ideas);
+          const maturity = this.normalizePercent(department?.maturity, 0);
 
-            return `
-              <div class="department-chip">
-                <strong>${this.escapeHtml(name)}</strong>
-                <span>${count} فرص · جاهزية ${maturity}%</span>
-              </div>
-            `;
-          })
-          .join("")}
+          return `
+            <div class="department-chip">
+              <strong>${this.escapeHtml(name)}</strong>
+              <span>${count} فرص · جاهزية ${maturity}%</span>
+            </div>
+          `;
+        }).join("")}
       </div>
     `;
   },
@@ -1265,7 +1528,7 @@ AIW.Modules.ideas = {
     this._container = container;
 
     try {
-      this.injectWorkflowStyles();
+      this.injectStyles();
 
       const state = this.getState();
       const ideas = this.getIdeas();
@@ -1275,6 +1538,7 @@ AIW.Modules.ideas = {
 
       const groupedIdeas = this.groupByDepartment(ideas);
       const pipeline = this.getPipeline(ideas);
+      const generatorStatus = this.getGeneratorStatus();
 
       const highCount = ideas.filter(idea => this.isHighPriority(idea)).length;
       const mediumCount = ideas.filter(idea => this.isMediumPriority(idea)).length;
@@ -1341,7 +1605,6 @@ AIW.Modules.ideas = {
       ];
 
       const ideaNumberMap = new Map();
-
       ideas.forEach((idea, index) => {
         ideaNumberMap.set(String(idea?.id), index + 1);
       });
@@ -1360,6 +1623,23 @@ AIW.Modules.ideas = {
               من الدراسة والتقييم إلى الاعتماد والتحويل إلى مشاريع تنفيذية مترابطة.
             </p>
 
+            <div class="ideas-hero-actions">
+              <button
+                type="button"
+                class="idea-generate-button"
+                data-idea-action="open-generator"
+                ${generatorStatus.ready ? "" : "disabled"}
+              >
+                ✨ إضافة فكرة بالذكاء الاصطناعي
+              </button>
+
+              <span class="idea-generator-status ${generatorStatus.ready ? "ready" : "not-ready"}">
+                ${generatorStatus.ready
+                  ? `جاهز · ${generatorStatus.loaded}/${generatorStatus.total} محرك`
+                  : `غير مكتمل · ${generatorStatus.loaded}/${generatorStatus.total} محرك`}
+              </span>
+            </div>
+
             <div class="aiw-chip-row">
               <span class="aiw-chip">💡 ${ideas.length}/${targetIdeas} فرصة</span>
               <span class="aiw-chip">🛂 ${orderedDepartments.length} محافظ</span>
@@ -1370,6 +1650,15 @@ AIW.Modules.ideas = {
               <span class="aiw-chip">🎯 ${progress}% من الهدف</span>
             </div>
           </div>
+
+          ${!generatorStatus.ready ? `
+            <div class="idea-generator-warning">
+              <strong>⚠️ مولّد الأفكار غير مكتمل</strong>
+              <p>
+                الملفات الناقصة: ${this.escapeHtml(generatorStatus.missing.join("، "))}
+              </p>
+            </div>
+          ` : ""}
 
           <div class="module-grid">
             <div class="module-card">
@@ -1419,44 +1708,18 @@ AIW.Modules.ideas = {
             </div>
 
             <div class="idea-pipeline-strip">
-              <div>
-                <span>💡</span>
-                <strong>${ideas.length}</strong>
-                <small>إجمالي الأفكار</small>
-              </div>
-
-              <div>
-                <span>⏳</span>
-                <strong>${pendingCount}</strong>
-                <small>بانتظار الاعتماد</small>
-              </div>
-
-              <div>
-                <span>✅</span>
-                <strong>${approvedCount}</strong>
-                <small>أفكار معتمدة</small>
-              </div>
-
-              <div>
-                <span>📁</span>
-                <strong>${convertedCount}</strong>
-                <small>تحولت إلى مشاريع</small>
-              </div>
-
-              <div>
-                <span>⛔</span>
-                <strong>${rejectedCount}</strong>
-                <small>غير معتمدة</small>
-              </div>
+              <div><span>💡</span><strong>${ideas.length}</strong><small>إجمالي الأفكار</small></div>
+              <div><span>⏳</span><strong>${pendingCount}</strong><small>بانتظار الاعتماد</small></div>
+              <div><span>✅</span><strong>${approvedCount}</strong><small>أفكار معتمدة</small></div>
+              <div><span>📁</span><strong>${convertedCount}</strong><small>تحولت إلى مشاريع</small></div>
+              <div><span>⛔</span><strong>${rejectedCount}</strong><small>غير معتمدة</small></div>
             </div>
           </div>
 
           <div class="module-panel">
             <div class="module-section-title compact">
               <h2>خريطة المحافظ التشغيلية</h2>
-              <p>
-                توزيع الفرص حسب النطاق التشغيلي والجاهزية المؤسسية.
-              </p>
+              <p>توزيع الفرص حسب النطاق التشغيلي والجاهزية المؤسسية.</p>
             </div>
 
             ${this.renderPortfolioMap(departments, ideas)}
@@ -1472,15 +1735,13 @@ AIW.Modules.ideas = {
 
           ${
             orderedDepartments.length
-              ? orderedDepartments
-                  .map(department =>
-                    this.renderDepartmentSection(
-                      department,
-                      groupedIdeas[department] || [],
-                      ideaNumberMap
-                    )
+              ? orderedDepartments.map(department =>
+                  this.renderDepartmentSection(
+                    department,
+                    groupedIdeas[department] || [],
+                    ideaNumberMap
                   )
-                  .join("")
+                ).join("")
               : `<div class="module-empty">لا توجد أفكار مسجلة حالياً.</div>`
           }
         </section>
@@ -1491,6 +1752,265 @@ AIW.Modules.ideas = {
     } finally {
       this._isRendering = false;
     }
+  },
+
+  /* =======================================================
+     Generator Modal
+  ======================================================= */
+
+  openGeneratorModal() {
+    const status = this.getGeneratorStatus();
+
+    if (!status.ready) {
+      this.showToast(
+        "مولّد الأفكار غير مكتمل. تأكد من تحميل الملفات في index.html.",
+        "error"
+      );
+      return;
+    }
+
+    this.closeGeneratorModal();
+    this._generatedPackage = null;
+
+    const modal = document.createElement("div");
+    modal.className = "idea-generator-overlay";
+
+    modal.innerHTML = `
+      <div class="idea-generator-dialog" role="dialog" aria-modal="true">
+        <button type="button" class="idea-confirmation-close"
+          data-generator-close aria-label="إغلاق">×</button>
+
+        <div class="idea-confirmation-icon">✨</div>
+
+        <span class="module-kicker light">AI Opportunity Generator</span>
+        <h3>أنشئ فكرة متكاملة من مشكلة مختصرة</h3>
+
+        <p class="idea-generator-intro">
+          اكتب المشكلة أو التحدي داخل نطاق الأنظمة البيومترية والبوابات الذكية
+          والصلاحيات والأمن الرقمي، وستقوم المنصة بتوليد مسودة متكاملة للمراجعة.
+        </p>
+
+        <label class="idea-generator-field">
+          <span>المشكلة أو التحدي</span>
+          <textarea
+            rows="5"
+            maxlength="${this.config.maxProblemLength}"
+            data-generator-problem
+            placeholder="مثال: وجود تسجيلات بيومترية خاطئة أو متعارضة لبعض المسافرين في المطار."
+          ></textarea>
+          <small data-generator-counter>0/${this.config.maxProblemLength}</small>
+        </label>
+
+        <div class="idea-generator-actions">
+          <button type="button" class="idea-action-button secondary"
+            data-generator-close>إلغاء</button>
+          <button type="button" class="idea-action-button primary"
+            data-generator-run>✨ تحليل وتوليد الفكرة</button>
+        </div>
+
+        <div class="idea-generator-loading" data-generator-loading hidden>
+          <div class="idea-generator-spinner"></div>
+          <strong>جاري تحليل المشكلة...</strong>
+          <span>يتم تشغيل محركات التصنيف والمخاطر والجدوى والقرار.</span>
+        </div>
+
+        <div class="idea-generator-result" data-generator-result hidden></div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    this._generatorModal = modal;
+
+    const textarea = modal.querySelector("[data-generator-problem]");
+    const counter = modal.querySelector("[data-generator-counter]");
+
+    textarea?.addEventListener("input", () => {
+      counter.textContent = `${textarea.value.length}/${this.config.maxProblemLength}`;
+    });
+
+    modal.addEventListener("click", async event => {
+      if (
+        event.target === modal ||
+        event.target.closest("[data-generator-close]")
+      ) {
+        this.closeGeneratorModal();
+        return;
+      }
+
+      if (event.target.closest("[data-generator-run]")) {
+        await this.runGeneratorFromModal();
+        return;
+      }
+
+      if (event.target.closest("[data-generator-save]")) {
+        this.saveGeneratedIdea();
+      }
+    });
+
+    requestAnimationFrame(() => {
+      modal.classList.add("visible");
+      textarea?.focus();
+    });
+  },
+
+  async runGeneratorFromModal() {
+    if (!this._generatorModal || this._isGenerating) return;
+
+    const textarea = this._generatorModal.querySelector(
+      "[data-generator-problem]"
+    );
+
+    const runButton = this._generatorModal.querySelector(
+      "[data-generator-run]"
+    );
+
+    const loading = this._generatorModal.querySelector(
+      "[data-generator-loading]"
+    );
+
+    const resultBox = this._generatorModal.querySelector(
+      "[data-generator-result]"
+    );
+
+    const problem = textarea?.value?.trim() || "";
+
+    this._isGenerating = true;
+    runButton.disabled = true;
+    loading.hidden = false;
+    resultBox.hidden = true;
+
+    try {
+      const pkg = await this.generateOpportunity(problem);
+      this._generatedPackage = pkg;
+      resultBox.innerHTML = this.renderGeneratedPackage(pkg);
+      resultBox.hidden = false;
+    } catch (error) {
+      resultBox.innerHTML = `
+        <div class="idea-generator-error">
+          <strong>تعذر توليد الفكرة</strong>
+          <p>${this.escapeHtml(error?.message || "حدث خطأ غير متوقع.")}</p>
+        </div>
+      `;
+      resultBox.hidden = false;
+    } finally {
+      this._isGenerating = false;
+      runButton.disabled = false;
+      loading.hidden = true;
+    }
+  },
+
+  renderGeneratedPackage(pkg) {
+    const idea = pkg?.idea || {};
+    const readiness = pkg?.readiness || {};
+    const cost = pkg?.cost || {};
+    const roi = pkg?.roi || {};
+    const decision = pkg?.decision || {};
+    const duplicate = pkg?.duplicateAnalysis || {};
+    const executive = pkg?.executiveSummary || {};
+
+    return `
+      <div class="idea-generated-card">
+        <div class="idea-generated-head">
+          <div>
+            <span class="idea-ai-badge">✨ مسودة مولّدة بالذكاء الاصطناعي</span>
+            <h4>${this.escapeHtml(idea.title || "فكرة جديدة")}</h4>
+          </div>
+          <span class="idea-lifecycle-badge draft">📝 مسودة</span>
+        </div>
+
+        ${duplicate?.highestSimilarity > 0 ? `
+          <div class="idea-duplicate-alert ${duplicate.duplicate ? "warning" : ""}">
+            <strong>🔎 فحص التشابه</strong>
+            <p>
+              أعلى نسبة تشابه: ${this.normalizePercent(duplicate.highestSimilarity, 0)}%
+              ${duplicate?.matchedIdea?.title
+                ? ` مع «${this.escapeHtml(duplicate.matchedIdea.title)}»`
+                : ""}
+            </p>
+          </div>
+        ` : ""}
+
+        <div class="idea-generated-grid">
+          <div><span>المحفظة</span><strong>${this.escapeHtml(idea.portfolio || idea.department || "غير محددة")}</strong></div>
+          <div><span>الأولوية</span><strong>${this.escapeHtml(idea.priority || "متوسطة")}</strong></div>
+          <div><span>المخاطر</span><strong>${this.escapeHtml(idea.riskLevel || "متوسط")}</strong></div>
+          <div><span>الجاهزية</span><strong>${this.normalizePercent(readiness.score ?? idea.readiness, 0)}%</strong></div>
+          <div><span>التكلفة</span><strong>${cost.totalEstimatedCost ? `${this.formatNumber(cost.totalEstimatedCost)} AED` : "تقديرية"}</strong></div>
+          <div><span>ROI</span><strong>${Number.isFinite(Number(roi.roiPercent)) ? `${roi.roiPercent}%` : "يحتاج دراسة"}</strong></div>
+        </div>
+
+        <div class="idea-generated-section">
+          <strong>التحدي</strong>
+          <p>${this.escapeHtml(this.valueToText(idea.problemStatement || idea.challenge))}</p>
+        </div>
+
+        <div class="idea-generated-section">
+          <strong>الحل المقترح</strong>
+          <p>${this.escapeHtml(this.valueToText(idea.proposedSolution || idea.solution))}</p>
+        </div>
+
+        <div class="idea-generated-section">
+          <strong>دور الذكاء الاصطناعي</strong>
+          <p>${this.escapeHtml(this.valueToText(idea.aiRole))}</p>
+        </div>
+
+        <div class="idea-generated-section">
+          <strong>الفوائد المتوقعة</strong>
+          <p>${this.escapeHtml(this.valueToText(idea.expectedBenefits || idea.benefits))}</p>
+        </div>
+
+        <div class="idea-generated-section">
+          <strong>مؤشرات الأداء المقترحة</strong>
+          <p>${this.escapeHtml(this.valueToText(idea.kpis, "تحدد بعد المراجعة."))}</p>
+        </div>
+
+        <div class="idea-generated-section">
+          <strong>القرار التنفيذي المقترح</strong>
+          <p>
+            ${this.escapeHtml(
+              decision.decisionLabel ||
+              readiness.decision?.label ||
+              "يحتاج مراجعة"
+            )}
+            ${decision.confidenceScore !== undefined
+              ? ` · ثقة ${this.normalizePercent(decision.confidenceScore, 0)}%`
+              : ""}
+          </p>
+        </div>
+
+        ${executive.presentationScript ? `
+          <div class="idea-generated-section executive">
+            <strong>ملخص جاهز للعرض</strong>
+            <p>${this.escapeHtml(executive.presentationScript)}</p>
+          </div>
+        ` : ""}
+
+        <div class="idea-generator-review-note">
+          يتم حفظ الفكرة كمسودة فقط. الاعتماد والتحويل إلى مشروع يحتاجان قراراً بشرياً.
+        </div>
+
+        <button type="button" class="idea-action-button primary idea-save-generated"
+          data-generator-save>
+          💾 حفظ الفكرة كمسودة
+        </button>
+      </div>
+    `;
+  },
+
+  closeGeneratorModal() {
+    if (!this._generatorModal) {
+      this._generatedPackage = null;
+      return;
+    }
+
+    const modal = this._generatorModal;
+    modal.classList.remove("visible");
+
+    window.setTimeout(() => modal.remove(), 180);
+
+    this._generatorModal = null;
+    this._generatedPackage = null;
+    this._isGenerating = false;
   },
 
   /* =======================================================
@@ -1510,9 +2030,15 @@ AIW.Modules.ideas = {
       const action = button.dataset.ideaAction;
       const ideaId = button.dataset.ideaId;
 
+      event.preventDefault();
+
+      if (action === "open-generator") {
+        this.openGeneratorModal();
+        return;
+      }
+
       if (!action || !ideaId) return;
 
-      event.preventDefault();
       this.handleIdeaAction(action, ideaId);
     });
   },
@@ -1535,59 +2061,50 @@ AIW.Modules.ideas = {
         icon: "📤",
         title: "رفع الفكرة للاعتماد",
         message:
-          `سيتم رفع فكرة «${idea.title || "غير مسماة"}» للقرار الإداري. لن يتم إنشاء مشروع في هذه المرحلة.`,
+          `سيتم رفع فكرة «${idea.title || "غير مسماة"}» للقرار الإداري.`,
         confirmText: "رفع للاعتماد",
-        noteLabel: "ملاحظات الرفع للاعتماد"
+        noteLabel: "ملاحظات الرفع"
       },
-
       "approve-convert": {
         icon: "🚀",
         title: "اعتماد وإنشاء مشروع",
         message:
-          `سيتم اعتماد فكرة «${idea.title || "غير مسماة"}» وإنشاء مشروع تنفيذي جديد يبدأ بنسبة إنجاز 0%.`,
+          `سيتم اعتماد فكرة «${idea.title || "غير مسماة"}» وإنشاء مشروع تنفيذي.`,
         confirmText: "اعتماد وإنشاء المشروع",
-        noteLabel: "ملاحظات قرار الاعتماد"
+        noteLabel: "ملاحظات الاعتماد"
       },
-
       "create-project": {
         icon: "📁",
         title: "إنشاء مشروع تنفيذي",
         message:
-          `الفكرة «${idea.title || "غير مسماة"}» معتمدة. سيتم إنشاء مشروع مرتبط بها مع الاحتفاظ ببيانات المصدر.`,
+          `سيتم إنشاء مشروع مرتبط بفكرة «${idea.title || "غير مسماة"}».`,
         confirmText: "إنشاء المشروع",
         noteLabel: "ملاحظات إنشاء المشروع"
       },
-
       reject: {
         icon: "⛔",
         title: "رفض الفكرة",
         message:
-          `سيتم تسجيل قرار رفض فكرة «${idea.title || "غير مسماة"}». يمكن إعادة فتحها لاحقاً.`,
+          `سيتم تسجيل قرار رفض فكرة «${idea.title || "غير مسماة"}».`,
         confirmText: "تأكيد الرفض",
         noteLabel: "سبب الرفض",
         danger: true,
         requiredNotes: true
       },
-
       reopen: {
         icon: "↩️",
         title: "إعادة فتح الفكرة",
         message:
-          `ستعود فكرة «${idea.title || "غير مسماة"}» إلى مرحلة الدراسة ويمكن رفعها مرة أخرى.`,
+          `ستعود فكرة «${idea.title || "غير مسماة"}» إلى مرحلة الدراسة.`,
         confirmText: "إعادة فتح الفكرة",
         noteLabel: "ملاحظات إعادة الفتح"
       }
     };
 
     const config = configs[action];
-
     if (!config) return;
 
-    this.openConfirmation({
-      action,
-      ideaId,
-      ...config
-    });
+    this.openConfirmation({ action, ideaId, ...config });
   },
 
   executePendingAction(notes = "") {
@@ -1603,12 +2120,13 @@ AIW.Modules.ideas = {
     this._isExecuting = true;
 
     try {
-      let result = null;
       const options = {
         actor: this.config.actor,
         notes,
         reason: notes
       };
+
+      let result = null;
 
       if (action === "submit") {
         result = this.submitForApproval(ideaId, options);
@@ -1639,36 +2157,7 @@ AIW.Modules.ideas = {
       }
 
       this.closeConfirmation();
-
-      if (action === "submit") {
-        this.showToast("تم رفع الفكرة للاعتماد بنجاح.", "success");
-      }
-
-      if (["approve-convert", "create-project"].includes(action)) {
-        const project =
-          result?.project ||
-          result?.data?.project ||
-          result?.result?.project ||
-          this.getProjectByIdeaId(ideaId);
-
-        if (project?.id) {
-          this.saveSelectedProject(project.id);
-        }
-
-        this.showToast(
-          "تم إنشاء المشروع التنفيذي وربطه بالفكرة بنجاح.",
-          "success"
-        );
-      }
-
-      if (action === "reject") {
-        this.showToast("تم تسجيل قرار رفض الفكرة.", "success");
-      }
-
-      if (action === "reopen") {
-        this.showToast("تمت إعادة الفكرة إلى مرحلة الدراسة.", "success");
-      }
-
+      this.showToast("تم تنفيذ العملية بنجاح.", "success");
       this.scheduleRefresh();
     } finally {
       this._isExecuting = false;
@@ -1681,33 +2170,19 @@ AIW.Modules.ideas = {
 
   saveSelectedProject(projectId) {
     try {
-      localStorage.setItem(
-        this.config.selectedProjectKey,
-        String(projectId)
-      );
-
-      sessionStorage.setItem(
-        this.config.selectedProjectKey,
-        String(projectId)
-      );
+      localStorage.setItem(this.config.selectedProjectKey, String(projectId));
+      sessionStorage.setItem(this.config.selectedProjectKey, String(projectId));
     } catch (error) {
-      console.warn("AI Work Ideas V5.1: Unable to save selected project.", error);
+      console.warn("AI Work Ideas V6.0: Unable to save selected project.", error);
     }
   },
 
   saveSelectedIdea(ideaId) {
     try {
-      localStorage.setItem(
-        this.config.selectedIdeaKey,
-        String(ideaId)
-      );
-
-      sessionStorage.setItem(
-        this.config.selectedIdeaKey,
-        String(ideaId)
-      );
+      localStorage.setItem(this.config.selectedIdeaKey, String(ideaId));
+      sessionStorage.setItem(this.config.selectedIdeaKey, String(ideaId));
     } catch (error) {
-      console.warn("AI Work Ideas V5.1: Unable to save selected idea.", error);
+      console.warn("AI Work Ideas V6.0: Unable to save selected idea.", error);
     }
   },
 
@@ -1721,19 +2196,6 @@ AIW.Modules.ideas = {
 
     this.saveSelectedIdea(ideaId);
     this.saveSelectedProject(project.id);
-
-    try {
-      window.dispatchEvent(
-        new CustomEvent("aiw:openProject", {
-          detail: {
-            projectId: project.id,
-            sourceIdeaId: ideaId
-          }
-        })
-      );
-    } catch (error) {
-      console.warn("AI Work Ideas V5.1: Open project event failed.", error);
-    }
 
     if (typeof window.AIW?.App?.go === "function") {
       window.AIW.App.go("projects");
@@ -1762,36 +2224,19 @@ AIW.Modules.ideas = {
     };
 
     const modal = document.createElement("div");
-
     modal.className = "idea-confirmation-overlay";
 
     modal.innerHTML = `
-      <div
-        class="idea-confirmation-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="idea-confirmation-title"
-      >
-        <button
-          type="button"
-          class="idea-confirmation-close"
-          data-confirmation-close
-          aria-label="إغلاق"
-        >
-          ×
-        </button>
+      <div class="idea-confirmation-dialog" role="dialog" aria-modal="true">
+        <button type="button" class="idea-confirmation-close"
+          data-confirmation-close aria-label="إغلاق">×</button>
 
         <div class="idea-confirmation-icon">
           ${this.escapeHtml(config.icon || "💡")}
         </div>
 
-        <h3 id="idea-confirmation-title">
-          ${this.escapeHtml(config.title || "تأكيد العملية")}
-        </h3>
-
-        <p>
-          ${this.escapeHtml(config.message || "هل تريد متابعة العملية؟")}
-        </p>
+        <h3>${this.escapeHtml(config.title || "تأكيد العملية")}</h3>
+        <p>${this.escapeHtml(config.message || "هل تريد متابعة العملية؟")}</p>
 
         <label class="idea-confirmation-field">
           <span>
@@ -1799,31 +2244,17 @@ AIW.Modules.ideas = {
             ${config.requiredNotes ? `<em>مطلوب</em>` : ""}
           </span>
 
-          <textarea
-            data-confirmation-notes
-            rows="3"
-            placeholder="${
-              config.requiredNotes
-                ? "أدخل السبب قبل المتابعة..."
-                : "إضافة ملاحظة اختيارية..."
-            }"
-          ></textarea>
+          <textarea data-confirmation-notes rows="3"
+            placeholder="${config.requiredNotes ? "أدخل السبب..." : "ملاحظة اختيارية..."}"></textarea>
         </label>
 
         <div class="idea-confirmation-actions">
-          <button
-            type="button"
-            class="idea-action-button secondary"
-            data-confirmation-close
-          >
-            إلغاء
-          </button>
+          <button type="button" class="idea-action-button secondary"
+            data-confirmation-close>إلغاء</button>
 
-          <button
-            type="button"
+          <button type="button"
             class="idea-action-button ${config.danger ? "danger" : "primary"}"
-            data-confirmation-submit
-          >
+            data-confirmation-submit>
             ${this.escapeHtml(config.confirmText || "تأكيد")}
           </button>
         </div>
@@ -1844,26 +2275,7 @@ AIW.Modules.ideas = {
 
       if (event.target.closest("[data-confirmation-submit]")) {
         const notes =
-          modal
-            .querySelector("[data-confirmation-notes]")
-            ?.value?.trim() || "";
-
-        this.executePendingAction(notes);
-      }
-    });
-
-    modal.addEventListener("keydown", event => {
-      if (event.key === "Escape") {
-        this.closeConfirmation();
-      }
-
-      if (
-        event.key === "Enter" &&
-        (event.ctrlKey || event.metaKey)
-      ) {
-        const notes =
-          modal
-            .querySelector("[data-confirmation-notes]")
+          modal.querySelector("[data-confirmation-notes]")
             ?.value?.trim() || "";
 
         this.executePendingAction(notes);
@@ -1872,7 +2284,6 @@ AIW.Modules.ideas = {
 
     requestAnimationFrame(() => {
       modal.classList.add("visible");
-      modal.querySelector("[data-confirmation-notes]")?.focus();
     });
   },
 
@@ -1883,47 +2294,32 @@ AIW.Modules.ideas = {
     }
 
     const modal = this._modal;
-
     modal.classList.remove("visible");
-
-    window.setTimeout(() => {
-      modal.remove();
-    }, 180);
+    window.setTimeout(() => modal.remove(), 180);
 
     this._modal = null;
     this._pendingAction = null;
   },
 
   /* =======================================================
-     Toast
+     Toast / Sync
   ======================================================= */
 
   showToast(message, type = "success") {
     document.querySelector(".idea-workflow-toast")?.remove();
 
     const toast = document.createElement("div");
-
     toast.className = `idea-workflow-toast ${type}`;
     toast.textContent = message;
-
     document.body.appendChild(toast);
 
-    requestAnimationFrame(() => {
-      toast.classList.add("visible");
-    });
+    requestAnimationFrame(() => toast.classList.add("visible"));
 
     window.setTimeout(() => {
       toast.classList.remove("visible");
-
-      window.setTimeout(() => {
-        toast.remove();
-      }, 200);
+      window.setTimeout(() => toast.remove(), 200);
     }, 2800);
   },
-
-  /* =======================================================
-     Synchronization
-  ======================================================= */
 
   scheduleRefresh() {
     window.clearTimeout(this._refreshTimer);
@@ -1936,34 +2332,22 @@ AIW.Modules.ideas = {
 
   bindAutomaticSync() {
     if (this._syncBound) return;
-
     this._syncBound = true;
 
     const refresh = () => this.scheduleRefresh();
 
-    const events = [
+    [
       "aiw:dataChanged",
       "aiw:dataUpdated",
-      "aiw:dataImported",
-      "aiw:dataRestored",
-      "aiw:dataReset",
       "aiw:storeChanged",
       "aiw:ideasChanged",
-      "aiw:ideasUpdated",
       "aiw:ideaCreated",
       "aiw:ideaUpdated",
-      "aiw:ideaSubmittedForApproval",
-      "aiw:ideaSubmitted",
       "aiw:ideaApproved",
       "aiw:ideaRejected",
-      "aiw:ideaReopened",
       "aiw:ideaConvertedToProject",
-      "aiw:projectCreatedFromIdea",
-      "aiw:projectUpdated",
-      "aiw:projectArchived"
-    ];
-
-    events.forEach(eventName => {
+      "aiw:projectCreatedFromIdea"
+    ].forEach(eventName => {
       window.addEventListener(eventName, refresh);
     });
 
@@ -1973,19 +2357,7 @@ AIW.Modules.ideas = {
       this._unsubscribeStore = store.subscribe(refresh);
     }
 
-    window.addEventListener("storage", event => {
-      const supportedKeys = [
-        window.AIW?.KEYS?.DATA,
-        "atcDataV1",
-        "aiwDataV1",
-        "aiwData",
-        "AIW_DATA"
-      ].filter(Boolean);
-
-      if (!event.key || supportedKeys.includes(event.key)) {
-        refresh();
-      }
-    });
+    window.addEventListener("storage", refresh);
   },
 
   destroy() {
@@ -2000,361 +2372,466 @@ AIW.Modules.ideas = {
     this._eventsBound = false;
     this._syncBound = false;
     this.closeConfirmation();
+    this.closeGeneratorModal();
   },
 
   /* =======================================================
-     Workflow Styles
+     Styles
   ======================================================= */
 
-  injectWorkflowStyles() {
+  injectStyles() {
     if (document.getElementById(this.config.styleId)) return;
 
     const style = document.createElement("style");
-
     style.id = this.config.styleId;
 
     style.textContent = `
+      .ideas-hero-actions {
+        display:flex;
+        flex-wrap:wrap;
+        align-items:center;
+        gap:10px;
+        margin-top:20px;
+      }
+
+      .idea-generate-button {
+        min-height:48px;
+        padding:12px 18px;
+        border:0;
+        border-radius:16px;
+        color:#101b2f;
+        background:#ffffff;
+        font:inherit;
+        font-weight:900;
+        cursor:pointer;
+        box-shadow:0 10px 24px rgba(15,23,42,.15);
+      }
+
+      .idea-generate-button:disabled {
+        opacity:.55;
+        cursor:not-allowed;
+      }
+
+      .idea-generator-status {
+        padding:8px 12px;
+        border-radius:999px;
+        font-size:12px;
+        font-weight:800;
+      }
+
+      .idea-generator-status.ready {
+        color:#087d3e;
+        background:#e2f7ea;
+      }
+
+      .idea-generator-status.not-ready {
+        color:#b42318;
+        background:#feeceb;
+      }
+
+      .idea-generator-warning {
+        margin:0 0 20px;
+        padding:16px;
+        border:1px solid #fbd3d0;
+        border-radius:18px;
+        color:#b42318;
+        background:#fff5f4;
+      }
+
+      .idea-ai-badge {
+        display:inline-flex;
+        align-items:center;
+        padding:7px 11px;
+        border-radius:999px;
+        color:#3159bf;
+        background:#edf3ff;
+        font-size:12px;
+        font-weight:900;
+      }
+
       .idea-lifecycle-badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        min-height: 34px;
-        padding: 7px 12px;
-        border: 1px solid transparent;
-        border-radius: 999px;
-        font-size: 13px;
-        font-weight: 800;
-        line-height: 1.2;
-        white-space: nowrap;
+        display:inline-flex;
+        align-items:center;
+        gap:6px;
+        padding:7px 12px;
+        border-radius:999px;
+        font-size:13px;
+        font-weight:800;
+        white-space:nowrap;
       }
 
       .idea-lifecycle-badge.idea,
       .idea-lifecycle-badge.draft {
-        color: #3159bf;
-        background: #edf3ff;
-        border-color: #dbe7ff;
+        color:#3159bf;
+        background:#edf3ff;
       }
 
       .idea-lifecycle-badge.pending {
-        color: #b75c00;
-        background: #fff3d9;
-        border-color: #ffe4ac;
+        color:#b75c00;
+        background:#fff3d9;
       }
 
       .idea-lifecycle-badge.approved {
-        color: #087d3e;
-        background: #e2f7ea;
-        border-color: #c8efd7;
+        color:#087d3e;
+        background:#e2f7ea;
       }
 
       .idea-lifecycle-badge.rejected {
-        color: #b42318;
-        background: #feeceb;
-        border-color: #fbd3d0;
+        color:#b42318;
+        background:#feeceb;
       }
 
       .idea-lifecycle-badge.converted {
-        color: #ffffff;
-        background: #101b2f;
-        border-color: #101b2f;
-      }
-
-      .idea-lifecycle-badge.archived {
-        color: #667085;
-        background: #f2f4f7;
-        border-color: #e4e7ec;
+        color:#fff;
+        background:#101b2f;
       }
 
       .idea-workflow-actions {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 10px;
-        margin-top: 22px;
-        padding-top: 18px;
-        border-top: 1px solid rgba(15, 23, 42, 0.08);
+        display:flex;
+        flex-wrap:wrap;
+        align-items:center;
+        gap:10px;
+        margin-top:22px;
+        padding-top:18px;
+        border-top:1px solid rgba(15,23,42,.08);
       }
 
       .idea-action-button {
-        appearance: none;
-        min-height: 44px;
-        padding: 11px 17px;
-        border: 0;
-        border-radius: 14px;
-        font: inherit;
-        font-size: 14px;
-        font-weight: 800;
-        cursor: pointer;
-        transition:
-          transform 0.18s ease,
-          opacity 0.18s ease,
-          box-shadow 0.18s ease;
-      }
-
-      .idea-action-button:active {
-        transform: scale(0.98);
-      }
-
-      .idea-action-button:disabled {
-        cursor: not-allowed;
-        opacity: 0.55;
+        min-height:44px;
+        padding:11px 17px;
+        border:0;
+        border-radius:14px;
+        font:inherit;
+        font-size:14px;
+        font-weight:800;
+        cursor:pointer;
       }
 
       .idea-action-button.primary {
-        color: #ffffff;
-        background: #101b2f;
-        box-shadow: 0 8px 20px rgba(16, 27, 47, 0.16);
+        color:#fff;
+        background:#101b2f;
       }
 
       .idea-action-button.secondary {
-        color: #344054;
-        background: #f2f4f7;
-        border: 1px solid #e4e7ec;
+        color:#344054;
+        background:#f2f4f7;
+        border:1px solid #e4e7ec;
       }
 
       .idea-action-button.danger {
-        color: #b42318;
-        background: #feeceb;
-        border: 1px solid #fbd3d0;
-      }
-
-      .idea-action-note {
-        flex: 1 1 210px;
-        color: #667085;
-        font-size: 13px;
-        line-height: 1.7;
+        color:#b42318;
+        background:#feeceb;
+        border:1px solid #fbd3d0;
       }
 
       .idea-pipeline-strip {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 12px;
+        display:grid;
+        grid-template-columns:repeat(5,minmax(0,1fr));
+        gap:12px;
       }
 
-      .idea-pipeline-strip > div {
-        display: flex;
-        min-width: 0;
-        min-height: 110px;
-        padding: 14px 10px;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 5px;
-        border: 1px solid rgba(15, 23, 42, 0.06);
-        border-radius: 20px;
-        text-align: center;
-        background: #f7f8fa;
-      }
-
-      .idea-pipeline-strip span {
-        font-size: 22px;
+      .idea-pipeline-strip>div {
+        min-height:110px;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+        gap:5px;
+        padding:14px 10px;
+        border:1px solid rgba(15,23,42,.06);
+        border-radius:20px;
+        text-align:center;
+        background:#f7f8fa;
       }
 
       .idea-pipeline-strip strong {
-        color: #101828;
-        font-size: 25px;
-        line-height: 1;
+        font-size:25px;
+        color:#101828;
       }
 
       .idea-pipeline-strip small {
-        color: #667085;
-        font-size: 12px;
-        font-weight: 700;
+        color:#667085;
+        font-weight:700;
       }
 
-      .idea-confirmation-overlay {
-        position: fixed;
-        inset: 0;
-        z-index: 99999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding:
-          24px
-          18px
-          calc(24px + env(safe-area-inset-bottom));
-        direction: rtl;
-        background: rgba(15, 23, 42, 0.48);
-        backdrop-filter: blur(10px);
-        opacity: 0;
-        transition: opacity 0.18s ease;
+      .idea-confirmation-overlay,
+      .idea-generator-overlay {
+        position:fixed;
+        inset:0;
+        z-index:99999;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        padding:20px 16px calc(20px + env(safe-area-inset-bottom));
+        direction:rtl;
+        background:rgba(15,23,42,.5);
+        backdrop-filter:blur(10px);
+        opacity:0;
+        transition:opacity .18s ease;
       }
 
-      .idea-confirmation-overlay.visible {
-        opacity: 1;
+      .idea-confirmation-overlay.visible,
+      .idea-generator-overlay.visible {
+        opacity:1;
+      }
+
+      .idea-confirmation-dialog,
+      .idea-generator-dialog {
+        position:relative;
+        width:min(100%,720px);
+        max-height:88vh;
+        overflow-y:auto;
+        box-sizing:border-box;
+        padding:28px 22px 24px;
+        border-radius:28px;
+        background:#fff;
+        box-shadow:0 28px 80px rgba(15,23,42,.28);
       }
 
       .idea-confirmation-dialog {
-        position: relative;
-        width: min(100%, 470px);
-        max-height: min(82vh, 680px);
-        overflow-y: auto;
-        padding: 28px 22px 22px;
-        border-radius: 28px;
-        text-align: right;
-        background: #ffffff;
-        box-shadow: 0 28px 80px rgba(15, 23, 42, 0.28);
-        transform: translateY(12px) scale(0.98);
-        transition: transform 0.18s ease;
-      }
-
-      .idea-confirmation-overlay.visible .idea-confirmation-dialog {
-        transform: translateY(0) scale(1);
+        width:min(100%,470px);
       }
 
       .idea-confirmation-close {
-        position: absolute;
-        top: 14px;
-        left: 15px;
-        width: 36px;
-        height: 36px;
-        border: 0;
-        border-radius: 50%;
-        color: #475467;
-        background: #f2f4f7;
-        font-size: 24px;
-        line-height: 1;
-        cursor: pointer;
+        position:absolute;
+        top:14px;
+        left:15px;
+        width:36px;
+        height:36px;
+        border:0;
+        border-radius:50%;
+        background:#f2f4f7;
+        color:#475467;
+        font-size:24px;
+        cursor:pointer;
       }
 
       .idea-confirmation-icon {
-        display: grid;
-        place-items: center;
-        width: 62px;
-        height: 62px;
-        margin-bottom: 18px;
-        border-radius: 20px;
-        font-size: 30px;
-        background: #101b2f;
+        display:grid;
+        place-items:center;
+        width:62px;
+        height:62px;
+        margin-bottom:18px;
+        border-radius:20px;
+        font-size:30px;
+        background:#101b2f;
       }
 
-      .idea-confirmation-dialog h3 {
-        margin: 0 0 10px;
-        color: #101828;
-        font-size: 24px;
-        line-height: 1.4;
+      .idea-confirmation-field,
+      .idea-generator-field {
+        display:block;
+        margin-top:20px;
       }
 
-      .idea-confirmation-dialog > p {
-        margin: 0;
-        color: #667085;
-        font-size: 15px;
-        line-height: 1.8;
+      .idea-confirmation-field>span,
+      .idea-generator-field>span {
+        display:block;
+        margin-bottom:8px;
+        color:#344054;
+        font-size:13px;
+        font-weight:800;
       }
 
-      .idea-confirmation-field {
-        display: block;
-        margin-top: 20px;
+      .idea-confirmation-field textarea,
+      .idea-generator-field textarea {
+        width:100%;
+        box-sizing:border-box;
+        padding:14px;
+        border:1px solid #d0d5dd;
+        border-radius:15px;
+        color:#101828;
+        background:#fff;
+        font:inherit;
+        outline:none;
       }
 
-      .idea-confirmation-field > span {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 8px;
-        color: #344054;
-        font-size: 13px;
-        font-weight: 800;
+      .idea-generator-field small {
+        display:block;
+        margin-top:6px;
+        color:#98a2b3;
+        text-align:left;
       }
 
-      .idea-confirmation-field em {
-        padding: 3px 7px;
-        border-radius: 999px;
-        color: #b42318;
-        background: #feeceb;
-        font-size: 10px;
-        font-style: normal;
+      .idea-confirmation-actions,
+      .idea-generator-actions {
+        display:grid;
+        grid-template-columns:1fr 1.3fr;
+        gap:10px;
+        margin-top:22px;
       }
 
-      .idea-confirmation-field textarea {
-        width: 100%;
-        min-height: 94px;
-        resize: vertical;
-        box-sizing: border-box;
-        padding: 13px 14px;
-        border: 1px solid #d0d5dd;
-        border-radius: 15px;
-        color: #101828;
-        background: #ffffff;
-        font: inherit;
-        outline: none;
+      .idea-generator-intro {
+        color:#667085;
+        line-height:1.8;
       }
 
-      .idea-confirmation-field textarea:focus {
-        border-color: #3159bf;
-        box-shadow: 0 0 0 4px rgba(49, 89, 191, 0.1);
+      .idea-generator-loading {
+        margin-top:22px;
+        padding:24px;
+        border-radius:20px;
+        text-align:center;
+        background:#f7f8fa;
       }
 
-      .idea-confirmation-actions {
-        display: grid;
-        grid-template-columns: 1fr 1.3fr;
-        gap: 10px;
-        margin-top: 22px;
+      .idea-generator-spinner {
+        width:36px;
+        height:36px;
+        margin:0 auto 12px;
+        border:4px solid #dbe7ff;
+        border-top-color:#3159bf;
+        border-radius:50%;
+        animation:idea-spin .8s linear infinite;
+      }
+
+      @keyframes idea-spin {
+        to { transform:rotate(360deg); }
+      }
+
+      .idea-generator-result {
+        margin-top:22px;
+      }
+
+      .idea-generated-card {
+        padding:18px;
+        border:1px solid #e4e7ec;
+        border-radius:22px;
+        background:#fff;
+      }
+
+      .idea-generated-head {
+        display:flex;
+        align-items:flex-start;
+        justify-content:space-between;
+        gap:12px;
+        margin-bottom:18px;
+      }
+
+      .idea-generated-head h4 {
+        margin:12px 0 0;
+        color:#101828;
+        font-size:22px;
+        line-height:1.5;
+      }
+
+      .idea-generated-grid {
+        display:grid;
+        grid-template-columns:repeat(3,minmax(0,1fr));
+        gap:10px;
+        margin-bottom:18px;
+      }
+
+      .idea-generated-grid>div {
+        padding:13px;
+        border-radius:16px;
+        background:#f7f8fa;
+      }
+
+      .idea-generated-grid span {
+        display:block;
+        color:#667085;
+        font-size:12px;
+      }
+
+      .idea-generated-grid strong {
+        display:block;
+        margin-top:5px;
+        color:#101828;
+      }
+
+      .idea-generated-section {
+        padding:14px 0;
+        border-top:1px solid #eaecf0;
+      }
+
+      .idea-generated-section strong {
+        color:#101828;
+      }
+
+      .idea-generated-section p {
+        margin:7px 0 0;
+        color:#667085;
+        line-height:1.8;
+      }
+
+      .idea-generated-section.executive {
+        padding:16px;
+        border:0;
+        border-radius:16px;
+        background:#edf3ff;
+      }
+
+      .idea-duplicate-alert {
+        margin-bottom:16px;
+        padding:12px 14px;
+        border-radius:15px;
+        background:#f2f4f7;
+      }
+
+      .idea-duplicate-alert.warning {
+        color:#b75c00;
+        background:#fff3d9;
+      }
+
+      .idea-generator-review-note {
+        margin-top:16px;
+        padding:12px 14px;
+        border-radius:14px;
+        color:#667085;
+        background:#f7f8fa;
+        font-size:13px;
+        line-height:1.7;
+      }
+
+      .idea-save-generated {
+        width:100%;
+        margin-top:14px;
+      }
+
+      .idea-generator-error {
+        padding:16px;
+        border-radius:16px;
+        color:#b42318;
+        background:#feeceb;
       }
 
       .idea-workflow-toast {
-        position: fixed;
-        right: 50%;
-        bottom: calc(108px + env(safe-area-inset-bottom));
-        z-index: 100000;
-        width: min(calc(100% - 36px), 420px);
-        box-sizing: border-box;
-        padding: 14px 17px;
-        border-radius: 16px;
-        color: #ffffff;
-        text-align: center;
-        font-size: 14px;
-        font-weight: 800;
-        line-height: 1.6;
-        background: #101b2f;
-        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.25);
-        opacity: 0;
-        transform: translateX(50%) translateY(14px);
-        transition:
-          opacity 0.2s ease,
-          transform 0.2s ease;
+        position:fixed;
+        right:50%;
+        bottom:calc(108px + env(safe-area-inset-bottom));
+        z-index:100000;
+        width:min(calc(100% - 36px),420px);
+        padding:14px 17px;
+        border-radius:16px;
+        color:#fff;
+        text-align:center;
+        font-weight:800;
+        background:#101b2f;
+        opacity:0;
+        transform:translateX(50%) translateY(14px);
+        transition:.2s ease;
       }
 
       .idea-workflow-toast.visible {
-        opacity: 1;
-        transform: translateX(50%) translateY(0);
+        opacity:1;
+        transform:translateX(50%) translateY(0);
       }
 
-      .idea-workflow-toast.error {
-        background: #b42318;
-      }
+      .idea-workflow-toast.error { background:#b42318; }
+      .idea-workflow-toast.success { background:#087d3e; }
 
-      .idea-workflow-toast.success {
-        background: #087d3e;
-      }
-
-      @media (max-width: 900px) {
-        .idea-pipeline-strip {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-      }
-
-      @media (max-width: 720px) {
-        .idea-pipeline-strip {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+      @media (max-width:720px) {
+        .idea-pipeline-strip,
+        .idea-generated-grid {
+          grid-template-columns:repeat(2,minmax(0,1fr));
         }
 
-        .idea-workflow-actions {
-          align-items: stretch;
+        .idea-confirmation-actions,
+        .idea-generator-actions {
+          grid-template-columns:1fr;
         }
 
-        .idea-action-button {
-          flex: 1 1 100%;
-          width: 100%;
-        }
-
-        .idea-action-note {
-          flex-basis: 100%;
-        }
-
-        .idea-confirmation-actions {
-          grid-template-columns: 1fr;
+        .idea-workflow-actions .idea-action-button {
+          width:100%;
         }
       }
     `;
@@ -2374,10 +2851,13 @@ AIW.Modules.ideas = {
   normalizePercent(value, fallback = 0) {
     return Math.min(
       100,
-      Math.max(
-        0,
-        Math.round(this.toSafeNumber(value, fallback))
-      )
+      Math.max(0, Math.round(this.toSafeNumber(value, fallback)))
+    );
+  },
+
+  formatNumber(value) {
+    return new Intl.NumberFormat("en-US").format(
+      this.toSafeNumber(value, 0)
     );
   },
 
