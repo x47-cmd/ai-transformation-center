@@ -1,16 +1,17 @@
 /* =========================================================
-   AI Work - AI Intelligence UI V1.0.1
+   AI Work - AI Intelligence UI V1.0.2
    Enterprise Biometric Intelligence Platform
 
    File Path:
    js/extensions/ai/ai-intelligence-ui.js
 
-   Fixes:
-   - Prevents Dashboard intelligence from attaching to a generic module page
-   - Renders Dashboard intelligence only while Dashboard is the active route
-   - Renders project and idea intelligence only inside their details modal
-   - Prevents MutationObserver feedback loops caused by this extension
-   - Adds mobile overflow protection
+   V1.0.2 Stabilization:
+   - Uses the dedicated Dashboard intelligence slot only
+   - Removes every generic Dashboard container fallback
+   - Prevents AI content from being injected inside the Hero or page root
+   - Keeps project and idea intelligence inside details modals only
+   - Preserves MutationObserver loop protection
+   - Preserves mobile overflow protection
 ========================================================= */
 
 (function bootstrapAIIntelligenceUI(global) {
@@ -19,7 +20,7 @@
   global.AIW = global.AIW || {};
 
   const AIW = global.AIW;
-  const VERSION = "1.0.1";
+  const VERSION = "1.0.2";
   const STYLE_ID = "aiw-ai-intelligence-ui-style";
   const ROOT_ATTRIBUTE = "data-aiw-ai-ui";
   const UI_EVENT = "aiw:ai-ui:updated";
@@ -160,6 +161,11 @@
         margin-top: 18px;
         box-sizing: border-box;
         overflow: hidden;
+      }
+
+      [data-aiw-dashboard-intelligence-slot]
+      > [${ROOT_ATTRIBUTE}="dashboard-intelligence"] {
+        margin-top: 0;
       }
 
       [${ROOT_ATTRIBUTE}] *,
@@ -517,23 +523,15 @@
   function findDashboardContainer() {
     if (!isRouteActive("dashboard")) return null;
 
-    const explicit =
-      document.querySelector('[data-page="dashboard"]') ||
-      document.querySelector("#dashboard") ||
-      document.querySelector(".dashboard-page") ||
-      document.querySelector(".dashboard-module") ||
-      document.querySelector('[data-module-page="dashboard"]');
-
-    if (explicit) return explicit;
-
-    const appMain = document.getElementById("appMain");
-    if (!appMain) return null;
-
-    const directModulePage = Array.from(appMain.children).find((child) =>
-      child.matches?.(".module-page")
+    const dashboardPage = document.querySelector(
+      '[data-page="dashboard"][data-module-page="dashboard"]'
     );
 
-    return directModulePage || null;
+    if (!dashboardPage) return null;
+
+    return dashboardPage.querySelector(
+      "[data-aiw-dashboard-intelligence-slot]"
+    );
   }
 
   function findProjectModal() {
@@ -689,12 +687,12 @@
     if (!container || !insights) return false;
 
     let root = container.querySelector(
-      `[${ROOT_ATTRIBUTE}="dashboard-intelligence"]`
+      `:scope > [${ROOT_ATTRIBUTE}="dashboard-intelligence"]`
     );
 
     if (!root) {
       root = createRoot("dashboard-intelligence");
-      container.appendChild(root);
+      container.replaceChildren(root);
     }
 
     const healthClass = getStatusClass(insights.healthLevel);
@@ -1319,6 +1317,7 @@
       version: VERSION,
       initialized: runtime.initialized,
       activeRoute: getActiveRoute(),
+      dashboardSlotReady: Boolean(findDashboardContainer()),
       lastRenderedAt: runtime.lastRenderedAt
     };
   }
