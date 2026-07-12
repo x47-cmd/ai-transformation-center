@@ -442,15 +442,21 @@
       aria-label="التنقل الرئيسي"
     >
       <button
-        type="button"
-        data-module="dashboard"
-        data-route="dashboard"
-        class="aiw-nav-item nav-item active"
-        aria-current="page"
-      >
-        <span class="nav-icon" aria-hidden="true">⌂</span>
-        <small>الرئيسية</small>
-      </button>
+  type="button"
+  data-module="dashboard"
+  data-route="dashboard"
+  data-aiw-home-button
+  class="aiw-nav-item nav-item active"
+  aria-current="page"
+>
+  <span class="nav-icon aiw-home-icon" aria-hidden="true">
+    <span class="aiw-home-roof"></span>
+    <span class="aiw-home-body"></span>
+    <span class="aiw-home-door"></span>
+  </span>
+
+  <small>الرئيسية</small>
+</button>
 
       <button
         type="button"
