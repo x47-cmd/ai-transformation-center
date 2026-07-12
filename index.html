@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" class="aiw-loading">
 <head>
   <meta charset="UTF-8" />
 
@@ -51,6 +51,36 @@
     rel="stylesheet"
     href="css/enterprise.css?v=3.1.1"
   />
+
+  <!-- ===================================================== -->
+  <!-- Stable Bottom Navigation Icon Fix                     -->
+  <!-- SVG prevents iOS emoji rendering and clipping issues. -->
+  <!-- ===================================================== -->
+
+  <style id="aiw-nav-icon-fix">
+    #bottomNav .nav-icon {
+      display: grid !important;
+      width: 22px !important;
+      height: 22px !important;
+      min-width: 22px !important;
+      place-items: center !important;
+      overflow: visible !important;
+      line-height: 1 !important;
+    }
+
+    #bottomNav .nav-icon svg {
+      display: block !important;
+      width: 21px !important;
+      height: 21px !important;
+      overflow: visible !important;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+  </style>
 
   <!-- ===================================================== -->
   <!-- Critical Branded Loading Screen                      -->
@@ -400,10 +430,6 @@
       }
     }
   </style>
-
-  <script>
-    document.documentElement.classList.add("aiw-loading");
-  </script>
 </head>
 
 <body>
@@ -472,7 +498,7 @@
     id="app"
     class="aiw-app enterprise-app"
     data-aiw-root
-    data-version="5.4.3"
+    data-version="5.4.4"
   >
     <header
       id="appHeader"
@@ -526,7 +552,13 @@
         class="aiw-nav-item nav-item active"
         aria-current="page"
       >
-        <span class="nav-icon" aria-hidden="true">🏠</span>
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M3 10.5 12 3l9 7.5"></path>
+            <path d="M5.5 9.5V21h13V9.5"></path>
+            <path d="M9.5 21v-6h5v6"></path>
+          </svg>
+        </span>
         <small>الرئيسية</small>
       </button>
 
@@ -637,11 +669,11 @@
 
   <!-- ===================================================== -->
   <!-- 8. Core Navigation and Shell                         -->
-  <!-- Shell is initialized only by app.js.                 -->
+  <!-- App is the single navigation and rendering owner.    -->
   <!-- ===================================================== -->
 
-  <script src="js/core/router.js?v=5.0.1"></script>
-  <script src="js/core/shell.js?v=5.0.1"></script>
+  <script src="js/core/router.js?v=5.1.0"></script>
+  <script src="js/core/shell.js?v=5.1.0"></script>
 
   <!-- ===================================================== -->
   <!-- 9. Application Modules                               -->
@@ -665,7 +697,7 @@
   <!-- 10. Application Bootstrap                            -->
   <!-- ===================================================== -->
 
-  <script src="js/core/app.js?v=5.0.2"></script>
+  <script src="js/core/app.js?v=5.1.0"></script>
 
   <!-- ===================================================== -->
   <!-- 11. AI Intelligence Extensions - Phase 7             -->
@@ -698,7 +730,7 @@
 
   <!-- ===================================================== -->
   <!-- 13. Boot Loader Controller                           -->
-  <!-- Hides loader as soon as the first module is rendered. -->
+  <!-- Hides loader after the first real module render.      -->
   <!-- ===================================================== -->
 
   <script>
@@ -715,6 +747,7 @@
 
       let hidden = false;
       let observer = null;
+      let safetyTimer = null;
 
       function hasRenderedContent() {
         if (!appMain) return false;
@@ -740,6 +773,7 @@
         );
 
         observer?.disconnect();
+        window.clearTimeout(safetyTimer);
 
         window.setTimeout(() => {
           loader.remove();
@@ -757,7 +791,7 @@
           window.requestAnimationFrame(() => {
             window.setTimeout(
               hideLoader,
-              120
+              90
             );
           });
         });
@@ -787,20 +821,26 @@
       );
 
       window.addEventListener(
-        "aiw:app:ready",
-        hideLoader,
-        { once: true }
-      );
-
-      window.addEventListener(
-        "aiw:shell:ready",
+        "aiw:appReady",
         checkReady,
         { once: true }
       );
 
-      window.setTimeout(
+      window.addEventListener(
+        "aiw:shellReady",
+        checkReady,
+        { once: true }
+      );
+
+      window.addEventListener(
+        "aiw:moduleRendered",
+        checkReady,
+        { once: true }
+      );
+
+      safetyTimer = window.setTimeout(
         hideLoader,
-        9000
+        7000
       );
     })();
   </script>
