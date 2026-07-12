@@ -1,26 +1,20 @@
 /* =========================================================
-   AI Work - Core App Bootstrap V5.0
+   AI Work - Core App Bootstrap V5.1
    Enterprise Biometric Intelligence Platform
-   Store V2.2 Native Architecture
+   Store V2.3 Native Architecture
 
    File Path:
    js/core/app.js
 
-   Features:
-   - Unified AIW.App bootstrap
-   - Dynamic route registry from AIW.Config
-   - AIW.Router integration without navigation loops
-   - ATCApp legacy compatibility
-   - AIW.Store V2.2 initialization and subscription
-   - Current and previous route persistence
-   - Safe module lifecycle management
-   - Duplicate render prevention
-   - Deferred refresh queue
-   - Dynamic navigation binding
-   - Global platform events
-   - Platform metadata registration
-   - Safe error and missing-module states
-   - No UI design changes
+   V5.1 Performance Stabilization:
+   - AIW.App is the single owner of module rendering
+   - Removes duplicate navigation cycles
+   - Emits one route-changed event per navigation
+   - Stops route changes from writing operational Store metadata
+   - Ignores background integration refresh events
+   - Removes visibility-based forced rerender
+   - Keeps navigation state updates immediate
+   - Preserves legacy ATCApp compatibility
 ========================================================= */
 
 (function () {
@@ -31,7 +25,7 @@
 
   const App = {
     id: "app",
-    version: "5.0.0",
+    version: "5.1.0",
 
     currentRoute: null,
     previousRoute: null,
@@ -49,54 +43,18 @@
     _lastStoreRevision: null,
 
     fallbackRoutes: {
-      dashboard: {
-        id: "dashboard",
-        title: "الرئيسية"
-      },
-      strategy: {
-        id: "strategy",
-        title: "الاستراتيجية"
-      },
-      projects: {
-        id: "projects",
-        title: "المشاريع"
-      },
-      ideas: {
-        id: "ideas",
-        title: "الأفكار"
-      },
-      governance: {
-        id: "governance",
-        title: "الحوكمة"
-      },
-      maturity: {
-        id: "maturity",
-        title: "النضج"
-      },
-      reports: {
-        id: "reports",
-        title: "التقارير"
-      },
-      kpis: {
-        id: "kpis",
-        title: "المؤشرات"
-      },
-      business: {
-        id: "business",
-        title: "الجدوى"
-      },
-      automation: {
-        id: "automation",
-        title: "الأتمتة"
-      },
-      decision: {
-        id: "decision",
-        title: "القرار"
-      },
-      settings: {
-        id: "settings",
-        title: "المزيد"
-      }
+      dashboard: { id: "dashboard", title: "الرئيسية" },
+      strategy: { id: "strategy", title: "الاستراتيجية" },
+      projects: { id: "projects", title: "المشاريع" },
+      ideas: { id: "ideas", title: "الأفكار" },
+      governance: { id: "governance", title: "الحوكمة" },
+      maturity: { id: "maturity", title: "النضج" },
+      reports: { id: "reports", title: "التقارير" },
+      kpis: { id: "kpis", title: "المؤشرات" },
+      business: { id: "business", title: "الجدوى" },
+      automation: { id: "automation", title: "الأتمتة" },
+      decision: { id: "decision", title: "القرار" },
+      settings: { id: "settings", title: "المزيد" }
     },
 
     routeAliases: {
@@ -143,9 +101,9 @@
       preferences: "settings"
     },
 
-    /* =========================================================
-       Configuration and Route Registry
-    ========================================================= */
+    /* =======================================================
+       Configuration
+    ======================================================= */
 
     getConfig() {
       return (
@@ -162,28 +120,20 @@
 
     getRoutes() {
       const configured =
-        this.getConfig()
-          ?.navigation
-          ?.modules;
+        this.getConfig()?.navigation?.modules;
 
       if (Array.isArray(configured)) {
         const routes = {};
 
         configured
-          .filter(item =>
-            item &&
-            item.id &&
-            item.enabled !== false
-          )
+          .filter(item => item && item.id && item.enabled !== false)
           .sort(
             (first, second) =>
               Number(first.order || 0) -
               Number(second.order || 0)
           )
           .forEach(item => {
-            const id =
-              this.normalizeRoute(item.id);
-
+            const id = this.normalizeRoute(item.id);
             if (!id) return;
 
             routes[id] = {
@@ -197,9 +147,7 @@
         }
       }
 
-      return {
-        ...this.fallbackRoutes
-      };
+      return { ...this.fallbackRoutes };
     },
 
     get routes() {
@@ -208,13 +156,9 @@
 
     getDefaultRoute() {
       const configured =
-        this.getConfig()
-          ?.navigation
-          ?.defaultModule;
+        this.getConfig()?.navigation?.defaultModule;
 
-      const resolved =
-        this.resolveRoute(configured);
-
+      const resolved = this.resolveRoute(configured);
       return resolved || "dashboard";
     },
 
@@ -224,22 +168,18 @@
 
     getCurrentModuleKey() {
       return (
-        this.getConfig()
-          ?.storage
-          ?.currentModule ||
+        this.getConfig()?.storage?.currentModule ||
         window.AIW?.KEYS?.currentModule ||
         "aiwCurrentModule"
       );
     },
 
-    /* =========================================================
+    /* =======================================================
        Initialization
-    ========================================================= */
+    ======================================================= */
 
     init(options = {}) {
-      if (this._initialized) {
-        return this;
-      }
+      if (this._initialized) return this;
 
       this._initialized = true;
 
@@ -250,20 +190,14 @@
       this.bindStore();
       this.registerPlatformMetadata();
 
-      const router =
-        this.getRouter();
+      const router = this.getRouter();
 
-      if (
-        router &&
-        typeof router.init === "function"
-      ) {
+      if (router && typeof router.init === "function") {
         try {
-          router.init({
-            navigate: false
-          });
+          router.init({ navigate: false });
         } catch (error) {
           console.warn(
-            "[AIW.App V5.0] Router initialization skipped:",
+            "[AIW.App V5.1] Router initialization skipped:",
             error
           );
         }
@@ -297,43 +231,35 @@
     },
 
     initializeStore() {
-      const store =
-        window.AIW?.Store;
+      const store = window.AIW?.Store;
 
       if (!store) {
         console.warn(
-          "[AIW.App V5.0] AIW.Store is not available during bootstrap."
+          "[AIW.App V5.1] AIW.Store is unavailable during bootstrap."
         );
-
         return false;
       }
 
       try {
-        if (
-          typeof store.init === "function"
-        ) {
+        if (typeof store.init === "function") {
           store.init();
         }
 
         return true;
       } catch (error) {
         console.error(
-          "[AIW.App V5.0] Store initialization failed:",
+          "[AIW.App V5.1] Store initialization failed:",
           error
         );
-
         return false;
       }
     },
 
     registerPlatformMetadata() {
-      const store =
-        window.AIW?.Store;
-
+      const store = window.AIW?.Store;
       if (!store) return false;
 
-      const config =
-        this.getConfig();
+      const config = this.getConfig();
 
       const metadata = {
         appVersion:
@@ -345,33 +271,25 @@
 
         architectureVersion:
           config?.app?.architectureVersion ||
-          "2.2",
-
-        currentModule:
-          this.currentRoute ||
-          this.getDefaultRoute(),
+          "2.3",
 
         lastApplicationStart:
           new Date().toISOString()
       };
 
       try {
-        if (
-          typeof store.setMetadata === "function"
-        ) {
+        if (typeof store.setMetadata === "function") {
           store.setMetadata(metadata);
           return true;
         }
 
-        if (
-          typeof store.updateMetadata === "function"
-        ) {
+        if (typeof store.updateMetadata === "function") {
           store.updateMetadata(metadata);
           return true;
         }
       } catch (error) {
         console.warn(
-          "[AIW.App V5.0] Metadata registration skipped:",
+          "[AIW.App V5.1] Metadata registration skipped:",
           error
         );
       }
@@ -379,9 +297,9 @@
       return false;
     },
 
-    /* =========================================================
+    /* =======================================================
        Route Resolution
-    ========================================================= */
+    ======================================================= */
 
     normalizeRoute(route) {
       return String(route ?? "")
@@ -396,71 +314,32 @@
     },
 
     resolveRoute(route) {
-      const router =
-        this.getRouter();
-
-      if (
-        router &&
-        typeof router.resolve === "function"
-      ) {
-        try {
-          return router.resolve(route);
-        } catch (error) {
-          console.warn(
-            "[AIW.App V5.0] Router resolution failed:",
-            error
-          );
-        }
-      }
-
-      let value =
-        this.normalizeRoute(route);
+      let value = this.normalizeRoute(route);
 
       if (!value) {
         value =
           this.normalizeRoute(
-            this.getConfig()
-              ?.navigation
-              ?.defaultModule
+            this.getConfig()?.navigation?.defaultModule
           ) || "dashboard";
       }
 
       if (this.routeAliases[value]) {
-        value =
-          this.routeAliases[value];
+        value = this.routeAliases[value];
       }
 
-      const routes =
-        this.getRoutes();
+      const routes = this.getRoutes();
 
       return routes[value]
         ? value
         : (
             this.normalizeRoute(
-              this.getConfig()
-                ?.navigation
-                ?.defaultModule
+              this.getConfig()?.navigation?.defaultModule
             ) || "dashboard"
           );
     },
 
     hasRoute(route) {
-      const router =
-        this.getRouter();
-
-      if (
-        router &&
-        typeof router.has === "function"
-      ) {
-        try {
-          return router.has(route);
-        } catch (error) {
-          // Local validation below.
-        }
-      }
-
-      const value =
-        this.normalizeRoute(route);
+      const value = this.normalizeRoute(route);
 
       return Boolean(
         this.getRoutes()[value] ||
@@ -469,20 +348,12 @@
     },
 
     getRoute(route) {
-      const resolved =
-        this.resolveRoute(route);
-
-      return (
-        this.getRoutes()[resolved] ||
-        null
-      );
+      const resolved = this.resolveRoute(route);
+      return this.getRoutes()[resolved] || null;
     },
 
     getCurrentRoute() {
-      return (
-        this.currentRoute ||
-        this.getDefaultRoute()
-      );
+      return this.currentRoute || this.getDefaultRoute();
     },
 
     getPreviousRoute() {
@@ -490,55 +361,44 @@
     },
 
     getRouteFromHash() {
-      const hash =
-        this.normalizeRoute(
-          window.location.hash
-        );
+      const hash = this.normalizeRoute(
+        window.location.hash
+      );
 
       if (!hash) return null;
-
       return this.resolveRoute(hash);
     },
 
-    /* =========================================================
+    /* =======================================================
        Initial Route
-    ========================================================= */
+    ======================================================= */
 
     loadInitialRoute() {
-      const hashRoute =
-        this.getRouteFromHash();
+      const hashRoute = this.getRouteFromHash();
+      const savedRoute = this.getSavedRoute();
 
-      const savedRoute =
-        this.getSavedRoute();
-
-      const initialRoute =
-        this.resolveRoute(
-          hashRoute ||
-          savedRoute ||
-          this.getDefaultRoute()
-        );
-
-      return this.go(
-        initialRoute,
-        {
-          updateHash: true,
-          replaceHash: true,
-          force: true,
-          scrollToTop: false,
-          source: "app-initial"
-        }
+      const initialRoute = this.resolveRoute(
+        hashRoute ||
+        savedRoute ||
+        this.getDefaultRoute()
       );
+
+      return this.go(initialRoute, {
+        updateHash: true,
+        replaceHash: true,
+        force: true,
+        scrollToTop: false,
+        source: "app-initial"
+      });
     },
 
-    /* =========================================================
+    /* =======================================================
        Navigation
-    ========================================================= */
+    ======================================================= */
 
     go(route, options = {}) {
       const config =
-        this.normalizeNavigationOptions(
-          options
-        );
+        this.normalizeNavigationOptions(options);
 
       const resolvedRoute =
         this.resolveRoute(route);
@@ -548,19 +408,14 @@
       }
 
       const routeChanged =
-        resolvedRoute !==
-        this.currentRoute;
+        resolvedRoute !== this.currentRoute;
 
       if (
         !routeChanged &&
         !config.force &&
-        this._lastRenderKey ===
-          resolvedRoute
+        this._lastRenderKey === resolvedRoute
       ) {
-        this.updateNavigationState(
-          resolvedRoute
-        );
-
+        this.updateNavigationState(resolvedRoute);
         return true;
       }
 
@@ -568,8 +423,7 @@
 
       try {
         if (routeChanged) {
-          this.previousRoute =
-            this.currentRoute;
+          this.previousRoute = this.currentRoute;
 
           this.destroyModule(
             this.currentRoute
@@ -597,6 +451,7 @@
               force:
                 config.force ||
                 routeChanged,
+
               source:
                 config.source
             }
@@ -621,13 +476,14 @@
           route: resolvedRoute,
           previousRoute:
             this.previousRoute,
+
           routeInfo:
-            this.getRoute(
-              resolvedRoute
-            ),
+            this.getRoute(resolvedRoute),
+
           rendered,
           source:
             config.source,
+
           timestamp:
             new Date().toISOString()
         };
@@ -642,15 +498,6 @@
           detail
         );
 
-        document.dispatchEvent(
-          new CustomEvent(
-            "aiw:routeChanged",
-            {
-              detail
-            }
-          )
-        );
-
         return rendered;
       } finally {
         this._isNavigating = false;
@@ -658,10 +505,7 @@
     },
 
     navigate(route, options = {}) {
-      return this.go(
-        route,
-        options
-      );
+      return this.go(route, options);
     },
 
     refresh(route = this.currentRoute) {
@@ -681,9 +525,7 @@
     },
 
     normalizeNavigationOptions(options) {
-      if (
-        typeof options === "boolean"
-      ) {
+      if (typeof options === "boolean") {
         return {
           updateHash: options,
           replaceHash: false,
@@ -725,27 +567,27 @@
       const nextHash =
         `#${resolvedRoute}`;
 
-      if (
-        window.location.hash === nextHash
-      ) {
+      if (window.location.hash === nextHash) {
         return resolvedRoute;
       }
 
       try {
-        if (
-          replace &&
-          window.history &&
-          typeof window.history.replaceState ===
-            "function"
-        ) {
-          const nextUrl =
-            `${window.location.pathname}${window.location.search}${nextHash}`;
+        const nextUrl =
+          `${window.location.pathname}` +
+          `${window.location.search}` +
+          `${nextHash}`;
 
-          window.history.replaceState(
-            {
-              route:
-                resolvedRoute
-            },
+        if (
+          window.history &&
+          typeof window.history.pushState === "function"
+        ) {
+          const method =
+            replace
+              ? "replaceState"
+              : "pushState";
+
+          window.history[method](
+            { route: resolvedRoute },
             "",
             nextUrl
           );
@@ -757,7 +599,7 @@
           resolvedRoute;
       } catch (error) {
         console.warn(
-          "[AIW.App V5.0] Hash update failed:",
+          "[AIW.App V5.1] Hash update failed:",
           error
         );
 
@@ -768,14 +610,12 @@
       return resolvedRoute;
     },
 
-    /* =========================================================
+    /* =======================================================
        Navigation Binding
-    ========================================================= */
+    ======================================================= */
 
     bindNavigation() {
-      if (this._navigationBound) {
-        return;
-      }
+      if (this._navigationBound) return;
 
       this._navigationBound = true;
 
@@ -790,12 +630,8 @@
           if (!element) return;
 
           const route =
-            element.getAttribute(
-              "data-route"
-            ) ||
-            element.getAttribute(
-              "data-module"
-            );
+            element.getAttribute("data-route") ||
+            element.getAttribute("data-module");
 
           if (!route) return;
 
@@ -804,9 +640,7 @@
           this.go(route, {
             updateHash: true,
             source:
-              element.hasAttribute(
-                "data-module"
-              )
+              element.hasAttribute("data-module")
                 ? "module-link-click"
                 : "navigation-click"
           });
@@ -831,12 +665,8 @@
           if (!element) return;
 
           const route =
-            element.getAttribute(
-              "data-route"
-            ) ||
-            element.getAttribute(
-              "data-module"
-            );
+            element.getAttribute("data-route") ||
+            element.getAttribute("data-module");
 
           if (!route) return;
 
@@ -858,28 +688,17 @@
         )
         .forEach(item => {
           const rawRoute =
-            item.getAttribute(
-              "data-route"
-            ) ||
-            item.getAttribute(
-              "data-module"
-            );
+            item.getAttribute("data-route") ||
+            item.getAttribute("data-module");
 
           const itemRoute =
-            this.resolveRoute(
-              rawRoute
-            );
+            this.resolveRoute(rawRoute);
 
           const isActive =
             itemRoute === route;
 
           item.classList.toggle(
             "active",
-            isActive
-          );
-
-          item.classList.toggle(
-            "is-active",
             isActive
           );
 
@@ -896,9 +715,9 @@
         });
     },
 
-    /* =========================================================
+    /* =======================================================
        Module Rendering
-    ========================================================= */
+    ======================================================= */
 
     renderModule(route, options = {}) {
       if (!this.main) {
@@ -907,9 +726,8 @@
 
       if (!this.main) {
         console.error(
-          "[AIW.App V5.0] Main application container was not found."
+          "[AIW.App V5.1] Main application container was not found."
         );
-
         return false;
       }
 
@@ -924,17 +742,13 @@
       const renderKey =
         `${resolvedRoute}|${options.force === true}`;
 
-      if (
-        this._isRendering
-      ) {
+      if (this._isRendering) {
         this._pendingRender = {
-          route:
-            resolvedRoute,
-          options:
-            {
-              ...options,
-              force: true
-            }
+          route: resolvedRoute,
+          options: {
+            ...options,
+            force: true
+          }
         };
 
         return false;
@@ -942,8 +756,7 @@
 
       if (
         options.force !== true &&
-        this._lastRenderKey ===
-          resolvedRoute
+        this._lastRenderKey === resolvedRoute
       ) {
         return true;
       }
@@ -963,8 +776,7 @@
       try {
         if (
           module &&
-          typeof module.render ===
-            "function"
+          typeof module.render === "function"
         ) {
           module.render(
             this.main,
@@ -1021,8 +833,7 @@
           return true;
         }
 
-        this._lastRenderKey =
-          null;
+        this._lastRenderKey = null;
 
         this.renderMissingModule(
           resolvedRoute
@@ -1030,11 +841,10 @@
 
         return false;
       } catch (error) {
-        this._lastRenderKey =
-          null;
+        this._lastRenderKey = null;
 
         console.error(
-          `[AIW.App V5.0] Failed to render module "${resolvedRoute}":`,
+          `[AIW.App V5.1] Failed to render module "${resolvedRoute}":`,
           error
         );
 
@@ -1070,8 +880,7 @@
           const pending =
             this._pendingRender;
 
-          this._pendingRender =
-            null;
+          this._pendingRender = null;
 
           window.setTimeout(
             () => {
@@ -1090,14 +899,11 @@
       if (!route) return;
 
       const module =
-        window.AIW?.Modules?.[
-          route
-        ];
+        window.AIW?.Modules?.[route];
 
       if (
         !module ||
-        typeof module.destroy !==
-          "function"
+        typeof module.destroy !== "function"
       ) {
         return;
       }
@@ -1109,7 +915,7 @@
         });
       } catch (error) {
         console.warn(
-          `[AIW.App V5.0] Module cleanup failed for "${route}":`,
+          `[AIW.App V5.1] Module cleanup failed for "${route}":`,
           error
         );
       }
@@ -1144,9 +950,7 @@
 
               <p>
                 لم يتم العثور على دالة العرض داخل
-                <code>AIW.Modules.${this.escapeHTML(
-                  route
-                )}</code>.
+                <code>AIW.Modules.${this.escapeHTML(route)}</code>.
               </p>
             </div>
           </div>
@@ -1173,9 +977,7 @@
             </div>
 
             <div class="settings-action-card executive-about-card">
-              <strong>
-                خطأ في تشغيل الوحدة
-              </strong>
+              <strong>خطأ في تشغيل الوحدة</strong>
 
               <p>
                 ${this.escapeHTML(
@@ -1199,11 +1001,7 @@
       this._refreshTimer =
         window.setTimeout(
           () => {
-            if (
-              !this.currentRoute
-            ) {
-              return;
-            }
+            if (!this.currentRoute) return;
 
             if (this._isRendering) {
               this._pendingRender = {
@@ -1227,17 +1025,16 @@
               }
             );
           },
-          100
+          180
         );
     },
 
-    /* =========================================================
+    /* =======================================================
        Store Connection
-    ========================================================= */
+    ======================================================= */
 
     bindStore() {
-      const store =
-        window.AIW?.Store;
+      const store = window.AIW?.Store;
 
       if (
         !store ||
@@ -1245,6 +1042,28 @@
       ) {
         return;
       }
+
+      const ignoredTypes = new Set([
+        "aiw:metadataChanged",
+        "metadata",
+        "persist",
+        "settingsPersisted",
+        "routeChanged",
+        "integration:updated",
+        "integration:sync",
+        "dashboard:sync",
+        "dashboard:updated",
+        "kpi:recalculated",
+        "kpi:updated",
+        "reports:rebuilt",
+        "reports:updated",
+        "recommendations:updated",
+        "health:updated",
+        "timeline:updated",
+        "notification:updated",
+        "ai-analysis-updated",
+        "aiw:ai-ui:updated"
+      ]);
 
       const onStoreChange =
         change => {
@@ -1263,8 +1082,7 @@
 
           if (
             revision !== null &&
-            revision ===
-              this._lastStoreRevision
+            revision === this._lastStoreRevision
           ) {
             return;
           }
@@ -1274,17 +1092,7 @@
               revision;
           }
 
-          const ignoredTypes = [
-            "aiw:metadataChanged",
-            "metadata",
-            "persist",
-            "settingsPersisted",
-            "routeChanged"
-          ];
-
-          if (
-            ignoredTypes.includes(type)
-          ) {
+          if (ignoredTypes.has(type)) {
             return;
           }
 
@@ -1296,63 +1104,48 @@
 
       try {
         if (
-          typeof store.subscribe ===
-            "function"
+          typeof store.subscribe === "function"
         ) {
           this._storeUnsubscribe =
-            store.subscribe(
-              onStoreChange
-            );
+            store.subscribe(onStoreChange);
 
           return;
         }
 
         if (
-          typeof store.onChange ===
-            "function"
+          typeof store.onChange === "function"
         ) {
           this._storeUnsubscribe =
-            store.onChange(
-              onStoreChange
-            );
+            store.onChange(onStoreChange);
         }
       } catch (error) {
         console.warn(
-          "[AIW.App V5.0] Store subscription failed:",
+          "[AIW.App V5.1] Store subscription failed:",
           error
         );
       }
     },
 
     getPlatformData() {
-      const store =
-        window.AIW?.Store;
+      const store = window.AIW?.Store;
 
       try {
         if (
           store &&
-          typeof store.getState ===
-            "function"
+          typeof store.getState === "function"
         ) {
-          return (
-            store.getState() ||
-            {}
-          );
+          return store.getState() || {};
         }
 
         if (
           store &&
-          typeof store.getData ===
-            "function"
+          typeof store.getData === "function"
         ) {
-          return (
-            store.getData() ||
-            {}
-          );
+          return store.getData() || {};
         }
       } catch (error) {
         console.warn(
-          "[AIW.App V5.0] Unable to read Store data:",
+          "[AIW.App V5.1] Unable to read Store data:",
           error
         );
       }
@@ -1360,9 +1153,9 @@
       return {};
     },
 
-    /* =========================================================
+    /* =======================================================
        Route Persistence
-    ========================================================= */
+    ======================================================= */
 
     saveCurrentRoute(route) {
       const resolvedRoute =
@@ -1375,34 +1168,7 @@
         );
       } catch (error) {
         console.warn(
-          "[AIW.App V5.0] Unable to save current module:",
-          error
-        );
-      }
-
-      const store =
-        window.AIW?.Store;
-
-      try {
-        if (
-          store &&
-          typeof store.setMetadata ===
-            "function"
-        ) {
-          store.setMetadata({
-            currentModule:
-              resolvedRoute,
-
-            previousModule:
-              this.previousRoute,
-
-            lastRouteChange:
-              new Date().toISOString()
-          });
-        }
-      } catch (error) {
-        console.warn(
-          "[AIW.App V5.0] Route metadata update skipped:",
+          "[AIW.App V5.1] Unable to save current module:",
           error
         );
       }
@@ -1418,47 +1184,21 @@
           );
 
         return savedRoute
-          ? this.resolveRoute(
-              savedRoute
-            )
+          ? this.resolveRoute(savedRoute)
           : null;
       } catch (error) {
         return null;
       }
     },
 
-    /* =========================================================
+    /* =======================================================
        Global Events
-    ========================================================= */
+    ======================================================= */
 
     bindGlobalEvents() {
-      if (this._globalEventsBound) {
-        return;
-      }
+      if (this._globalEventsBound) return;
 
       this._globalEventsBound = true;
-
-      window.addEventListener(
-        "hashchange",
-        () => {
-          const route =
-            this.getRouteFromHash() ||
-            this.getDefaultRoute();
-
-          if (
-            route ===
-            this.currentRoute
-          ) {
-            return;
-          }
-
-          this.go(route, {
-            updateHash: false,
-            source:
-              "app-hashchange"
-          });
-        }
-      );
 
       window.addEventListener(
         "popstate",
@@ -1467,17 +1207,13 @@
             this.getRouteFromHash() ||
             this.getDefaultRoute();
 
-          if (
-            route ===
-            this.currentRoute
-          ) {
+          if (route === this.currentRoute) {
             return;
           }
 
           this.go(route, {
             updateHash: false,
-            source:
-              "app-history"
+            source: "app-history"
           });
         }
       );
@@ -1491,32 +1227,24 @@
           if (!route) return;
 
           if (
-            event.detail?.source ===
-              "router" ||
-            event.detail?.source ===
-              "router-push" ||
-            event.detail?.source ===
-              "router-replace"
+            event.detail?.source === "app" ||
+            event.detail?.source === "router"
           ) {
             return;
           }
 
           this.go(route, {
             updateHash:
-              event.detail
-                .updateHash !== false,
+              event.detail.updateHash !== false,
 
             replaceHash:
-              event.detail
-                .replaceHash === true,
+              event.detail.replaceHash === true,
 
             force:
-              event.detail
-                .force === true,
+              event.detail.force === true,
 
             source:
-              event.detail
-                .source ||
+              event.detail.source ||
               "app-custom-event"
           });
         }
@@ -1541,8 +1269,7 @@
 
           if (
             route &&
-            this.resolveRoute(route) ===
-              this.currentRoute
+            this.resolveRoute(route) === this.currentRoute
           ) {
             this.scheduleRefresh(
               "module-registered"
@@ -1550,38 +1277,19 @@
           }
         }
       );
-
-      document.addEventListener(
-        "visibilitychange",
-        () => {
-          if (
-            document.visibilityState ===
-              "visible" &&
-            this.currentRoute
-          ) {
-            this.scheduleRefresh(
-              "visibility"
-            );
-          }
-        }
-      );
     },
 
-    /* =========================================================
+    /* =======================================================
        Page Helpers
-    ========================================================= */
+    ======================================================= */
 
     updateDocumentTitle(route) {
       const routeInfo =
         this.getRoute(route);
 
       const platformName =
-        this.getConfig()
-          ?.app
-          ?.shortName ||
-        this.getConfig()
-          ?.app
-          ?.name ||
+        this.getConfig()?.app?.shortName ||
+        this.getConfig()?.app?.name ||
         "AI Work";
 
       const pageTitle =
@@ -1605,8 +1313,7 @@
 
       if (
         this.main &&
-        typeof this.main.scrollTo ===
-          "function"
+        typeof this.main.scrollTo === "function"
       ) {
         try {
           this.main.scrollTo({
@@ -1627,16 +1334,14 @@
         window.dispatchEvent(
           new CustomEvent(
             name,
-            {
-              detail
-            }
+            { detail }
           )
         );
 
         return true;
       } catch (error) {
         console.warn(
-          `[AIW.App V5.0] Event "${name}" failed:`,
+          `[AIW.App V5.1] Event "${name}" failed:`,
           error
         );
 
@@ -1653,9 +1358,9 @@
         .replace(/'/g, "&#039;");
     },
 
-    /* =========================================================
+    /* =======================================================
        Cleanup
-    ========================================================= */
+    ======================================================= */
 
     destroy() {
       window.clearTimeout(
@@ -1667,14 +1372,13 @@
       );
 
       if (
-        typeof this._storeUnsubscribe ===
-          "function"
+        typeof this._storeUnsubscribe === "function"
       ) {
         try {
           this._storeUnsubscribe();
         } catch (error) {
           console.warn(
-            "[AIW.App V5.0] Store unsubscribe failed:",
+            "[AIW.App V5.1] Store unsubscribe failed:",
             error
           );
         }
@@ -1694,30 +1398,26 @@
     }
   };
 
-  /* =========================================================
+  /* =======================================================
      Global References
-  ========================================================= */
+  ======================================================= */
 
   AIW.App = App;
   window.ATCApp = App;
 
-  /* =========================================================
+  /* =======================================================
      Bootstrap
-  ========================================================= */
+  ======================================================= */
 
   const bootstrap = () => {
     AIW.App.init();
   };
 
-  if (
-    document.readyState === "loading"
-  ) {
+  if (document.readyState === "loading") {
     document.addEventListener(
       "DOMContentLoaded",
       bootstrap,
-      {
-        once: true
-      }
+      { once: true }
     );
   } else {
     bootstrap();
